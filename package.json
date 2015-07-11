@@ -1,0 +1,24 @@
+{
+  "name": "rts",
+  "version": "0.0.2",
+  "license": "GPL-2.0",
+  "repository" : {
+    "type" : "git",
+    "url" : "http://github.com/emnh/rts.git"
+  },
+  "dependencies": {
+    "browserify": "*",
+    "babelify": "*"
+  },
+  "devDependencies": {
+    "jslint": "*",
+    "eslint": "*",
+    "babel-eslint": "*"
+  },
+  "engines": {
+    "node": "0.12.x",
+    "npm": "2.x.x"
+  },
+  "scripts": {
+  }
+}
