@@ -36,3 +36,47 @@ a {
 .linkback a {
 	color: #1155aa;
 }
+
+/************** RTS UI *****************/
+
+.controls {
+  position: absolute;
+  border: 1px solid black;
+  padding: 0px;
+  margin: 0px;
+  height: 200px;
+  width: 100%;
+  bottom: 0px;
+  overflow: hide;
+  background: black;
+  color: white;
+}
+
+.minimap,
+.unitinfo,
+.actions {
+  border: 1px dotted black;
+  display: inline-block;
+  float: left;
+  height: 100%;
+  width: 33.333%;
+  margin: 0px;
+  padding: 0px;
+  box-sizing: border-box;
+  text-align: center;
+  vertical-align: center;
+  overflow: hide;
+}
+
+.minimap {
+  width: 30%;
+}
+
+.unitinfo {
+  padding-top: 5%;
+  width: 40%;
+}
+
+.actions {
+  width: 30%;
+}

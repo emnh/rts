@@ -39,7 +39,7 @@ initScene = function() {
     35,
     window.innerWidth / window.innerHeight,
     1,
-    1000
+    10000
   );
   camera.position.set( 60, 50, 200 );
   camera.lookAt( scene.position );
@@ -167,7 +167,7 @@ createShape = (function() {
       Math.random() * Math.PI
     );
     
-    if ( addshapes ) {
+    if (shapes < 100 && addshapes ) {
       shape.addEventListener( 'ready', createShape );
     }
     scene.add( shape );
@@ -178,7 +178,7 @@ createShape = (function() {
   };
   
   return function() {
-    setTimeout( doCreateShape, 250 );
+    setTimeout( doCreateShape, 1 );
   };
 })();
 
