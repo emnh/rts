@@ -3,6 +3,11 @@
 /* global
  * $, THREE, Stats, Physijs, TWEEN
  */
+
+const jQuery = require('jquery');
+global.jQuery = jQuery;
+const bootstrap = require('bootstrap');
+
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 

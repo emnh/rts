@@ -7,6 +7,8 @@
     "url" : "http://github.com/emnh/rts.git"
   },
   "dependencies": {
+    "jquery": "*",
+    "bootstrap": "*",
     "browserify": "*",
     "babelify": "*"
   },

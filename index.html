@@ -5,6 +5,12 @@
 <head>
 	<title>Heightfield - Physijs</title>
 	
+  <!-- Latest bootstrap compiled and minified CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+
+  <!-- Optional theme -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+
 	<link rel="stylesheet" type="text/css" href="css/styles.css" />
 	
 	<script type="text/javascript" src="jscache/three.min.js"></script>
@@ -13,6 +19,7 @@
 	<script type="text/javascript" src="jscache/simplex-noise.js"></script>
 	<script type="text/javascript" src="jscache/physi.js"></script>
 	<script type="text/javascript" src="jscache/OrbitControls.js"></script>
+
   <script type="text/javascript" src="bundle.js"></script>
 </head>
 
@@ -21,7 +28,14 @@
   <div class="controls"><!--
     --><div class="minimap">Minimap</div><!--
     --><div class="unitinfo">Unit Info</div><!--
-    --><div class="actions">Actions</div><!--
+    --><div class="actions"><h3>Actions</h3>
+      <button type="button" class="btn btn-default btn-lg">
+        <span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span> Move
+      </button>
+      <button type="button" class="btn btn-default btn-lg">
+        <span class="glyphicon glyphicon-flash" aria-hidden="true"></span> Attack
+      </button><!--
+    --></div><!--
     -->
   </div>
 </body>
