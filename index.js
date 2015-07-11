@@ -131,7 +131,12 @@ createShape = (function() {
   );
     
   doCreateShape = function() {
-    var shape, material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
+    var shape;
+    // material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
+    var texture = THREE.ImageUtils.loadTexture( 'images/bricks.jpg' );
+    texture.anisotropy = renderer.getMaxAnisotropy();
+
+    var material = new THREE.MeshBasicMaterial( { map: texture } );
     
     switch ( Math.floor(Math.random() * 2) ) {
       case 0:
