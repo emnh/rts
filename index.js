@@ -25,6 +25,25 @@ const sceneHeight = window.innerHeight - controlsHeight;
 var raycaster;
 const selectables = [];
 let cameraControls;
+const config = {
+  camera: {
+    mouseControl: true,
+    X: 0,
+    Y: 0,
+    Z: 0,
+    rotationX: 0,
+    rotationY: 0,
+    rotationZ: 0
+  },
+  debug: {
+    mouseX: 0,
+    mouseY: 0,
+  }
+};
+
+function isObject(obj) {
+  return Object.prototype.toString.call(obj) == '[object Object]';
+}
 
 initScene = function() {
   
@@ -149,16 +168,47 @@ initScene = function() {
 function initSelection() {
   const mouseElement = renderer.domElement;
   const selector = new Selection();
-  const handler = selector.getOnMouseMove(mouse, mouseElement);
+  const handler = selector.getOnMouseMove(config, mouse, mouseElement);
   $(mouseElement).mousemove(handler);
 }
 
-function initUI() {
-  const $cameraEnabled = $("#cameraEnabled");
-  $cameraEnabled.change((evt) => {
-    console.log($cameraEnabled.prop("checked"));
-    cameraControls.enabled = $cameraEnabled.prop("checked");
+function initDAT() {
+  const gui = new dat.GUI();
+  const controllers = {};
+
+  // automagic dat GUI init from config
+  for (let varName in config) {
+    if (config.hasOwnProperty(varName)) {
+      const inner = config[varName];
+      if (isObject(inner)) {
+        const folder = gui.addFolder(varName);
+        for (let varName2 in inner) {
+          if (inner.hasOwnProperty(varName2)) {
+            const controller = folder.add(inner, varName2);
+            controller.listen();
+            controllers[varName + "." + varName2] = controller;
+          }
+        }
+        folder.open();
+      } else {
+        const controller = gui.add(config, varName);
+        controller.listen();
+        controllers[varName] = controller;
+      }
+    }
+  }
+  controllers['camera.rotationX'].step(0.01);
+  controllers['camera.rotationY'].step(0.01);
+  controllers['camera.rotationZ'].step(0.01);
+  controllers['debug.mouseX'].step(0.01);
+  controllers['debug.mouseY'].step(0.01);
+  controllers['camera.mouseControl'].onChange(() => {
+    cameraControls.enabled = config.camera.mouseControl;
   });
+}
+
+function initUI() {
+  initDAT();
 }
 
 function checkIntersect(raycaster, selectables, mouse, camera) {
@@ -188,18 +238,18 @@ function checkIntersect(raycaster, selectables, mouse, camera) {
 }
 
 function updateCameraInfo() {
-  const $cameraInfo = $(".camerainfo");
   const x = camera.position.x;
   const y = camera.position.y;
   const z = camera.position.z;
   const xr = camera.rotation.x;
   const yr = camera.rotation.y;
   const zr = camera.rotation.z;
-  let s = "<h4>Camera</h4>";
-  s += `<div>X: ${x}, ${xr}</div>`;
-  s += `<div>Y: ${y}, ${yr}</div>`;
-  s += `<div>Z: ${z}, ${zr}</div>`;
-  $cameraInfo.html(s);
+  config.camera.X = x;
+  config.camera.Y = y;
+  config.camera.Z = z;
+  config.camera.rotationX = xr;
+  config.camera.rotationY = yr;
+  config.camera.rotationZ = zr;
 }
 
 render = function() {
