@@ -11,9 +11,9 @@ Unfinished project. Testing.
 ## Code
  - Fix eslint warnings and errors
  - Refactor index.js to use gameState for all globals
+ - Use PlaneBufferGeometry
 
 ## Functionality
- - Resize on window resize
  - Select unit
  - Move selected unit on click
   - Waypoint queue
