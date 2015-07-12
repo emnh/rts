@@ -7,6 +7,12 @@ Unfinished project. Testing.
  - [Three.js](http://threejs.org/)
 
 # TODO
+
+## Code
+ - Fix eslint warnings and errors
+ - Refactor index.js to use gameState for all globals
+
+## Functionality
  - Select unit
  - Move selected unit on click
   - Waypoint queue
