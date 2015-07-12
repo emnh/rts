@@ -13,6 +13,7 @@ Unfinished project. Testing.
  - Refactor index.js to use gameState for all globals
 
 ## Functionality
+ - Resize on window resize
  - Select unit
  - Move selected unit on click
   - Waypoint queue
