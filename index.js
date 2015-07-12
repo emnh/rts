@@ -19,8 +19,8 @@ var initScene, render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
 var INTERSECTED, mouse = {};
 const controlsHeight = 250;
-const sceneWidth = window.innerWidth;
-const sceneHeight = window.innerHeight - controlsHeight; 
+let sceneWidth = window.innerWidth;
+let sceneHeight = window.innerHeight - controlsHeight; 
 //$(".controls").css({ height: controlsHeight + "px" });
 var raycaster;
 const selectables = [];
@@ -47,7 +47,7 @@ function isObject(obj) {
 
 initScene = function() {
   
-  $(".controls").height(controlsHeight);
+  $('.controls').height(controlsHeight);
   
   TWEEN.start();
 
@@ -55,7 +55,8 @@ initScene = function() {
   renderer.setSize(sceneWidth, sceneHeight);
   renderer.shadowMapEnabled = true;
   renderer.shadowMapSoft = true;
-  document.getElementById('viewport').appendChild(renderer.domElement);
+  $('#viewport').append(renderer.domElement);
+  $('#viewport').height(sceneHeight);
 
   raycaster = new THREE.Raycaster();
 
@@ -63,13 +64,13 @@ initScene = function() {
   render_stats.domElement.style.position = 'absolute';
   render_stats.domElement.style.top = '0px';
   render_stats.domElement.style.zIndex = 100;
-  document.getElementById( 'viewport' ).appendChild( render_stats.domElement );
+  $('body').append(render_stats.domElement);
 
   physics_stats = new Stats();
   physics_stats.domElement.style.position = 'absolute';
   physics_stats.domElement.style.top = '50px';
   physics_stats.domElement.style.zIndex = 100;
-  document.getElementById( 'viewport' ).appendChild( physics_stats.domElement );
+  $('body').append(physics_stats.domElement);
 
   scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
   scene.setGravity(new THREE.Vector3( 0, -30, 0 ));
@@ -116,7 +117,8 @@ initScene = function() {
     .4 // low restitution
   );
   ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
-  ground_material.map.repeat.set( 2.5, 2.5 );
+  //ground_material.map.repeat.set( 2.5, 2.5 );
+  ground_material.map.repeat.set( 10.0, 10.0 );
 
   // Ground
   NoiseGen = new SimplexNoise;
@@ -124,10 +126,10 @@ initScene = function() {
   const xFaces = 100;
   const yFaces = 100;
   const groundScale = 50;
-  ground_geometry = new THREE.PlaneGeometry(250, 250, xFaces, yFaces);
+  ground_geometry = new THREE.PlaneGeometry(1000, 1000, xFaces, yFaces);
   for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
     var vertex = ground_geometry.vertices[i];
-    vertex.z = NoiseGen.noise( vertex.x / 10, vertex.y / 10 ) * 4;
+    vertex.z = NoiseGen.noise( vertex.x / 100, vertex.y / 100 ) * 16;
   }
   ground_geometry.computeFaceNormals();
   ground_geometry.computeVertexNormals();
@@ -207,8 +209,19 @@ function initDAT() {
   });
 }
 
+function onResize() {
+  sceneWidth = window.innerWidth;
+  sceneHeight = window.innerHeight - controlsHeight;
+  $('#viewport').height(sceneHeight);
+  $(renderer.domElement).height(sceneHeight);
+  camera.aspect = sceneWidth / sceneHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(sceneWidth, sceneHeight);
+}
+
 function initUI() {
   initDAT();
+  $(window).resize(onResize);
 }
 
 function checkIntersect(raycaster, selectables, mouse, camera) {
@@ -263,7 +276,7 @@ render = function() {
 createShape = (function() {
   var addshapes = true,
     shapes = 0,
-    box_geometry = new THREE.CubeGeometry( 3, 3, 3 ),
+    box_geometry = new THREE.BoxGeometry( 3, 3, 3 ),
     sphere_geometry = new THREE.SphereGeometry( 1.5, 32, 32 ),
     cylinder_geometry = new THREE.CylinderGeometry( 2, 2, 1, 32 ),
     cone_geometry = new THREE.CylinderGeometry( 0, 2, 4, 32 ),

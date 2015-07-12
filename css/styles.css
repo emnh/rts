@@ -40,12 +40,10 @@ a {
 /************** RTS UI *****************/
 
 .controls {
-  position: absolute;
   border: 1px solid blue;
   padding: 0px;
   margin: 0px;
   width: 100%;
-  bottom: 0px;
   overflow: hide;
   background: black;
   color: white;
