@@ -125,8 +125,11 @@ initScene = function() {
   scene.add(ground);
 
   // Camera and controls
+  
+  // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.Material());
+
   planeMesh.rotation.x = ground.rotation.x;
   const controls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
   controls.minDistance = 10;
