@@ -15,7 +15,7 @@ const Selection = require('./js/Selection.js').Selection;
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
-var initScene, render, createShape, NoiseGen,
+var render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
 var INTERSECTED, mouse = {};
 const controlsHeight = 250;
@@ -25,6 +25,8 @@ let sceneHeight = window.innerHeight - controlsHeight;
 var raycaster;
 const selectables = [];
 let cameraControls;
+let moveSkybox;
+
 const config = {
   camera: {
     mouseControl: true,
@@ -45,7 +47,56 @@ function isObject(obj) {
   return Object.prototype.toString.call(obj) == '[object Object]';
 }
 
-initScene = function() {
+function loadSkyBox() {
+  const cubeMap = new THREE.Texture([]);
+  cubeMap.format = THREE.RGBFormat;
+  cubeMap.flipY = false;
+
+  const loader = new THREE.ImageLoader();
+  loader.load( 'images/sky.jpg', function(image) {
+    const getSide = function(x, y) {
+      var size = 1024;
+      var canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+
+      var context = canvas.getContext('2d');
+      context.drawImage(image, - x * size, - y * size);
+
+      return canvas;
+    };
+
+    cubeMap.image[0] = getSide(2, 1); // px
+    cubeMap.image[1] = getSide(0, 1); // nx
+    cubeMap.image[2] = getSide(1, 0); // py
+    cubeMap.image[3] = getSide(1, 2); // ny
+    cubeMap.image[4] = getSide(1, 1); // pz
+    cubeMap.image[5] = getSide(3, 1); // nz
+    cubeMap.needsUpdate = true;
+  });
+
+  var cubeShader = THREE.ShaderLib['cube'];
+  cubeShader.uniforms['tCube'].value = cubeMap;
+
+  var skyBoxMaterial = new THREE.ShaderMaterial( {
+    fragmentShader: cubeShader.fragmentShader,
+    vertexShader: cubeShader.vertexShader,
+    uniforms: cubeShader.uniforms,
+    depthWrite: false,
+    side: THREE.BackSide
+  });
+
+  const boxSize = 10000;
+
+  var skyBox = new THREE.Mesh(
+        new THREE.BoxGeometry(boxSize, boxSize, boxSize),
+        skyBoxMaterial
+      );
+
+  return skyBox;
+}
+
+function initScene() {
   
   $('.controls').height(controlsHeight);
   
@@ -82,7 +133,7 @@ initScene = function() {
     }
   );
 
-  const frustumFar = 10000;
+  const frustumFar = 100000;
   const frustumNear = 1;
   camera = new THREE.PerspectiveCamera(
     35,
@@ -145,6 +196,14 @@ initScene = function() {
   ground.receiveShadow = true;
   //ground.scale.set(groundScale, groundScale, groundScale);
   scene.add(ground);
+
+  const skyBox = loadSkyBox();
+  scene.add(skyBox);
+  moveSkybox = function() {
+    skyBox.position.x = camera.position.x;
+    skyBox.position.x = camera.position.y;
+    skyBox.position.z = camera.position.z;
+  };
 
   // Camera and controls
   
@@ -267,6 +326,7 @@ function updateCameraInfo() {
 
 render = function() {
   updateCameraInfo();
+  moveSkybox();
   checkIntersect(raycaster, selectables, mouse, camera);
   renderer.render(scene, camera);
   render_stats.update();
@@ -328,7 +388,7 @@ createShape = (function() {
     );
 
     shapes++;
-    if (shapes < 100 && addshapes ) {
+    if (shapes < 200 && addshapes ) {
       shape.addEventListener( 'ready', createShape );
     }
     scene.add(shape);
