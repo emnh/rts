@@ -17,7 +17,6 @@ Physijs.scripts.ammo = 'ammo.js';
 
 var render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
-var INTERSECTED, mouse = {};
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight; 
@@ -228,9 +227,17 @@ function initScene() {
 
 function initSelection() {
   const mouseElement = renderer.domElement;
-  const selector = new Selection();
-  const handler = selector.getOnMouseMove(config, mouse, mouseElement);
+  const selector = new Selection({
+    raycaster,
+    selectables,
+    camera,
+    ground
+  });
+  const handler = selector.getOnMouseMove(config, mouseElement);
   $(mouseElement).mousemove(handler);
+
+  const downHandler = selector.getOnMouseDown();
+  $(mouseElement).mousedown(downHandler);
 }
 
 function initDAT() {
@@ -283,31 +290,7 @@ function initUI() {
   $(window).resize(onResize);
 }
 
-function checkIntersect(raycaster, selectables, mouse, camera) {
-  raycaster.setFromCamera( mouse, camera );
 
-  var intersects = raycaster.intersectObjects(selectables);
-
-  if ( intersects.length > 0 ) {
-
-    if ( INTERSECTED != intersects[ 0 ].object ) {
-
-      if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-
-      INTERSECTED = intersects[ 0 ].object;
-      INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
-      INTERSECTED.material.emissive.setHex( 0xff0000 );
-
-    }
-
-  } else {
-
-    if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
-
-    INTERSECTED = null;
-
-  }
-}
 
 function updateCameraInfo() {
   const x = camera.position.x;
@@ -327,7 +310,6 @@ function updateCameraInfo() {
 render = function() {
   updateCameraInfo();
   moveSkybox();
-  checkIntersect(raycaster, selectables, mouse, camera);
   renderer.render(scene, camera);
   render_stats.update();
   requestAnimationFrame(render);
