@@ -6,7 +6,7 @@
 
 // It is an adaptation of the three.js OrbitControls class to map environments
 
-MapControls = function(camera, mesh, renderFunction, domElement) {
+export function MapControls(camera, mesh, renderFunction, domElement) {
 
   this.object = camera;
 	this.camera = camera;
@@ -43,7 +43,7 @@ MapControls = function(camera, mesh, renderFunction, domElement) {
 
 		if ( lastPosition.distanceTo( this.camera.position ) > 0 ) {
 
-			render();
+			this.render();
 			lastPosition.copy( this.camera.position );
 
 		}

@@ -9,6 +9,9 @@ const $ = jQuery;
 global.jQuery = jQuery;
 const bootstrap = require('bootstrap');
 
+const MapControls = require('./js/MapControls.js').MapControls;
+const Selection = require('./js/Selection.js').Selection;
+
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
@@ -20,7 +23,8 @@ const sceneWidth = window.innerWidth;
 const sceneHeight = window.innerHeight - controlsHeight; 
 //$(".controls").css({ height: controlsHeight + "px" });
 var raycaster;
-const selectable = [];
+const selectables = [];
+let cameraControls;
 
 initScene = function() {
   
@@ -67,11 +71,8 @@ initScene = function() {
     frustumFar
   );
   //camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
-  //const controls = new THREE.OrbitControls(camera, renderer.domElement);
-
 
   scene.add(camera);
-
 
   // Light
   light = new THREE.DirectionalLight( 0xFFFFFF );
@@ -128,14 +129,14 @@ initScene = function() {
   
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
-  const planeMesh = new THREE.Mesh(plane, new THREE.Material());
+  const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
 
   planeMesh.rotation.x = ground.rotation.x;
-  const controls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
-  controls.minDistance = 10;
-  controls.maxDistance = 1000;
+  planeMesh.visible = false;
+  cameraControls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
+  cameraControls.minDistance = 10;
+  cameraControls.maxDistance = 1000;
   camera.position.set(107, 114, 82);
-  //camera.rotation.set(-0.94, 0.65, 0.70);
   camera.lookAt(scene.position);
   scene.add(planeMesh);
 
@@ -143,15 +144,27 @@ initScene = function() {
   scene.simulate();
 
   createShape();
-
-  const mouseElement = renderer.domElement;
-  $(mouseElement).mousemove(getOnMouseMove(mouseElement));
 };
 
-function checkIntersect(raycaster, selectable, mouse, camera) {
+function initSelection() {
+  const mouseElement = renderer.domElement;
+  const selector = new Selection();
+  const handler = selector.getOnMouseMove(mouse, mouseElement);
+  $(mouseElement).mousemove(handler);
+}
+
+function initUI() {
+  const $cameraEnabled = $("#cameraEnabled");
+  $cameraEnabled.change((evt) => {
+    console.log($cameraEnabled.prop("checked"));
+    cameraControls.enabled = $cameraEnabled.prop("checked");
+  });
+}
+
+function checkIntersect(raycaster, selectables, mouse, camera) {
   raycaster.setFromCamera( mouse, camera );
 
-  var intersects = raycaster.intersectObjects(selectable);
+  var intersects = raycaster.intersectObjects(selectables);
 
   if ( intersects.length > 0 ) {
 
@@ -174,16 +187,6 @@ function checkIntersect(raycaster, selectable, mouse, camera) {
   }
 }
 
-function getOnMouseMove(element) {
-  const $mouseinfo = $(".mouseinfo");
-  const $element = $(element);
-  return function(evt) {
-    mouse.x = ( evt.clientX / $element.width() ) * 2 - 1;
-    mouse.y = - ( evt.clientY / $element.height() ) * 2 + 1;
-    $mouseinfo.html(`<h4>Mouse</h4><div>X: ${mouse.x}</div><div>Y: ${mouse.y}</div>`);
-  };
-}
-
 function updateCameraInfo() {
   const $cameraInfo = $(".camerainfo");
   const x = camera.position.x;
@@ -201,7 +204,7 @@ function updateCameraInfo() {
 
 render = function() {
   updateCameraInfo();
-  checkIntersect(raycaster, selectable, mouse, camera);
+  checkIntersect(raycaster, selectables, mouse, camera);
   renderer.render(scene, camera);
   render_stats.update();
   requestAnimationFrame(render);
@@ -223,6 +226,7 @@ createShape = (function() {
     // material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
     var texture = THREE.ImageUtils.loadTexture( 'images/bricks.jpg' );
     texture.anisotropy = renderer.getMaxAnisotropy();
+    texture.minFilter = THREE.NearestFilter;
 
     var material = new THREE.MeshLambertMaterial( { map: texture } );
 
@@ -265,7 +269,7 @@ createShape = (function() {
       shape.addEventListener( 'ready', createShape );
     }
     scene.add(shape);
-    selectable.push(shape);
+    selectables.push(shape);
 
     new TWEEN.Tween(shape.material).to({opacity: 1}, 500).start();
   };
@@ -275,4 +279,10 @@ createShape = (function() {
   };
 })();
 
-$(initScene);
+function main() {
+  initScene();
+  initSelection();
+  initUI();
+}
+
+$(main);
