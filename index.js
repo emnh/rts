@@ -15,7 +15,7 @@ Physijs.scripts.ammo = 'ammo.js';
 var initScene, render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
 var INTERSECTED, mouse = {};
-const controlsHeight = 300;
+const controlsHeight = 250;
 const sceneWidth = window.innerWidth;
 const sceneHeight = window.innerHeight - controlsHeight; 
 //$(".controls").css({ height: controlsHeight + "px" });
@@ -58,19 +58,20 @@ initScene = function() {
     }
   );
 
+  const frustumFar = 10000;
+  const frustumNear = 1;
   camera = new THREE.PerspectiveCamera(
     35,
     sceneWidth / sceneHeight,
-    1,
-    10000
+    frustumNear,
+    frustumFar
   );
   //camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
-  camera.position.set(120, 120, 50);
-  camera.rotation.set(-1.15, 0.35, 0.67);
-  //camera.lookAt(scene.position);
+  //const controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+
   scene.add(camera);
 
-  var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
   // Light
   light = new THREE.DirectionalLight( 0xFFFFFF );
@@ -122,6 +123,18 @@ initScene = function() {
   ground.receiveShadow = true;
   //ground.scale.set(groundScale, groundScale, groundScale);
   scene.add(ground);
+
+  // Camera and controls
+  const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
+  const planeMesh = new THREE.Mesh(plane, new THREE.Material());
+  planeMesh.rotation.x = ground.rotation.x;
+  const controls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
+  controls.minDistance = 10;
+  controls.maxDistance = 1000;
+  camera.position.set(107, 114, 82);
+  //camera.rotation.set(-0.94, 0.65, 0.70);
+  camera.lookAt(scene.position);
+  scene.add(planeMesh);
 
   requestAnimationFrame(render);
   scene.simulate();
