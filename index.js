@@ -5,6 +5,7 @@
  */
 
 const jQuery = require('jquery');
+const $ = jQuery;
 global.jQuery = jQuery;
 const bootstrap = require('bootstrap');
 
@@ -13,15 +14,27 @@ Physijs.scripts.ammo = 'ammo.js';
 
 var initScene, render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
+var INTERSECTED, mouse = {};
+const controlsHeight = 300;
+const sceneWidth = window.innerWidth;
+const sceneHeight = window.innerHeight - controlsHeight; 
+//$(".controls").css({ height: controlsHeight + "px" });
+var raycaster;
+const selectable = [];
 
 initScene = function() {
+  
+  $(".controls").height(controlsHeight);
+  
   TWEEN.start();
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.setSize(sceneWidth, sceneHeight);
   renderer.shadowMapEnabled = true;
   renderer.shadowMapSoft = true;
-  document.getElementById( 'viewport' ).appendChild( renderer.domElement );
+  document.getElementById('viewport').appendChild(renderer.domElement);
+
+  raycaster = new THREE.Raycaster();
 
   render_stats = new Stats();
   render_stats.domElement.style.position = 'absolute';
@@ -47,13 +60,15 @@ initScene = function() {
 
   camera = new THREE.PerspectiveCamera(
     35,
-    window.innerWidth / window.innerHeight,
+    sceneWidth / sceneHeight,
     1,
     10000
   );
-  camera.position.set( 60, 50, 200 );
-  camera.lookAt( scene.position );
-  scene.add( camera );
+  //camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
+  camera.position.set(120, 120, 50);
+  camera.rotation.set(-1.15, 0.35, 0.67);
+  //camera.lookAt(scene.position);
+  scene.add(camera);
 
   var controls = new THREE.OrbitControls(camera, renderer.domElement);
 
@@ -85,37 +100,95 @@ initScene = function() {
   // Ground
   NoiseGen = new SimplexNoise;
 
-  ground_geometry = new THREE.PlaneGeometry( 275, 275, 50, 50 );
+  const xFaces = 100;
+  const yFaces = 100;
+  const groundScale = 50;
+  ground_geometry = new THREE.PlaneGeometry(250, 250, xFaces, yFaces);
   for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
     var vertex = ground_geometry.vertices[i];
-    vertex.z = NoiseGen.noise( vertex.x / 10, vertex.y / 10 ) * 2;
+    vertex.z = NoiseGen.noise( vertex.x / 10, vertex.y / 10 ) * 4;
   }
   ground_geometry.computeFaceNormals();
   ground_geometry.computeVertexNormals();
 
-  // If your plane is not square as far as face count then the HeightfieldMesh
-  // takes two more arguments at the end: # of x faces and # of y faces that were passed to THREE.PlaneMaterial
   ground = new Physijs.HeightfieldMesh(
     ground_geometry,
     ground_material,
     0, // mass
-    50,
-    50
+    xFaces,
+    yFaces
   );
   ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
-  scene.add( ground );
+  //ground.scale.set(groundScale, groundScale, groundScale);
+  scene.add(ground);
 
-  requestAnimationFrame( render );
+  requestAnimationFrame(render);
   scene.simulate();
 
   createShape();
+
+  const mouseElement = renderer.domElement;
+  $(mouseElement).mousemove(getOnMouseMove(mouseElement));
 };
 
+function checkIntersect(raycaster, selectable, mouse, camera) {
+  raycaster.setFromCamera( mouse, camera );
+
+  var intersects = raycaster.intersectObjects(selectable);
+
+  if ( intersects.length > 0 ) {
+
+    if ( INTERSECTED != intersects[ 0 ].object ) {
+
+      if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+
+      INTERSECTED = intersects[ 0 ].object;
+      INTERSECTED.currentHex = INTERSECTED.material.emissive.getHex();
+      INTERSECTED.material.emissive.setHex( 0xff0000 );
+
+    }
+
+  } else {
+
+    if ( INTERSECTED ) INTERSECTED.material.emissive.setHex( INTERSECTED.currentHex );
+
+    INTERSECTED = null;
+
+  }
+}
+
+function getOnMouseMove(element) {
+  const $mouseinfo = $(".mouseinfo");
+  const $element = $(element);
+  return function(evt) {
+    mouse.x = ( evt.clientX / $element.width() ) * 2 - 1;
+    mouse.y = - ( evt.clientY / $element.height() ) * 2 + 1;
+    $mouseinfo.html(`<h4>Mouse</h4><div>X: ${mouse.x}</div><div>Y: ${mouse.y}</div>`);
+  };
+}
+
+function updateCameraInfo() {
+  const $cameraInfo = $(".camerainfo");
+  const x = camera.position.x;
+  const y = camera.position.y;
+  const z = camera.position.z;
+  const xr = camera.rotation.x;
+  const yr = camera.rotation.y;
+  const zr = camera.rotation.z;
+  let s = "<h4>Camera</h4>";
+  s += `<div>X: ${x}, ${xr}</div>`;
+  s += `<div>Y: ${y}, ${yr}</div>`;
+  s += `<div>Z: ${z}, ${zr}</div>`;
+  $cameraInfo.html(s);
+}
+
 render = function() {
-  requestAnimationFrame( render );
-  renderer.render( scene, camera );
+  updateCameraInfo();
+  checkIntersect(raycaster, selectable, mouse, camera);
+  renderer.render(scene, camera);
   render_stats.update();
+  requestAnimationFrame(render);
 };
 
 createShape = (function() {
@@ -129,24 +202,13 @@ createShape = (function() {
     torus_geometry = new THREE.TorusKnotGeometry ( 1.7, .2, 32, 4 ),
     doCreateShape;
 
-  setTimeout(
-    function addListener() {
-      var button = document.getElementById( 'stop' );
-      if ( button ) {
-        button.addEventListener( 'click', function() { addshapes = false; } );
-      } else {
-        setTimeout( addListener );
-      }
-    }
-  );
-
   doCreateShape = function() {
     var shape;
     // material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
     var texture = THREE.ImageUtils.loadTexture( 'images/bricks.jpg' );
     texture.anisotropy = renderer.getMaxAnisotropy();
 
-    var material = new THREE.MeshBasicMaterial( { map: texture } );
+    var material = new THREE.MeshLambertMaterial( { map: texture } );
 
     switch ( Math.floor(Math.random() * 2) ) {
       case 0:
@@ -182,14 +244,14 @@ createShape = (function() {
       Math.random() * Math.PI
     );
 
+    shapes++;
     if (shapes < 100 && addshapes ) {
       shape.addEventListener( 'ready', createShape );
     }
-    scene.add( shape );
+    scene.add(shape);
+    selectable.push(shape);
 
     new TWEEN.Tween(shape.material).to({opacity: 1}, 500).start();
-
-    document.getElementById('shapecount').textContent = (++shapes) + ' shapes created';
   };
 
   return function() {
@@ -197,4 +259,4 @@ createShape = (function() {
   };
 })();
 
-window.onload = initScene;
+$(initScene);

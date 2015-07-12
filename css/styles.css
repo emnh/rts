@@ -41,10 +41,9 @@ a {
 
 .controls {
   position: absolute;
-  border: 1px solid black;
+  border: 1px solid blue;
   padding: 0px;
   margin: 0px;
-  height: 200px;
   width: 100%;
   bottom: 0px;
   overflow: hide;
@@ -73,7 +72,7 @@ a {
 }
 
 .unitinfo {
-  padding-top: 5%;
+  /* padding-top: 5%; */
   width: 40%;
 }
 
