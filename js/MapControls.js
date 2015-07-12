@@ -64,8 +64,6 @@ MapControls = function(camera, mesh, renderFunction, domElement) {
 			var mouseY = -( event.clientY / window.innerHeight ) * 2 + 1;
 
 			vector = new THREE.Vector3( mouseX, mouseY, camera.near );
-			//projector = new THREE.Projector();
-			//projector.unprojectVector( vector, camera );
       vector.unproject(camera);
 			raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 			intersects = raycaster.intersectObject( mesh );
@@ -81,9 +79,6 @@ MapControls = function(camera, mesh, renderFunction, domElement) {
 			state = STATE.ROTATE;
 
 			vector = new THREE.Vector3( 0, 0, camera.near );
-
-			//projector = new THREE.Projector();
-			//projector.unprojectVector( vector, camera );
       vector.unproject(camera);
 			raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 			intersects = raycaster.intersectObject( mesh );
@@ -115,8 +110,6 @@ MapControls = function(camera, mesh, renderFunction, domElement) {
 			var mouseY = -( event.clientY / window.innerHeight ) * 2 + 1;
 
 			vector = new THREE.Vector3( mouseX, mouseY, camera.near );
-			//projector = new THREE.Projector();
-			//projector.unprojectVector( vector, camera );
       vector.unproject(camera);
 			raycaster = new THREE.Raycaster( camera.position, vector.sub( camera.position ).normalize() );
 			intersects = raycaster.intersectObject( mesh );
