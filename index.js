@@ -123,7 +123,7 @@ function initScene() {
   $('body').append(physics_stats.domElement);
 
   scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  scene.setGravity(new THREE.Vector3( 0, -100, 0 ));
+  scene.setGravity(new THREE.Vector3( 0, -1000, 0 ));
   scene.addEventListener(
     'update',
     function() {
@@ -179,7 +179,7 @@ function initScene() {
   ground_geometry = new THREE.PlaneGeometry(1000, 1000, xFaces, yFaces);
   for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
     var vertex = ground_geometry.vertices[i];
-    vertex.z = NoiseGen.noise( vertex.x / 100, vertex.y / 100 ) * 16;
+    vertex.z = NoiseGen.noise( vertex.x / 100, vertex.y / 100 ) * 8;
   }
   ground_geometry.computeFaceNormals();
   ground_geometry.computeVertexNormals();
@@ -232,15 +232,18 @@ function loadTank() {
     texture.anisotropy = renderer.getMaxAnisotropy();
     texture.minFilter = THREE.NearestFilter;
     const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture });
+    const friction = .8; // high friction
+    const restitution = .0; // low restitution
+    const pmaterial = Physijs.createMaterial(material, friction, restitution);
     material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
-    material.map.repeat.set( 1.0, 1.0 );
+    material.map.repeat.set( 0.1, 0.1 );
     //const object = new THREE.Mesh(geometry, material);
     for (let i = 0; i < 100; i++) {
-      const object = new Physijs.BoxMesh(geometry, material.clone());
+      const object = new Physijs.BoxMesh(geometry, pmaterial.clone());
       const scale = 0.05;
       geometry.computeBoundingBox();
       object.scale.set(scale, scale, scale);
-      const areaSize = 100;
+      const areaSize = 1000;
       object.position.x = Math.random() * areaSize - areaSize / 2;
       object.position.y = 10;
       object.position.z = Math.random() * areaSize - areaSize / 2;
