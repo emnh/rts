@@ -14,8 +14,12 @@ Unfinished project. Testing.
  - Use PlaneBufferGeometry
 
 ## Functionality
- - Select unit
- - Move selected unit on click
+ - Export/import terrain as JSON
+ - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
+ - Select more than unit with ctrl or shift
+ - Move selected unit according to its move speed
+  - Need to trace a path in terrain, or adjust velocity to gradient for each
+    step
   - Waypoint queue
  - Select rectangular area of units
   - Transparent rectangle to indicate selection
@@ -26,3 +30,8 @@ Unfinished project. Testing.
  - Health bars
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
+
+## Server needed
+ - Multiplayer
+  - Store game state on server
+  - Synchronization
