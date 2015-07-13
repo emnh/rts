@@ -27,6 +27,9 @@ let cameraControls;
 let moveSkybox;
 
 const config = {
+  terrain: {
+    maxHeight: 32
+  },
   camera: {
     mouseControl: true,
     X: 0,
@@ -123,30 +126,58 @@ function initScene() {
   $('body').append(physics_stats.domElement);
 
   scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  scene.setGravity(new THREE.Vector3( 0, -1000, 0 ));
+  scene.setGravity(new THREE.Vector3( 0, -1000, 0));
+  let count = 0;
   scene.addEventListener(
     'update',
     function() {
-      for (let obj of selectables) {
+      let first = true;
+      //for (let obj of selectables) {
+      for (let i = 0; i < selectables.length; i++) {
+        const obj = selectables[i];
+        if (first) {
+          console.log(obj.position.x, obj.position.y, obj.position.z);
+          first = false;
+        }
         if (obj.stayUpRight) {
-          // limit vertical rotation
-          if (!obj.__dirtyRotation) {
-          //obj.rotation.x = Math.min(obj.rotation.x, Math.PI / 8);
-          //obj.rotation.z = Math.min(obj.rotation.z, Math.PI / 8);
-            //obj.rotation.x = 0;
-            //obj.rotation.z = 0;
-            //obj.__dirtyRotation = true;
-            const velocity = new THREE.Vector3(0, 0, 0);
-            //obj.setLinearVelocity(velocity);
-            obj.setAngularVelocity(velocity);
-            obj.setAngularFactor(velocity);
+          //obj.__dirtyRotation = true;
+          //const velocity = new THREE.Vector3(0, 0, 0);
+          //obj.setLinearVelocity(velocity);
+          
+          // limit vertical rotation to make object stay upright
+          const avelocity = obj.getAngularVelocity(velocity);
+          avelocity.x = 0;
+          //avelocity.y = 0;
+          avelocity.z = 0;
+          obj.setAngularVelocity(avelocity);
+
+          /*const avelocityFactor = obj.getAngularFactor();
+          avelocityFactor.x = 0;
+          //avelocity.y = 0;
+          avelocityFactor.z = 0;
+          obj.setAngularFactor(avelocityFactor);*/
+
+          // make tanks drive around a bit
+          const velocity = obj.getLinearVelocity();
+          const strength = 1e8;
+          const zAxis = new THREE.Vector3(0, 0, strength);
+          zAxis.applyQuaternion(obj.quaternion);
+          const acceleration = zAxis;
+          const speed = velocity.length();
+          const maxSpeed = 100.0;
+          acceleration.y = 0;
+          if (speed < maxSpeed) {
+            obj.applyCentralImpulse(acceleration);
           }
+          //obj.applyForce(test, offset);
+          //obj.applyImpulse(test, offset);
+          //obj.setAngularFactor(velocity);
         }
       }
-      scene.simulate(undefined, 2);
+      scene.simulate(undefined, 1);
       physics_stats.update();
     }
-  );
+    );
 
   const frustumFar = 100000;
   const frustumNear = 1;
@@ -195,7 +226,10 @@ function initScene() {
   ground_geometry = new THREE.PlaneGeometry(1000, 1000, xFaces, yFaces);
   for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
     var vertex = ground_geometry.vertices[i];
-    vertex.z = (NoiseGen.noise(vertex.x / 100, vertex.y / 100) + 1) / 2 * 16;
+    const noise = NoiseGen.noise(vertex.x / 100, vertex.y / 100);
+    // normalize [-1,1] to [0,1]
+    const normalNoise = (noise + 1) / 2;
+    vertex.z = normalNoise * config.terrain.maxHeight;
   }
   ground_geometry.computeFaceNormals();
   ground_geometry.computeVertexNormals();
@@ -231,7 +265,8 @@ function initScene() {
   cameraControls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
-  camera.position.set(107, 114, 82);
+  //camera.position.set(107, 114, 82);
+  camera.position.set(320, 340, 245);
   camera.lookAt(scene.position);
   scene.add(planeMesh);
 
@@ -239,7 +274,7 @@ function initScene() {
   scene.simulate();
 
   loadTank();
-  createShape();
+  //createShape();
 };
 
 function getGroundHeight(x, z) {
@@ -421,7 +456,7 @@ createShape = (function() {
 
     shape.position.set(
       Math.random() * 30 - 15,
-      20,
+      40,
       Math.random() * 30 - 15
     );
 
