@@ -163,8 +163,8 @@ function initScene() {
   // Materials
   ground_material = Physijs.createMaterial(
     new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.png' ) }),
-    .8, // high friction
-    .4 // low restitution
+    0.8, // high friction
+    0.0 // low restitution
   );
   ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
   //ground_material.map.repeat.set( 2.5, 2.5 );
@@ -179,7 +179,7 @@ function initScene() {
   ground_geometry = new THREE.PlaneGeometry(1000, 1000, xFaces, yFaces);
   for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
     var vertex = ground_geometry.vertices[i];
-    vertex.z = NoiseGen.noise( vertex.x / 100, vertex.y / 100 ) * 8;
+    vertex.z = (NoiseGen.noise(vertex.x / 100, vertex.y / 100) + 1) / 2 * 16;
   }
   ground_geometry.computeFaceNormals();
   ground_geometry.computeVertexNormals();
@@ -226,17 +226,29 @@ function initScene() {
   createShape();
 };
 
+function getGroundHeight(x, z) {
+  const origin = new THREE.Vector3(x, 1000, z);
+  const direction = new THREE.Vector3(0, -1, 0);
+  raycaster.set(origin, direction);
+  const intersects = raycaster.intersectObject(ground);
+  if (intersects.length > 0) {
+    return intersects[0].point.y;
+  }
+  console.warn("failed to get height");
+  return 0;
+}
+
 function loadTank() {
   function onSuccess(geometry) {
     const texture = THREE.ImageUtils.loadTexture('models/images/camouflage.jpg');
     texture.anisotropy = renderer.getMaxAnisotropy();
     texture.minFilter = THREE.NearestFilter;
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.repeat.set( 0.2, 0.2 );
     const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture });
-    const friction = .8; // high friction
-    const restitution = .0; // low restitution
+    const friction = 0.8; // high friction
+    const restitution = 0.0; // low restitution
     const pmaterial = Physijs.createMaterial(material, friction, restitution);
-    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
-    material.map.repeat.set( 0.1, 0.1 );
     //const object = new THREE.Mesh(geometry, material);
     for (let i = 0; i < 100; i++) {
       const object = new Physijs.BoxMesh(geometry, pmaterial.clone());
@@ -245,8 +257,10 @@ function loadTank() {
       object.scale.set(scale, scale, scale);
       const areaSize = 1000;
       object.position.x = Math.random() * areaSize - areaSize / 2;
-      object.position.y = 10;
       object.position.z = Math.random() * areaSize - areaSize / 2;
+      const height = object.geometry.boundingBox.max.y * object.scale.y;
+      const groundHeight = getGroundHeight(object.position.x, object.position.z);
+      object.position.y = groundHeight + height + 10;
       scene.add(object);
       selectables.push(object);
     }
