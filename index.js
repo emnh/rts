@@ -127,7 +127,23 @@ function initScene() {
   scene.addEventListener(
     'update',
     function() {
-      scene.simulate( undefined, 2 );
+      for (let obj of selectables) {
+        if (obj.stayUpRight) {
+          // limit vertical rotation
+          if (!obj.__dirtyRotation) {
+          //obj.rotation.x = Math.min(obj.rotation.x, Math.PI / 8);
+          //obj.rotation.z = Math.min(obj.rotation.z, Math.PI / 8);
+            //obj.rotation.x = 0;
+            //obj.rotation.z = 0;
+            //obj.__dirtyRotation = true;
+            const velocity = new THREE.Vector3(0, 0, 0);
+            //obj.setLinearVelocity(velocity);
+            obj.setAngularVelocity(velocity);
+            obj.setAngularFactor(velocity);
+          }
+        }
+      }
+      scene.simulate(undefined, 2);
       physics_stats.update();
     }
   );
@@ -163,7 +179,7 @@ function initScene() {
   // Materials
   ground_material = Physijs.createMaterial(
     new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.png' ) }),
-    0.8, // high friction
+    1.0, // high friction
     0.0 // low restitution
   );
   ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
@@ -261,6 +277,8 @@ function loadTank() {
       const height = object.geometry.boundingBox.max.y * object.scale.y;
       const groundHeight = getGroundHeight(object.position.x, object.position.z);
       object.position.y = groundHeight + height + 10;
+      object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+      object.stayUpRight = true;
       scene.add(object);
       selectables.push(object);
     }
