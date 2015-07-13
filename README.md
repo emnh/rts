@@ -16,6 +16,7 @@ Unfinished project. Testing.
  - Use PlaneBufferGeometry for ground
 
 ## Functionality
+ - Fix more RTS-like tank movement
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Select more than unit with ctrl or shift
