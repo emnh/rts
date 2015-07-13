@@ -52,7 +52,7 @@ function loadSkyBox() {
   cubeMap.flipY = false;
 
   const loader = new THREE.ImageLoader();
-  loader.load( 'images/sky.jpg', function(image) {
+  loader.load( 'models/images/sky.jpg', function(image) {
     const getSide = function(x, y) {
       var size = 1024;
       var canvas = document.createElement('canvas');
@@ -162,7 +162,7 @@ function initScene() {
 
   // Materials
   ground_material = Physijs.createMaterial(
-    new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'images/grass.png' ) }),
+    new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.png' ) }),
     .8, // high friction
     .4 // low restitution
   );
@@ -222,8 +222,35 @@ function initScene() {
   requestAnimationFrame(render);
   scene.simulate();
 
+  loadTank();
   createShape();
 };
+
+function loadTank() {
+  function onSuccess(geometry) {
+    const texture = THREE.ImageUtils.loadTexture('models/images/camouflage.jpg');
+    texture.anisotropy = renderer.getMaxAnisotropy();
+    texture.minFilter = THREE.NearestFilter;
+    const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture });
+    material.map.wrapS = material.map.wrapT = THREE.RepeatWrapping;
+    material.map.repeat.set( 1.0, 1.0 );
+    //const object = new THREE.Mesh(geometry, material);
+    for (let i = 0; i < 100; i++) {
+      const object = new Physijs.BoxMesh(geometry, material.clone());
+      const scale = 0.05;
+      geometry.computeBoundingBox();
+      object.scale.set(scale, scale, scale);
+      const areaSize = 100;
+      object.position.x = Math.random() * areaSize - areaSize / 2;
+      object.position.y = 10;
+      object.position.z = Math.random() * areaSize - areaSize / 2;
+      scene.add(object);
+      selectables.push(object);
+    }
+  }
+  const loader = new THREE.BufferGeometryLoader();
+  loader.load("models/3d/tank-m1a1.json", onSuccess);
+}
 
 function initSelection() {
   const mouseElement = renderer.domElement;
@@ -329,7 +356,7 @@ createShape = (function() {
   doCreateShape = function() {
     var shape;
     // material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
-    var texture = THREE.ImageUtils.loadTexture( 'images/bricks.jpg' );
+    var texture = THREE.ImageUtils.loadTexture( 'models/images/bricks.jpg' );
     texture.anisotropy = renderer.getMaxAnisotropy();
     texture.minFilter = THREE.NearestFilter;
 
