@@ -10,7 +10,8 @@
     "jquery": "*",
     "bootstrap": "*",
     "browserify": "*",
-    "babelify": "*"
+    "babelify": "*",
+    "three": "*"
   },
   "devDependencies": {
     "jslint": "*",
