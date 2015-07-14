@@ -818,7 +818,9 @@ window.Physijs = (function() {
 	};
 
 	Physijs.Scene.prototype.add = function( object ) {
-		THREE.Mesh.prototype.add.call( this, object );
+    if (object instanceof THREE.Object3D) {
+      THREE.Mesh.prototype.add.call( this, object );
+    }
 
 		if ( object._physijs ) {
 
