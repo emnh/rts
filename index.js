@@ -16,7 +16,7 @@ Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
 var render, createShape, NoiseGen,
-  renderer, render_stats, physics_stats, scene, light, ground, ground_geometry, ground_material, camera;
+  renderer, render_stats, physics_stats, scene, light, ground, groundGeometry, ground_material, camera;
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight; 
@@ -26,11 +26,18 @@ const selectables = [];
 let cameraControls;
 let moveSkybox;
 let selector;
+let heightField = [];
+let redSphere;
+let blueSpheres;
 const units = [];
 
 const config = {
   terrain: {
-    maxHeight: 32
+    maxHeight: 32,
+    xFaces: 100,
+    yFaces: 100,
+    width: 1000,
+    height: 1000
   },
   camera: {
     mouseControl: true,
@@ -47,6 +54,22 @@ const config = {
   }
 };
 
+function alignToGround(object) {
+  // set velocity
+  const zAxis = new THREE.Vector3(0, 0, 0.1);
+  zAxis.applyQuaternion(object.quaternion);
+  zAxis.y = 0;
+  const xzDirection = zAxis;
+  //object.setLinearVelocity(xzDirection);
+  object.position.x += xzDirection.x;
+  object.position.z += xzDirection.z;
+  
+  // align to ground
+  const groundHeight = getGroundHeight(object.position.x, object.position.z);
+  const size = getSize(object.geometry);
+  object.position.y = groundHeight + size.height * object.scale.y;
+}
+
 function getSize(geometry) {
   return {
     height: geometry.boundingBox.max.x - geometry.boundingBox.min.x,
@@ -58,6 +81,18 @@ function getSize(geometry) {
 function formatFloat(f, decimals=2) {
   const mul = Math.pow(10, decimals);
   return Math.round(f * mul) / mul;
+}
+
+function mix(a, b, alpha) {
+  return a + (b - a) * alpha;
+}
+
+function isInt(n){
+  return Number(n) === n && n % 1 === 0;
+}
+
+function isFloat(n){
+  return n === Number(n) && n % 1 !== 0;
 }
 
 function isObject(obj) {
@@ -143,69 +178,7 @@ function initScene() {
   scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
   scene.setGravity(new THREE.Vector3( 0, -100, 0));
   let count = 0;
-  scene.addEventListener(
-    'update',
-    function() {
-      //for (let obj of selectables) {
-      for (let i = 0; i < selectables.length; i++) {
-        const obj = selectables[i];
-        if (obj.stayUpRight) {
-          //obj.__dirtyRotation = true;
-          //const velocity = new THREE.Vector3(0, 0, 0);
-          //obj.setLinearVelocity(velocity);
-          
-          // limit vertical rotation to make object stay upright
-          const avelocity = obj.getAngularVelocity(velocity);
-          avelocity.x = 0;
-          avelocity.y = 0;
-          avelocity.z = 0;
-          //obj.setAngularVelocity(avelocity);
-
-          /*const avelocityFactor = obj.getAngularFactor();
-          avelocityFactor.x = 0;
-          //avelocity.y = 0;
-          avelocityFactor.z = 0;
-          obj.setAngularFactor(avelocityFactor);*/
-
-          // make tanks drive around a bit
-          const velocity = obj.getLinearVelocity();
-          const strength = 1e9;
-          //const strength = 1e1;
-          const zAxis = new THREE.Vector3(0, -strength, strength);
-          //const depth = obj.geometry.boundingBox.max.z - obj.geometry.boundingBox.min.z;
-          //const offset = new THREE.Vector3(0, 0, -depth);
-          zAxis.applyQuaternion(obj.quaternion);
-          const acceleration = zAxis;
-          const speed = velocity.length();
-          const maxSpeed = 100.0;
-          acceleration.y = 0;
-          if (speed < maxSpeed) {
-            //obj.vehicle.setSteering(-1, 0);
-            //obj.vehicle.setSteering(1, 1);
-            obj.vehicle.applyEngineForce(1e10);
-            //obj.applyCentralImpulse(acceleration);
-            //obj.applyImpulse(acceleration, offset);
-          } else {
-            obj.vehicle.applyEngineForce(0);
-          }
-          //velocity.y = -speed;
-          obj.setLinearVelocity(velocity);
-
-          // align tank with ground
-          /*const bbox = obj.geometry.boundingBox;
-          bbox.min.multiply(obj.scale);
-          bbox.max.multiply(obj.scale);
-          const pos = obj.position;*/
-
-          //obj.applyForce(test, offset);
-          //obj.applyImpulse(test, offset);
-          //obj.setAngularFactor(velocity);
-        }
-      }
-      scene.simulate(undefined, 1);
-      physics_stats.update();
-    }
-    );
+  scene.addEventListener('update', updateSimulation);
 
   const frustumFar = 100000;
   const frustumNear = 1;
@@ -248,37 +221,48 @@ function initScene() {
   // Ground
   NoiseGen = new SimplexNoise;
 
-  const xFaces = 100;
-  const yFaces = 100;
-  const groundScale = 50;
-  ground_geometry = new THREE.PlaneGeometry(1000, 1000, xFaces, yFaces);
-  for ( var i = 0; i < ground_geometry.vertices.length; i++ ) {
-    var vertex = ground_geometry.vertices[i];
-    const noise = NoiseGen.noise(vertex.x / 100, vertex.y / 100);
+  const groundWidth = 1000;
+  const groundHeight = 1000;
+  groundGeometry = new THREE.PlaneGeometry(
+      config.terrain.width,
+      config.terrain.height,
+      config.terrain.xFaces,
+      config.terrain.yFaces);
+  groundGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
+  for (let i = 0; i <= config.terrain.xFaces; i++) {
+    heightField[i] = [];
+  }
+  for (let i = 0; i < groundGeometry.vertices.length; i++ ) {
+    var vertex = groundGeometry.vertices[i];
+    const noise = NoiseGen.noise(vertex.x / 100, vertex.z / 100);
+    //const noise = Math.sin(vertex.x / 100) + Math.sin(vertex.y / 10);
     // normalize [-1,1] to [0,1]
     const normalNoise = (noise + 1) / 2;
-    vertex.z = normalNoise * config.terrain.maxHeight;
+    const xi = (vertex.x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
+    const yi = (vertex.z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
+    vertex.y = normalNoise * config.terrain.maxHeight;
+    heightField[xi][yi] = vertex.y;
+    //console.log(i, vertex.x, vertex.y, xi, yi, gh);
   }
-  ground_geometry.computeFaceNormals();
-  ground_geometry.computeVertexNormals();
+  groundGeometry.computeFaceNormals();
+  groundGeometry.computeVertexNormals();
 
   ground = new Physijs.HeightfieldMesh(
-    ground_geometry,
+    groundGeometry,
     ground_material,
     0, // mass
-    xFaces,
-    yFaces
+    config.terrain.xFaces,
+    config.terrain.yFaces
   );
-  ground.rotation.x = Math.PI / -2;
+  //ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
-  //ground.scale.set(groundScale, groundScale, groundScale);
   scene.add(ground);
 
   const skyBox = loadSkyBox();
   scene.add(skyBox);
   moveSkybox = function() {
     skyBox.position.x = camera.position.x;
-    skyBox.position.x = camera.position.y;
+    skyBox.position.y = camera.position.y;
     skyBox.position.z = camera.position.z;
   };
 
@@ -288,7 +272,7 @@ function initScene() {
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
 
-  planeMesh.rotation.x = ground.rotation.x;
+  planeMesh.rotation.x = Math.PI / -2; //ground.rotation.x;
   planeMesh.visible = false;
   cameraControls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
   cameraControls.minDistance = 10;
@@ -301,12 +285,117 @@ function initScene() {
   requestAnimationFrame(render);
   scene.simulate();
 
+  function loadSphere(color) {
+    const geometry = new THREE.BoxGeometry(4, 4, 4);
+    const material = new THREE.MeshLambertMaterial({ color: color });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+    return mesh;
+  }
+  redSphere = loadSphere(0xFF0000);
+  blueSpheres = [];
+  blueSpheres.push(loadSphere(0x0000FF));
+  blueSpheres.push(loadSphere(0x0000FF));
+  blueSpheres.push(loadSphere(0x0000FF));
+  blueSpheres.push(loadSphere(0x0000FF));
+  const greenSpheres = [];
+  for (let i = 0; i < groundGeometry.vertices.length; i++) {
+    const vertex = groundGeometry.vertices[i];
+    console.log("v", vertex.x, vertex.y, vertex.z);
+    let gh;
+    try {
+      gh = getGroundHeight(vertex.x, vertex.y);
+    } catch(err) {
+      gh = -137;
+    }
+    /*const sphere = loadSphere(0x00FF00);
+    sphere.position.x = vertex.x;
+    sphere.position.y = vertex.y;
+    sphere.position.z = gh;*/
+  }
+
   loadTank();
   //createShape();
 };
 
-function getGroundHeight(x, z) {
-  const origin = new THREE.Vector3(x, 1000, z);
+function clearLog() {
+  const $debug = $(".debug");
+  $debug.html("");
+}
+
+function log(...args) {
+  const $debug = $(".debug");
+  let s = "";
+  for (let arg of args) {
+    if (isFloat(arg)) {
+      arg = formatFloat(arg);
+    }
+    s += arg + " ";
+  }
+  s += "<br/>"
+  $debug.append(s);
+}
+
+function getGroundHeight(x, y) {
+  const xd = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
+  const yd = (y + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
+  const xi = Math.floor(xd);
+  const yi = Math.floor(yd);
+
+  // https://en.wikipedia.org/wiki/Bilinear_interpolation
+  const x1 = x - (xd % 1) * config.terrain.width / config.terrain.xFaces;
+  const x2 = x1 + 1 * config.terrain.width / config.terrain.xFaces;
+  const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
+  const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
+  //clearLog();
+  //log("x, y", x, y, "x1, x2", x1, x2, "y1, y2", y1, y2); 
+  if (xi < 0 ||
+      yi < 0 ||
+      xi >= heightField.length ||
+      xi + 1 >= heightField.length ||
+      yi >= heightField[xi].length ||
+      yi + 1 >= heightField[xi].length) {
+      return 0;
+  }
+  const fQ11 = heightField[xi][yi];
+  const fQ21 = heightField[xi + 1][yi];
+  const fQ12 = heightField[xi][yi + 1];
+  const fQ22 = heightField[xi + 1][yi + 1];
+
+  const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
+  const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
+  const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
+  //log("xi, yi", xi, yi, "f", fQ11, fQ21, fQ12, fQ22, "fx", fxy1, fxy2);
+
+  /*
+  redSphere.position.x = x;
+  redSphere.position.y = fyy;
+  redSphere.position.z = y;
+
+  blueSpheres[0].position.x = x1;
+  blueSpheres[0].position.y = fQ11;
+  blueSpheres[0].position.z = y1;
+
+  blueSpheres[1].position.x = x2;
+  blueSpheres[1].position.y = fQ21;
+  blueSpheres[1].position.z = y1;
+
+  blueSpheres[2].position.x = x1;
+  blueSpheres[2].position.y = fQ12;
+  blueSpheres[2].position.z = y2;
+
+  blueSpheres[3].position.x = x2;
+  blueSpheres[3].position.y = fQ22;
+  blueSpheres[3].position.z = y2;
+  */
+
+  return fyy;
+}
+
+function getGroundHeightRay(x, y) {
+  const z = y;
+
+  const origin = new THREE.Vector3(x, config.terrain.maxHeight + 1, z);
   const direction = new THREE.Vector3(0, -1, 0);
   raycaster.set(origin, direction);
   const intersects = raycaster.intersectObject(ground);
@@ -359,27 +448,20 @@ function loadTank() {
     
     for (let i = 0; i < 100; i++) {
       const mass = 100.0;
-      const object = new Physijs.BoxMesh(geometry, pmaterial.clone(), mass);
+      //const object = new Physijs.BoxMesh(geometry, pmaterial.clone(), mass);
+      const object = new THREE.Mesh(geometry, pmaterial.clone());
       //const object = new THREE.Mesh(geometry, pmaterial.clone());
       const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
       scene.add(boxMesh);
 
-      const vehicle = new Physijs.Vehicle(object, new Physijs.VehicleTuning(
-          10.88,
-          1.83,
-          0.28,
-          500,
-          0.0,
-          6000
-        ));
       object.bboxMesh = boxMesh;
-      object.vehicle = vehicle;
     
       object.scale.set(scale, scale, scale);
       const areaSize = 1000;
       object.position.x = Math.random() * areaSize - areaSize / 2;
       object.position.z = Math.random() * areaSize - areaSize / 2;
-      const height = object.geometry.boundingBox.max.y * object.scale.y;
+      const size = getSize(object.geometry);
+      const height = size.height * object.scale.y;
       const groundHeight = getGroundHeight(object.position.x, object.position.z);
       object.position.y = groundHeight + height + 10;
       object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
@@ -387,63 +469,9 @@ function loadTank() {
 
       units.push(object);
       selectables.push(object);
-      scene.add(vehicle);
+      scene.add(object);
 
-      object.setDamping(0.4, 1.0);
-
-      // onewheeled
-      /*vehicle.addWheel(
-          wheel,
-          wheelMaterial,
-          new THREE.Vector3(
-              0,
-              0,
-              0
-          ),
-          new THREE.Vector3( 0, -1, 0 ),
-          new THREE.Vector3( -1, 0, 0 ),
-          0.5,
-          wheelRadius,
-          true
-        );*/
-
-      for (let i = 0; i < 4; i++) {
-        vehicle.addWheel(
-          wheel,
-          wheelMaterial,
-          new THREE.Vector3(
-              i % 2 === 0 ? -3.6 : 8.0,
-              -5.5,
-              //i < 2 ? size.depth / 2 : -size.depth / 2
-              i < 2 ? 10.0 : -10.0
-          ),
-          new THREE.Vector3( 0, -1, 0 ),
-          new THREE.Vector3( -1, 0, 0 ),
-          0.5,
-          0.7,
-          i < 2 ? false : true
-        );
-      }
-      /*
-      const zPositions = [2.6, 0, -2.6];
-      for (let i = 0; i < 6; i++) {
-        vehicle.addWheel(
-          wheel,
-          wheelMaterial,
-          new THREE.Vector3(
-              i % 2 === 0 ? -3.6 : 8.0,
-              -5.5,
-              zPositions[Math.floor(i / 2)]
-          ),
-          new THREE.Vector3( 0, -1, 0 ),
-          new THREE.Vector3( -1, 0, 0 ),
-          0.5,
-          0.7,
-          false
-        );
-      }
-      */
-
+      //object.setDamping(0.4, 1.0);
     }
   }
   const loader = new THREE.BufferGeometryLoader();
@@ -456,7 +484,8 @@ function initSelection() {
     raycaster,
     selectables,
     camera,
-    ground
+    ground,
+    getGroundHeight: getGroundHeight
   });
   const handler = selector.getOnMouseMove(config, mouseElement);
   $(mouseElement).mousemove(handler);
@@ -520,7 +549,6 @@ function updateUnitInfo() {
     const unit = selector.selected[0];
     // TODO: optimize
     const $unitinfo = $(".unitinfo .content");
-    console.log($unitinfo);
     const x = formatFloat(unit.position.x);
     const y = formatFloat(unit.position.y);
     const z = formatFloat(unit.position.z);
@@ -652,6 +680,17 @@ createShape = (function() {
     setTimeout( doCreateShape, 1 );
   };
 })();
+
+function updateSimulation() {
+  for (let obj of selectables) {
+    if (obj.stayUpRight) {
+      // make tanks drive around a bit
+      alignToGround(obj);
+    }
+  }
+  scene.simulate(undefined, 1);
+  physics_stats.update();
+}
 
 function main() {
   initScene();

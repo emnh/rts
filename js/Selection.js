@@ -65,7 +65,14 @@ export function Selection(options) {
       mouse.y = - ( evt.clientY / $element.height() ) * 2 + 1;
       config.debug.mouseX = mouse.x;
       config.debug.mouseY = mouse.y;
-      //checkIntersect(options.raycaster, options.selectables, options.camera);
+
+      options.raycaster.setFromCamera(mouse, options.camera);
+      const intersects = options.raycaster.intersectObject(options.ground);
+      if (intersects.length > 0) {
+        const pos = intersects[0].point;
+        options.getGroundHeight(pos.x, pos.z);
+      }
+     //checkIntersect(options.raycaster, options.selectables, options.camera);
     };
   };
 }
