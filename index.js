@@ -54,13 +54,14 @@ const config = {
   }
 };
 
-function alignToGround(object) {
+function moveAlignedToGround(object) {
   // set velocity
   const zAxis = new THREE.Vector3(0, 0, 0.1);
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
   //object.setLinearVelocity(xzDirection);
+  const oldGroundHeight = getGroundHeight(object.position.x, object.position.z);
   object.position.x += xzDirection.x;
   object.position.z += xzDirection.z;
   
@@ -68,6 +69,12 @@ function alignToGround(object) {
   const groundHeight = getGroundHeight(object.position.x, object.position.z);
   const size = getSize(object.geometry);
   object.position.y = groundHeight + size.height * object.scale.y;
+
+  // rotate in velocity direction
+  const dir = xzDirection.clone();
+  dir.y = groundHeight - oldGroundHeight;
+  dir.add(object.position);
+  object.lookAt(dir);
 }
 
 function getSize(geometry) {
@@ -421,7 +428,7 @@ function loadTank() {
       // TODO: figure out why this magic number is needed
       vertex.x += 25;
     }
-    const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.5, transparent: true });
+    const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
 
     const texture = THREE.ImageUtils.loadTexture('models/images/camouflage.jpg');
     texture.anisotropy = renderer.getMaxAnisotropy();
@@ -685,7 +692,7 @@ function updateSimulation() {
   for (let obj of selectables) {
     if (obj.stayUpRight) {
       // make tanks drive around a bit
-      alignToGround(obj);
+      moveAlignedToGround(obj);
     }
   }
   scene.simulate(undefined, 1);
