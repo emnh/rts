@@ -14,6 +14,8 @@ Unfinished project. Testing.
  - Fix eslint warnings and errors
  - Refactor index.js to use gameState for all globals
  - Use PlaneBufferGeometry for ground
+ - Separate game logic from rendering
+ - Progress indicator for loading
 
 ## Functionality
  - Fix more RTS-like tank movement
