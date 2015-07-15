@@ -846,6 +846,13 @@ function drawOutLine() {
 }
 
 render = function() {
+  /*
+  const unit = units[0];
+  if (unit !== undefined) {
+    camera.position.copy(unit.position);
+    camera.rotation.copy(unit.rotation);
+  }
+  */
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
