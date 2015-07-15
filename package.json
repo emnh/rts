@@ -7,6 +7,7 @@
     "url" : "http://github.com/emnh/rts.git"
   },
   "dependencies": {
+    "box-intersect": "*",
     "jade": "*",
     "jquery": "*",
     "bootstrap": "*",
