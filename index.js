@@ -16,7 +16,7 @@ Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
 var render, createShape, NoiseGen,
-  renderer, render_stats, physics_stats, scene, light, ground, groundGeometry, ground_material, camera;
+  renderer, render_stats, physics_stats, scene, light, ground, groundGeometry, groundMaterial, camera;
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight; 
@@ -263,21 +263,21 @@ function initScene() {
   scene.add(light);
 
   // Materials
-  ground_material = Physijs.createMaterial(
+  groundMaterial = Physijs.createMaterial(
     new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg' ) }),
     0.8, // high friction
     0.0 // low restitution
   );
-  ground_material.map.wrapS = ground_material.map.wrapT = THREE.RepeatWrapping;
-  //ground_material.map.repeat.set( 2.5, 2.5 );
-  ground_material.map.repeat.set( 10.0, 10.0 );
+  groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
+  //groundMaterial.map.repeat.set( 2.5, 2.5 );
+  groundMaterial.map.repeat.set( 10.0, 10.0 );
 
   // Ground
   NoiseGen = new SimplexNoise;
 
   const groundWidth = 1000;
   const groundHeight = 1000;
-  groundGeometry = new THREE.PlaneGeometry(
+  groundGeometry = new THREE.PlaneBufferGeometry(
       config.terrain.width,
       config.terrain.height,
       config.terrain.xFaces,
@@ -286,28 +286,34 @@ function initScene() {
   for (let i = 0; i <= config.terrain.xFaces; i++) {
     heightField[i] = [];
   }
-  for (let i = 0; i < groundGeometry.vertices.length; i++ ) {
-    var vertex = groundGeometry.vertices[i];
-    const noise = NoiseGen.noise(vertex.x / 100, vertex.z / 100);
-    //const noise = Math.sin(vertex.x / 100) + Math.sin(vertex.y / 10);
+  //for (let i = 0; i < groundGeometry.vertices.length; i++) {
+  //  var vertex = groundGeometry.vertices[i];
+  console.log(groundGeometry);
+  for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
+    const x = groundGeometry.attributes.position.array[i];
+    const z = groundGeometry.attributes.position.array[i + 2];
+    console.log("xz", x, z);
+    const noise = NoiseGen.noise(x / 100, z / 100);
     // normalize [-1,1] to [0,1]
     const normalNoise = (noise + 1) / 2;
-    const xi = (vertex.x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
-    const yi = (vertex.z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    vertex.y = normalNoise * config.terrain.maxElevation;
-    heightField[xi][yi] = vertex.y;
-    //console.log(i, vertex.x, vertex.y, xi, yi, gh);
+    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
+    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
+    const y = normalNoise * config.terrain.maxElevation;
+    groundGeometry.attributes.position.array[i + 1] = y;
+    heightField[xi][yi] = y;
   }
   groundGeometry.computeFaceNormals();
   groundGeometry.computeVertexNormals();
 
-  ground = new Physijs.HeightfieldMesh(
+  /*ground = new Physijs.HeightfieldMesh(
     groundGeometry,
-    ground_material,
+    groundMaterial,
     0, // mass
     config.terrain.xFaces,
     config.terrain.yFaces
   );
+  */
+  ground = new THREE.Mesh(groundGeometry, groundMaterial);
   //ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
   scene.add(ground);
@@ -359,21 +365,6 @@ function initScene() {
   blueSpheres.push(loadSphere(0x0000FF));
   blueSpheres.push(loadSphere(0x0000FF));
   blueSpheres.push(loadSphere(0x0000FF));
-  const greenSpheres = [];
-  for (let i = 0; i < groundGeometry.vertices.length; i++) {
-    const vertex = groundGeometry.vertices[i];
-    //console.log("v", vertex.x, vertex.y, vertex.z);
-    let gh;
-    try {
-      gh = getGroundHeight(vertex.x, vertex.y);
-    } catch(err) {
-      gh = -137;
-    }
-    /*const sphere = loadSphere(0x00FF00);
-    sphere.position.x = vertex.x;
-    sphere.position.y = vertex.y;
-    sphere.position.z = gh;*/
-  }
 
   loadTank();
   //createShape();
