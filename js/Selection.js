@@ -66,12 +66,12 @@ export function Selection(options) {
       config.debug.mouseX = mouse.x;
       config.debug.mouseY = mouse.y;
 
-      options.raycaster.setFromCamera(mouse, options.camera);
+      /*options.raycaster.setFromCamera(mouse, options.camera);
       const intersects = options.raycaster.intersectObject(options.ground);
       if (intersects.length > 0) {
         const pos = intersects[0].point;
         options.getGroundHeight(pos.x, pos.z);
-      }
+      }*/
      //checkIntersect(options.raycaster, options.selectables, options.camera);
     };
   };

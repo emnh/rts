@@ -801,14 +801,14 @@ function drawOutLine() {
     const top = screenBox.min.y;
     const width = screenBox.max.x - screenBox.min.x;
     const height = screenBox.max.y - screenBox.min.y;
-    div.css({
+    /*div.css({
       position: 'absolute',
       left,
       top,
       height,
       width,
       border: '1px solid black',
-    });
+    });*/
   }
 }
 
