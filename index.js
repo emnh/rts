@@ -30,6 +30,7 @@ let selector;
 let heightField = [];
 let redSphere;
 let blueSpheres;
+let $unitinfo;
 const mapBounds = new THREE.Box3();
 const startTime = (new Date().getTime()) / 1000.0;
 const units = [];
@@ -355,10 +356,14 @@ function initScene() {
   camera.position.set(320, 340, 245);
   camera.lookAt(scene.position);
   scene.add(planeMesh);
+    
+  $unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
   scene.simulate();
 
+  // the following debugging code may be useful later on
+  /*
   function loadSphere(color) {
     const geometry = new THREE.BoxGeometry(4, 4, 4);
     const material = new THREE.MeshLambertMaterial({ color: color });
@@ -372,6 +377,7 @@ function initScene() {
   blueSpheres.push(loadSphere(0x0000FF));
   blueSpheres.push(loadSphere(0x0000FF));
   blueSpheres.push(loadSphere(0x0000FF));
+  */
 
   loadModels();
   //createShape();
@@ -725,8 +731,6 @@ function initUI() {
 function updateUnitInfo() {
   if (selector.selected.length > 0) {
     const unit = selector.selected[0];
-    // TODO: optimize
-    const $unitinfo = $('.unitinfo .content');
     const x = formatFloat(unit.position.x);
     const y = formatFloat(unit.position.y);
     const z = formatFloat(unit.position.z);
@@ -755,8 +759,10 @@ function updateUnitInfo() {
     s += '</tr>';
     s +=  '</table>';
 
+    s += '<div>'
     s += '<span>Health </span>'
     s += `<span>${health}</span>`
+    s += '</div>'
     $unitinfo.html(s);
   }
 }
