@@ -34,8 +34,6 @@ Unfinished project. Testing.
  - Health bars
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
- - Set tank y coord to max height of ground in bounding box, not to point as currently
-  - Current workaround is to place it 10 up in the air and hope it falls down nicely
 
 ## Server needed
  - Multiplayer
