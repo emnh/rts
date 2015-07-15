@@ -851,6 +851,7 @@ function checkCollisions() {
   for (let unit of units) {
     const pos = unit.position;
     const bbox = unit.bbox.clone();
+    // rotate bounding box with object
     const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
     bbox.applyMatrix4(mat);
     const box = [
@@ -864,7 +865,6 @@ function checkCollisions() {
     box.unit = unit;
     boxes.push(box);
   }
-  // TODO: make sure they don't go outside of map
   boxIntersect(boxes, function(i, j) {
     const p1 = boxes[i].unit.position;
     const p2 = boxes[j].unit.position;
@@ -875,8 +875,20 @@ function checkCollisions() {
     d.y = 0;
     d.normalize();
     d.multiplyScalar(1.0);
-    p1.sub(d);
-    p2.add(d);
+    const p1new = p1.clone().sub(d);
+    const p2new = p2.clone().add(d);
+    if (p1new.x >= mapBounds.min.x &&
+        p1new.x <= mapBounds.max.x &&
+        p1new.z >= mapBounds.min.z &&
+        p1new.z <= mapBounds.max.z) {
+      p1.sub(d);
+    }
+    if (p2new.x >= mapBounds.min.x &&
+        p2new.x <= mapBounds.max.x &&
+        p2new.z >= mapBounds.min.z &&
+        p2new.z <= mapBounds.max.z) {
+      p2.add(d);
+    }
   });
 }
 
