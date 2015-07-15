@@ -17,6 +17,7 @@ Unfinished project. Testing.
  - Progress indicator for loading
 
 ## Functionality
+ - Scroll terrain when mouse is at edge of screen
  - Make aircraft fly a constant distance above ground
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
