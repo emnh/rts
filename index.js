@@ -29,6 +29,7 @@ let selector;
 let heightField = [];
 let redSphere;
 let blueSpheres;
+const startTime = (new Date().getTime()) / 1000.0;
 const units = [];
 
 const config = {
@@ -454,13 +455,7 @@ function loadTank() {
 
       const size = getSize(geometry);
 
-      // for showing bounding box
-      const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
-      for (let vertex of boxGeometry.vertices) {
-        // TODO: figure out why this magic number is needed
-        vertex.x += 25;
-      }
-      const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
+      console.log("center", geometry.boundingBox.center);
 
       const texture = THREE.ImageUtils.loadTexture(texturePath); 
       texture.anisotropy = renderer.getMaxAnisotropy();
@@ -468,11 +463,34 @@ function loadTank() {
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
       texture.repeat.set(textureRepeat.x, textureRepeat.y);
       const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture, transparent: true, opacity: opacity });
+
+      // for showing bounding box
+      const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
+      const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
+      const proto = new THREE.Mesh(geometry, material.clone());
+      scene.add(proto);
+      const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
+      bboxHelper.update();
+      scene.remove(proto);
+      for (let vertex of boxGeometry.vertices) {
+        vertex.x += (bboxHelper.box.min.x + bboxHelper.box.max.x) / 2;
+        vertex.y += (bboxHelper.box.min.y + bboxHelper.box.max.y) / 2;
+        vertex.z += (bboxHelper.box.min.z + bboxHelper.box.max.z) / 2;
+      }
+
+      const shaderMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { type: 'f', value: 0.0 },
+        },
+        vertexShader: $('#loader-vertex').text(),
+        fragmentShader: $('#loader-fragment').text(),
+        transparent: true
+      });
       
       for (let i = 0; i < config.units.count; i++) {
         const mass = 100.0;
         const object = new THREE.Mesh(geometry, material.clone());
-        const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
+        const boxMesh = new THREE.Mesh(boxGeometry, shaderMaterial.clone());
         scene.add(boxMesh);
 
         object.bboxMesh = boxMesh;
@@ -677,7 +695,19 @@ function updateBBoxes() {
   }
 }
 
+function updateShaders() {
+  const nowTime = (new Date().getTime()) / 1000.0;
+  const time = nowTime - startTime;
+  for (let unit of units) {
+    let obj = unit.bboxMesh;
+    if (obj.material.uniforms !== undefined && obj.material.uniforms.time !== undefined) {
+      obj.material.uniforms.time.value = time;
+    }
+  }
+}
+
 render = function() {
+  updateShaders();
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();

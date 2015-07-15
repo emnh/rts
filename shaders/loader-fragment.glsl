@@ -16,7 +16,7 @@ void main( void ) {
   float tSpan = .88;
   const float arcs = 8.;
   
-  vec2 p = surfacePosition;
+  vec2 p = surfacePosition - 0.5;
   vec2 r = vec2(length(p), atan(p.x, p.y));
   
   if(r.y < 0.) r.y += TU;
@@ -27,10 +27,12 @@ void main( void ) {
       float tMin = TU*n;
       float tMax = TU*(n+tSpan/arcs);
       if(r.y > tMin && r.y < tMax){
-        gl_FragColor.r *= .5 + fract(-n+time/2.7)/2.;
+        gl_FragColor.r *= .5 + fract(-n+time)/2.;
         gl_FragColor.r = pow(gl_FragColor.r, 1.8);
         gl_FragColor.g = (gl_FragColor.r+gl_FragColor.b)/2.;
       }
     }
+  } else {
+    gl_FragColor.a = 0.5;
   }
 }
