@@ -20,7 +20,7 @@ var render, createShape, NoiseGen,
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight; 
-//$(".controls").css({ height: controlsHeight + "px" });
+//$('.controls').css({ height: controlsHeight + 'px' });
 var raycaster;
 const selectables = [];
 let cameraControls;
@@ -364,25 +364,25 @@ function initScene() {
   blueSpheres.push(loadSphere(0x0000FF));
   blueSpheres.push(loadSphere(0x0000FF));
 
-  loadTank();
+  loadModels();
   //createShape();
 };
 
 function clearLog() {
-  const $debug = $(".debug");
-  $debug.html("");
+  const $debug = $('.debug');
+  $debug.html('');
 }
 
 function log(...args) {
-  const $debug = $(".debug");
-  let s = "";
+  const $debug = $('.debug');
+  let s = '';
   for (let arg of args) {
     if (isFloat(arg)) {
       arg = formatFloat(arg);
     }
-    s += arg + " ";
+    s += arg + ' ';
   }
-  s += "<br/>"
+  s += '<br/>'
   $debug.append(s);
 }
 
@@ -398,7 +398,7 @@ function getGroundHeight(x, y) {
   const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
   //clearLog();
-  //log("x, y", x, y, "x1, x2", x1, x2, "y1, y2", y1, y2); 
+  //log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2); 
   if (xi < 0 ||
       yi < 0 ||
       xi >= heightField.length ||
@@ -415,7 +415,7 @@ function getGroundHeight(x, y) {
   const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
   const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
   const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
-  //log("xi, yi", xi, yi, "f", fQ11, fQ21, fQ12, fQ22, "fx", fxy1, fxy2);
+  //log('xi, yi', xi, yi, 'f', fQ11, fQ21, fQ12, fQ22, 'fx', fxy1, fxy2);
 
   /*
   redSphere.position.x = x;
@@ -452,11 +452,11 @@ function getGroundHeightRay(x, y) {
   if (intersects.length > 0) {
     return intersects[0].point.y;
   }
-  console.warn("failed to get height");
+  console.warn('failed to get height');
   return 0;
 }
 
-function loadTank() {
+function loadModels() {
 
   function getOnSuccess(options) {
     const scale = options.scale;
@@ -547,75 +547,82 @@ function loadTank() {
 
   const models = [
     {
-      name: "tank-m1a1",
-      path: "models/3d/tank-m1a1.json",
+      name: 'tank-m1a1',
+      path: 'models/3d/tank-m1a1.json',
       scale: 0.05,
       texturePath: 'models/images/camouflage.jpg',
       textureRepeat: new THREE.Vector2(0.2, 0.2)
     },
     {
-      name: "dragon",
-      path: "models/3d/dragon.json",
+      name: 'dragon',
+      path: 'models/3d/dragon.json',
       scale: 1,
       texturePath: 'models/images/dragon.jpg'
     },
     {
-      name: "house",
-      path: "models/3d/house.json",
+      name: 'house',
+      path: 'models/3d/house.json',
       scale: 0.03,
       texturePath: 'models/images/house.jpg'
     },
     {
-      name: "ant",
-      path: "models/3d/ant.json",
+      name: 'ant',
+      path: 'models/3d/ant.json',
       scale: 10,
       rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
       texturePath: 'models/images/ant.jpg'
     },
     {
-      name: "tank-apc",
-      path: "models/3d/tank-apc.json",
+      name: 'tank-apc',
+      path: 'models/3d/tank-apc.json',
       scale: 0.2,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0)
     },
     {
-      name: "diamond",
-      path: "models/3d/diamond.json",
+      name: 'diamond',
+      path: 'models/3d/diamond.json',
       scale: 3,
       texturePath: 'models/images/diamond.jpg',
       textureRepeat: new THREE.Vector2(0.01, 0.01),
       opacity: 0.6
     },
     {
-      name: "horse",
-      path: "models/3d/horse.json",
+      name: 'horse',
+      path: 'models/3d/horse.json',
       scale: 1.5,
       texturePath: 'models/images/horse.jpg'
     },
     {
-      name: "fighter",
-      path: "models/3d/fighter.json",
+      name: 'fighter',
+      path: 'models/3d/fighter.json',
       scale: 3,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       texturePath: 'models/images/fighter.jpg'
     },
     {
-      name: "thor",
-      path: "models/3d/thor.json",
+      name: 'thor',
+      path: 'models/3d/thor.json',
       scale: 5,
       texturePath: 'models/images/thor.jpg'
     },
     {
-      name: "biplane",
-      path: "models/3d/biplane.json",
+      name: 'biplane',
+      path: 'models/3d/biplane.json',
       scale: 1,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       texturePath: 'models/images/biplane.jpg'
+    },
+    {
+      name: 'farm',
+      path: 'models/3d/farm.json',
+      scale: 500,
+      texturePath: 'models/images/farm.jpg'
     }
   ];
 
   for (let model of models) {
-    if (model.name !== "house") {
+    if (model.name !== 'house' &&
+        model.name !== 'farm') {
       const modelOptions = $.extend({}, options, model);
       loader.load(model.path, getOnSuccess(modelOptions));
     }
@@ -652,7 +659,7 @@ function initDAT() {
           if (inner.hasOwnProperty(varName2)) {
             const controller = folder.add(inner, varName2);
             controller.listen();
-            controllers[varName + "." + varName2] = controller;
+            controllers[varName + '.' + varName2] = controller;
           }
         }
         folder.open();
@@ -692,7 +699,7 @@ function updateUnitInfo() {
   if (selector.selected.length > 0) {
     const unit = selector.selected[0];
     // TODO: optimize
-    const $unitinfo = $(".unitinfo .content");
+    const $unitinfo = $('.unitinfo .content');
     const x = formatFloat(unit.position.x);
     const y = formatFloat(unit.position.y);
     const z = formatFloat(unit.position.z);
