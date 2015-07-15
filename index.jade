@@ -34,17 +34,11 @@ html
         button.btn.btn-default.btn-lg.disabled(type='button')
           span.glyphicon.glyphicon-flash(aria-hidden='true')
           |  Attack
-    script#sky-vertex(type='application/x-glsl').
-      varying vec2 vUV;
-      void main() {
-      vUV = uv;
-      vec4 pos = vec4(position, 1.0);
-      gl_Position = projectionMatrix * modelViewMatrix * pos;
-      }
-    script#sky-fragment(type='application/x-glsl').
-      uniform sampler2D texture;
-      varying vec2 vUV;
-      void main() {
-      vec4 sample = texture2D(texture, vUV);
-      gl_FragColor = vec4(sample.xyz, sample.w);
-      }
+    script#sky-vertex(type='application/x-glsl')
+      include ./shaders/sky-vertex.glsl
+    script#sky-fragment(type='application/x-glsl')
+      include ./shaders/sky-fragment.glsl
+    script#loader-vertex(type='application/x-glsl')
+      include ./shaders/loader-vertex.glsl
+    script#loader-fragment(type='application/x-glsl')
+      include ./shaders/loader-fragment.glsl
