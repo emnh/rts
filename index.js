@@ -37,7 +37,8 @@ const units = [];
 const config = {
   units: {
     count: 20,
-    speed: 20
+    speed: 20,
+    randomLocation: false
   },
   terrain: {
     maxElevation: 32,
@@ -62,7 +63,6 @@ const config = {
 };
 
 function moveAlignedToGround(object) {
-  // set velocity
   const nowTime = (new Date().getTime()) / 1000.0;
   if (object.lastMoved === undefined) {
     object.lastMoved = nowTime;
@@ -81,9 +81,7 @@ function moveAlignedToGround(object) {
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
-  //object.setLinearVelocity(xzDirection);
   const oldGroundHeight = getGroundHeight(object.position.x, object.position.z);
-  //object.lookAt(new THREE.Vector3(0, 0, 0));
   if (object.position.x + xzDirection.x <= mapBounds.min.x) {
     xzDirection.x = -xzDirection.x;
   }
@@ -96,6 +94,7 @@ function moveAlignedToGround(object) {
   if (object.position.z + xzDirection.z >= mapBounds.max.z) {
     xzDirection.z = -xzDirection.z;
   }
+  // add velocity
   object.position.x += xzDirection.x;
   object.position.z += xzDirection.z;
   
@@ -152,6 +151,15 @@ function isFloat(n){
 
 function isObject(obj) {
   return Object.prototype.toString.call(obj) == '[object Object]';
+}
+
+function worldToScreen(pos) {
+  var vector = pos.project(camera);
+
+  vector.x = (vector.x + 1) / 2 * sceneWidth;
+  vector.y = -(vector.y - 1) / 2 * sceneHeight;
+
+  return new THREE.Vector2(vector.x, vector.y);
 }
 
 function loadSkyBox() {
@@ -503,7 +511,7 @@ function loadModels() {
       }
 
       const shaderMaterial = new THREE.ShaderMaterial({
-        uniforms: {
+        uloaderniforms: {
           time: { type: 'f', value: 0.0 },
         },
         vertexShader: $('#loader-vertex').text(),
@@ -520,8 +528,10 @@ function loadModels() {
         object.bbox = bboxHelper.box;
       
         object.scale.set(scale, scale, scale);
-        object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
-        object.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+        if (config.units.randomLocation) {
+          object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
+          object.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+        }
         const size = getSize(object.geometry);
         const height = size.height * object.scale.y;
         const groundHeight = getGroundHeight(object.position.x, object.position.z);
@@ -529,6 +539,7 @@ function loadModels() {
         object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
         object.stayUpRight = true;
         object.lastMoved = undefined
+        object.health = Math.random()
 
         units.push(object);
         selectables.push(object);
@@ -766,11 +777,47 @@ function updateShaders() {
   }
 }
 
+function drawOutLine() {
+  const viewport = $("#viewport");
+  for (let unit of units) {
+    // need to get corners of bbox
+    // make a cube, then rotate it
+    const geometry = unit.bboxMesh.geometry.clone();
+    const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
+    geometry.applyMatrix(mat);
+    const screenBox = new THREE.Box2();
+    for (let vertex of geometry.vertices) {
+      const pos = vertex.clone().multiply(unit.scale).add(unit.position);
+      const vec2 = worldToScreen(pos);
+      screenBox.expandByPoint(vec2);
+    }
+    let div = unit.outline;
+    if (div === undefined) {
+      div = $('<div/>');
+      unit.outline = div;
+      viewport.append(div)
+    }
+    const left = screenBox.min.x;
+    const top = screenBox.min.y;
+    const width = screenBox.max.x - screenBox.min.x;
+    const height = screenBox.max.y - screenBox.min.y;
+    div.css({
+      position: 'absolute',
+      left,
+      top,
+      height,
+      width,
+      border: '1px solid black',
+    });
+  }
+}
+
 render = function() {
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
+  drawOutLine();
   moveSkybox();
   renderer.render(scene, camera);
   render_stats.update();
