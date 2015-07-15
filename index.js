@@ -36,7 +36,7 @@ const units = [];
 const config = {
   units: {
     count: 50,
-    speed: 100
+    speed: 20
   },
   terrain: {
     maxElevation: 32,
@@ -288,11 +288,9 @@ function initScene() {
   }
   //for (let i = 0; i < groundGeometry.vertices.length; i++) {
   //  var vertex = groundGeometry.vertices[i];
-  console.log(groundGeometry);
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
-    console.log("xz", x, z);
     const noise = NoiseGen.noise(x / 100, z / 100);
     // normalize [-1,1] to [0,1]
     const normalNoise = (noise + 1) / 2;
@@ -482,8 +480,6 @@ function loadTank() {
 
       const size = getSize(geometry);
 
-      console.log("center", geometry.boundingBox.center);
-
       const texture = THREE.ImageUtils.loadTexture(texturePath); 
       texture.anisotropy = renderer.getMaxAnisotropy();
       texture.minFilter = THREE.NearestFilter;
@@ -540,6 +536,7 @@ function loadTank() {
   }
   const loader = new THREE.BufferGeometryLoader();
 
+
   const options = {
     scale: 1,
     rotation: new THREE.Vector3(),
@@ -548,53 +545,68 @@ function loadTank() {
     opacity: 1
   };
 
-  const tankOptions = $.extend({}, options, {
-    scale: 0.05,
-    texturePath: 'models/images/camouflage.jpg',
-    textureRepeat: new THREE.Vector2(0.2, 0.2)
-  });
-  loader.load("models/3d/tank-m1a1.json", getOnSuccess(tankOptions));
+  const models = [
+    {
+      name: "tank-m1a1",
+      path: "models/3d/tank-m1a1.json",
+      scale: 0.05,
+      texturePath: 'models/images/camouflage.jpg',
+      textureRepeat: new THREE.Vector2(0.2, 0.2)
+    },
+    {
+      name: "dragon",
+      path: "models/3d/dragon.json",
+      scale: 1,
+      texturePath: 'models/images/dragon.jpg'
+    },
+    {
+      name: "house",
+      path: "models/3d/house.json",
+      scale: 0.03,
+      texturePath: 'models/images/house.jpg'
+    },
+    {
+      name: "ant",
+      path: "models/3d/ant.json",
+      scale: 10,
+      rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
+      texturePath: 'models/images/ant.jpg'
+    },
+    {
+      name: "tank-apc",
+      path: "models/3d/tank-apc.json",
+      scale: 0.2,
+      rotation: new THREE.Vector3(0, Math.PI / 2, 0)
+    },
+    {
+      name: "diamond",
+      path: "models/3d/diamond.json",
+      scale: 3,
+      texturePath: 'models/images/diamond.jpg',
+      textureRepeat: new THREE.Vector2(0.01, 0.01),
+      opacity: 0.6
+    },
+    {
+      name: "horse",
+      path: "models/3d/horse.json",
+      scale: 1.5,
+      texturePath: 'models/images/horse.jpg'
+    },
+    {
+      name: "fighter",
+      path: "models/3d/fighter.json",
+      scale: 3,
+      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
+      texturePath: 'models/images/fighter.jpg'
+    }
+  ];
 
-  const dragonOptions = $.extend({}, options, {
-    scale: 1,
-    texturePath: 'models/images/dragon.jpg'
-  });
-  loader.load("models/3d/dragon.json", getOnSuccess(dragonOptions));
-
-  /*const houseOptions = $.extend({}, options, {
-    scale: 0.05,
-    texturePath: 'models/images/house.jpg'
-  });
-  loader.load("models/3d/house.json", getOnSuccess(houseOptions));
-  */
-
-  const antOptions = $.extend({}, options, {
-    scale: 10,
-    rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
-    texturePath: 'models/images/ant.jpg'
-  });
-  loader.load("models/3d/ant.json", getOnSuccess(antOptions));
-
-  const apcOptions = $.extend({}, options, {
-    scale: 0.2,
-    rotation: new THREE.Vector3(0, Math.PI / 2, 0)
-  });
-  loader.load("models/3d/tank-apc.json", getOnSuccess(apcOptions));
-  
-  const diamondOptions = $.extend({}, options, {
-    scale: 3,
-    texturePath: 'models/images/diamond.jpg',
-    textureRepeat: new THREE.Vector2(0.01, 0.01),
-    opacity: 0.6
-  });
-  loader.load("models/3d/diamond.json", getOnSuccess(diamondOptions));
-
-  const horseOptions = $.extend({}, options, {
-    scale: 1.5,
-    texturePath: 'models/images/horse.jpg'
-  });
-  loader.load("models/3d/horse.json", getOnSuccess(horseOptions));
-
+  for (let model of models) {
+    if (model.name !== "house") {
+      const modelOptions = $.extend({}, options, model);
+      loader.load(model.path, getOnSuccess(modelOptions));
+    }
+  }
 }
 
 function initSelection() {
