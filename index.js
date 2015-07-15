@@ -29,15 +29,17 @@ let selector;
 let heightField = [];
 let redSphere;
 let blueSpheres;
+const mapBounds = new THREE.Box3();
 const startTime = (new Date().getTime()) / 1000.0;
 const units = [];
 
 const config = {
   units: {
-    count: 50
+    count: 50,
+    speed: 100
   },
   terrain: {
-    maxHeight: 32,
+    maxElevation: 32,
     xFaces: 100,
     yFaces: 100,
     width: 1000,
@@ -60,12 +62,39 @@ const config = {
 
 function moveAlignedToGround(object) {
   // set velocity
-  const zAxis = new THREE.Vector3(0, 0, 0.1);
+  const nowTime = (new Date().getTime()) / 1000.0;
+  if (object.lastMoved === undefined) {
+    object.lastMoved = nowTime;
+    return;
+  }
+  const oldTime = object.lastMoved;
+  const timeDelta = nowTime - oldTime;
+  object.lastMoved = nowTime
+  const eps = 1e-7;
+  if (timeDelta < eps) {
+    // prevent zero time from making direction vector zero.
+    // in that case units turn to original rotation.
+    return;
+  }
+  const zAxis = new THREE.Vector3(0, 0, config.units.speed * timeDelta);
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
   //object.setLinearVelocity(xzDirection);
   const oldGroundHeight = getGroundHeight(object.position.x, object.position.z);
+  //object.lookAt(new THREE.Vector3(0, 0, 0));
+  if (object.position.x + xzDirection.x <= mapBounds.min.x) {
+    xzDirection.x = -xzDirection.x;
+  }
+  if (object.position.x + xzDirection.x >= mapBounds.max.x) {
+    xzDirection.x = -xzDirection.x;
+  }
+  if (object.position.z + xzDirection.z <= mapBounds.min.z) {
+    xzDirection.z = -xzDirection.z;
+  }
+  if (object.position.z + xzDirection.z >= mapBounds.max.z) {
+    xzDirection.z = -xzDirection.z;
+  }
   object.position.x += xzDirection.x;
   object.position.z += xzDirection.z;
   
@@ -265,7 +294,7 @@ function initScene() {
     const normalNoise = (noise + 1) / 2;
     const xi = (vertex.x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
     const yi = (vertex.z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    vertex.y = normalNoise * config.terrain.maxHeight;
+    vertex.y = normalNoise * config.terrain.maxElevation;
     heightField[xi][yi] = vertex.y;
     //console.log(i, vertex.x, vertex.y, xi, yi, gh);
   }
@@ -282,6 +311,13 @@ function initScene() {
   //ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
   scene.add(ground);
+
+  mapBounds.min.x = -config.terrain.width / 2;
+  mapBounds.min.y = 0;
+  mapBounds.min.z = -config.terrain.height / 2;
+  mapBounds.max.x = config.terrain.width / 2;
+  mapBounds.max.y = config.terrain.maxElevation * 2;
+  mapBounds.max.z = config.terrain.height / 2;
 
   const skyBox = loadSkyBox();
   scene.add(skyBox);
@@ -420,7 +456,7 @@ function getGroundHeight(x, y) {
 function getGroundHeightRay(x, y) {
   const z = y;
 
-  const origin = new THREE.Vector3(x, config.terrain.maxHeight + 1, z);
+  const origin = new THREE.Vector3(x, config.terrain.maxElevation + 1, z);
   const direction = new THREE.Vector3(0, -1, 0);
   raycaster.set(origin, direction);
   const intersects = raycaster.intersectObject(ground);
@@ -488,23 +524,22 @@ function loadTank() {
       });
       
       for (let i = 0; i < config.units.count; i++) {
-        const mass = 100.0;
         const object = new THREE.Mesh(geometry, material.clone());
-        const boxMesh = new THREE.Mesh(boxGeometry, shaderMaterial.clone());
+        const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
         scene.add(boxMesh);
 
         object.bboxMesh = boxMesh;
       
         object.scale.set(scale, scale, scale);
-        const areaSize = 1000;
-        object.position.x = (Math.random() * areaSize - areaSize / 2) / 2;
-        object.position.z = (Math.random() * areaSize - areaSize / 2) / 2;
+        object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
+        object.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
         const size = getSize(object.geometry);
         const height = size.height * object.scale.y;
         const groundHeight = getGroundHeight(object.position.x, object.position.z);
         object.position.y = groundHeight + height + 10;
         object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
         object.stayUpRight = true;
+        object.lastMoved = undefined
 
         units.push(object);
         selectables.push(object);
