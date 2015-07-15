@@ -35,7 +35,7 @@ const units = [];
 
 const config = {
   units: {
-    count: 50,
+    count: 20,
     speed: 20
   },
   terrain: {
@@ -604,6 +604,13 @@ function loadTank() {
       path: "models/3d/thor.json",
       scale: 5,
       texturePath: 'models/images/thor.jpg'
+    },
+    {
+      name: "biplane",
+      path: "models/3d/biplane.json",
+      scale: 1,
+      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
+      texturePath: 'models/images/biplane.jpg'
     }
   ];
 
