@@ -32,6 +32,9 @@ let blueSpheres;
 const units = [];
 
 const config = {
+  units: {
+    count: 50
+  },
   terrain: {
     maxHeight: 32,
     xFaces: 100,
@@ -68,13 +71,27 @@ function moveAlignedToGround(object) {
   // align to ground
   const groundHeight = getGroundHeight(object.position.x, object.position.z);
   const size = getSize(object.geometry);
-  object.position.y = groundHeight + size.height * object.scale.y;
+  const yf = -object.geometry.boundingBox.min.y;
+  //const yf = size.height;
+  object.position.y = groundHeight + yf * object.scale.y;
 
   // rotate in velocity direction
   const dir = xzDirection.clone();
   dir.y = groundHeight - oldGroundHeight;
   dir.add(object.position);
   object.lookAt(dir);
+  
+  // rotate left/right
+  const delta = 1;
+  const yAxis = new THREE.Vector3(0, 0.1, 0);
+  yAxis.applyQuaternion(object.quaternion);
+  yAxis.y = 0;
+  const leftGroundHeight = getGroundHeight(object.position.x + yAxis.x, object.position.z + yAxis.z);
+  const yAxis2 = new THREE.Vector3(0, -0.1, 0);
+  yAxis2.applyQuaternion(object.quaternion);
+  yAxis2.y = 0;
+  const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
+  //object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
 }
 
 function getSize(geometry) {
@@ -200,9 +217,9 @@ function initScene() {
   scene.add(camera);
 
   // Light
-  light = new THREE.DirectionalLight( 0xFFFFFF );
-  light.position.set( 20, 40, -15 );
-  light.target.position.copy( scene.position );
+  light = new THREE.DirectionalLight(0xFFFFFF);
+  light.position.set(20, 40, -15);
+  light.target.position.copy(scene.position);
   light.castShadow = true;
   light.shadowCameraLeft = -60;
   light.shadowCameraTop = -60;
@@ -213,11 +230,11 @@ function initScene() {
   light.shadowBias = -.0001
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = .7;
-  scene.add( light );
+  scene.add(light);
 
   // Materials
   ground_material = Physijs.createMaterial(
-    new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.png' ) }),
+    new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg' ) }),
     0.8, // high friction
     0.0 // low restitution
   );
@@ -308,7 +325,7 @@ function initScene() {
   const greenSpheres = [];
   for (let i = 0; i < groundGeometry.vertices.length; i++) {
     const vertex = groundGeometry.vertices[i];
-    console.log("v", vertex.x, vertex.y, vertex.z);
+    //console.log("v", vertex.x, vertex.y, vertex.z);
     let gh;
     try {
       gh = getGroundHeight(vertex.x, vertex.y);
@@ -414,75 +431,126 @@ function getGroundHeightRay(x, y) {
 }
 
 function loadTank() {
-  function onSuccess(geometry) {
-    //const sphereGeometry = new THREE.SphereGeometry(150, 32, 32);
-    geometry.computeBoundingBox();
-    const size = getSize(geometry);
 
-    // for showing bounding box
-    const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
-    for (let vertex of boxGeometry.vertices) {
-      //vertex.x += (geometry.boundingBox.max.x - geometry.boundingBox.min.x);
-      //vertex.y += (geometry.boundingBox.max.y - geometry.boundingBox.min.y);
-      //vertex.z += (geometry.boundingBox.max.z - geometry.boundingBox.min.z);
-      // TODO: figure out why this magic number is needed
-      vertex.x += 25;
-    }
-    const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
+  function getOnSuccess(options) {
+    const scale = options.scale;
+    const rotation = options.rotation;
+    const texturePath = options.texturePath;
+    const textureRepeat = options.textureRepeat;
+    const opacity = options.opacity;
+    return function(geometry) {
+      const mat = new THREE.Matrix4();
+      mat.makeRotationX(rotation.x);
+      geometry.applyMatrix(mat);
+      mat.makeRotationY(rotation.y);
+      geometry.applyMatrix(mat);
+      mat.makeRotationZ(rotation.z);
+      geometry.applyMatrix(mat);
 
-    const texture = THREE.ImageUtils.loadTexture('models/images/camouflage.jpg');
-    texture.anisotropy = renderer.getMaxAnisotropy();
-    texture.minFilter = THREE.NearestFilter;
-    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
-    texture.repeat.set( 0.2, 0.2 );
-    const scale = 0.05;
-    const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture });
-    const friction = 0.8; // high friction
-    const restitution = 0.0; // low restitution
-    const pmaterial = Physijs.createMaterial(material, friction, restitution);
-    //const object = new THREE.Mesh(geometry, material);
-    //const wheelRadius = size.depth / 2 * scale; 
-    const wheelRadius = 1.0;
-    const wheel = new THREE.SphereGeometry(wheelRadius, 20, 20);
-    //const wheel = boxGeometry.clone();
-    //wheel.applyMatrix(new THREE.Matrix4().makeScale(scale, scale, scale));
-    //const wheel = new THREE.CylinderGeometry(wheelRadius, wheelRadius, size.width * scale, 20);
-    //wheel.applyMatrix(new THREE.Matrix4().makeTranslation(0, length / 2, 0));
-    //wheel.applyMatrix(new THREE.Matrix4().makeRotationZ(Math.PI / 2));
-    const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x00FF00, map: texture });
-    wheel.computeFaceNormals();
-    wheel.computeVertexNormals();
-    
-    for (let i = 0; i < 100; i++) {
-      const mass = 100.0;
-      //const object = new Physijs.BoxMesh(geometry, pmaterial.clone(), mass);
-      const object = new THREE.Mesh(geometry, pmaterial.clone());
-      //const object = new THREE.Mesh(geometry, pmaterial.clone());
-      const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
-      scene.add(boxMesh);
+      geometry.computeBoundingBox();
+      // needed for proper lighting
+      geometry.computeFaceNormals();
+      geometry.computeVertexNormals();
 
-      object.bboxMesh = boxMesh;
-    
-      object.scale.set(scale, scale, scale);
-      const areaSize = 1000;
-      object.position.x = Math.random() * areaSize - areaSize / 2;
-      object.position.z = Math.random() * areaSize - areaSize / 2;
-      const size = getSize(object.geometry);
-      const height = size.height * object.scale.y;
-      const groundHeight = getGroundHeight(object.position.x, object.position.z);
-      object.position.y = groundHeight + height + 10;
-      object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
-      object.stayUpRight = true;
+      const size = getSize(geometry);
 
-      units.push(object);
-      selectables.push(object);
-      scene.add(object);
+      // for showing bounding box
+      const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
+      for (let vertex of boxGeometry.vertices) {
+        // TODO: figure out why this magic number is needed
+        vertex.x += 25;
+      }
+      const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
 
-      //object.setDamping(0.4, 1.0);
-    }
+      const texture = THREE.ImageUtils.loadTexture(texturePath); 
+      texture.anisotropy = renderer.getMaxAnisotropy();
+      texture.minFilter = THREE.NearestFilter;
+      texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.repeat.set(textureRepeat.x, textureRepeat.y);
+      const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture, transparent: true, opacity: opacity });
+      
+      for (let i = 0; i < config.units.count; i++) {
+        const mass = 100.0;
+        const object = new THREE.Mesh(geometry, material.clone());
+        const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
+        scene.add(boxMesh);
+
+        object.bboxMesh = boxMesh;
+      
+        object.scale.set(scale, scale, scale);
+        const areaSize = 1000;
+        object.position.x = (Math.random() * areaSize - areaSize / 2) / 2;
+        object.position.z = (Math.random() * areaSize - areaSize / 2) / 2;
+        const size = getSize(object.geometry);
+        const height = size.height * object.scale.y;
+        const groundHeight = getGroundHeight(object.position.x, object.position.z);
+        object.position.y = groundHeight + height + 10;
+        object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+        object.stayUpRight = true;
+
+        units.push(object);
+        selectables.push(object);
+        scene.add(object);
+      }
+    };
   }
   const loader = new THREE.BufferGeometryLoader();
-  loader.load("models/3d/tank-m1a1.json", onSuccess);
+
+  const options = {
+    scale: 1,
+    rotation: new THREE.Vector3(),
+    texturePath: 'models/images/camouflage.jpg',
+    textureRepeat: new THREE.Vector2(1, 1),
+    opacity: 1
+  };
+
+  const tankOptions = $.extend({}, options, {
+    scale: 0.05,
+    texturePath: 'models/images/camouflage.jpg',
+    textureRepeat: new THREE.Vector2(0.2, 0.2)
+  });
+  loader.load("models/3d/tank-m1a1.json", getOnSuccess(tankOptions));
+
+  const dragonOptions = $.extend({}, options, {
+    scale: 1,
+    texturePath: 'models/images/dragon.jpg'
+  });
+  loader.load("models/3d/dragon.json", getOnSuccess(dragonOptions));
+
+  /*const houseOptions = $.extend({}, options, {
+    scale: 0.05,
+    texturePath: 'models/images/house.jpg'
+  });
+  loader.load("models/3d/house.json", getOnSuccess(houseOptions));
+  */
+
+  const antOptions = $.extend({}, options, {
+    scale: 10,
+    rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
+    texturePath: 'models/images/ant.jpg'
+  });
+  loader.load("models/3d/ant.json", getOnSuccess(antOptions));
+
+  const apcOptions = $.extend({}, options, {
+    scale: 0.2,
+    rotation: new THREE.Vector3(0, Math.PI / 2, 0)
+  });
+  loader.load("models/3d/tank-apc.json", getOnSuccess(apcOptions));
+  
+  const diamondOptions = $.extend({}, options, {
+    scale: 3,
+    texturePath: 'models/images/diamond.jpg',
+    textureRepeat: new THREE.Vector2(0.01, 0.01),
+    opacity: 0.6
+  });
+  loader.load("models/3d/diamond.json", getOnSuccess(diamondOptions));
+
+  const horseOptions = $.extend({}, options, {
+    scale: 1.5,
+    texturePath: 'models/images/horse.jpg'
+  });
+  loader.load("models/3d/horse.json", getOnSuccess(horseOptions));
+
 }
 
 function initSelection() {
