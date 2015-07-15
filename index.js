@@ -598,6 +598,12 @@ function loadTank() {
       scale: 3,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       texturePath: 'models/images/fighter.jpg'
+    },
+    {
+      name: "thor",
+      path: "models/3d/thor.json",
+      scale: 5,
+      texturePath: 'models/images/thor.jpg'
     }
   ];
 
