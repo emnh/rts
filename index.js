@@ -8,6 +8,7 @@ const jQuery = require('jquery');
 const $ = jQuery;
 global.jQuery = jQuery;
 const bootstrap = require('bootstrap');
+const boxIntersect = require('box-intersect');
 
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
@@ -516,6 +517,7 @@ function loadModels() {
         scene.add(boxMesh);
 
         object.bboxMesh = boxMesh;
+        object.bbox = bboxHelper.box;
       
         object.scale.set(scale, scale, scale);
         object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
@@ -617,7 +619,7 @@ function loadModels() {
       path: 'models/3d/farm.json',
       scale: 500,
       texturePath: 'models/images/farm.jpg'
-    }
+    },
   ];
 
   for (let model of models) {
@@ -844,13 +846,46 @@ createShape = (function() {
   };
 })();
 
-function updateSimulation() {
-  for (let obj of selectables) {
-    if (obj.stayUpRight) {
-      // make tanks drive around a bit
-      moveAlignedToGround(obj);
-    }
+function chechCollisions() {
+  const boxes = [];
+  for (let unit of units) {
+    const pos = unit.position;
+    //const bbox = unit.geometry.boundingBox;
+    const bbox = unit.bbox.clone();
+    bbox.applyMatrix4(unit.matrix);
+    // TODO: rotate bbox
+    const box = [
+      pos.x + bbox.min.x * unit.scale.x,
+      pos.y + bbox.min.y * unit.scale.y,
+      pos.z + bbox.min.z * unit.scale.z,
+      pos.x + bbox.max.x * unit.scale.x,
+      pos.y + bbox.max.y * unit.scale.y,
+      pos.z + bbox.max.z * unit.scale.z,
+    ];
+    box.unit = unit;
+    boxes.push(box);
   }
+  // TODO: make sure they don't go outside of map
+  boxIntersect(boxes, function(i, j) {
+    const p1 = boxes[i].unit.position;
+    const p2 = boxes[j].unit.position;
+    const d = p2.clone();
+    //clearLog();
+    //log(i, j, p1, p2, d);
+    d.sub(p1);
+    d.y = 0;
+    d.normalize();
+    d.multiplyScalar(1.0);
+    p1.sub(d);
+    p2.add(d);
+  });
+}
+
+function updateSimulation() {
+  for (let obj of units) {
+    moveAlignedToGround(obj);
+  }
+  checkCollisions();
   scene.simulate(undefined, 1);
   physics_stats.update();
 }
