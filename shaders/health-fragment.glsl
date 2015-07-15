@@ -7,18 +7,16 @@ precision mediump float;
 // GLSL health bars for RTS
 
 uniform float time;
+uniform float health;
 varying vec2 surfacePosition;
 
 void main( void ) {
 
+  //vec2 position = (surfacePosition + 1.0) / 2.0;
   vec2 position = surfacePosition;
 
-  float color = 0.0;
-  
-  float health = (sin(time) + 1.0) / 2.0;
-  
-  float x = (surfacePosition.x + 1.0) / 2.0;
-  float y = (surfacePosition.y + 1.0) / 2.0;
+  float x = surfacePosition.x;
+  float y = surfacePosition.y;
   
   if (mod(x, 0.2) < 0.175 &&
       mod(x, 0.2) > 0.025 &&

@@ -31,7 +31,6 @@ Unfinished project. Testing.
  - Attack another unit
   - Select target unit
   - Shot animation
- - Health bars
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
 

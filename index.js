@@ -511,7 +511,7 @@ function loadModels() {
       }
 
       const shaderMaterial = new THREE.ShaderMaterial({
-        uloaderniforms: {
+        uniforms: {
           time: { type: 'f', value: 0.0 },
         },
         vertexShader: $('#loader-vertex').text(),
@@ -540,10 +540,24 @@ function loadModels() {
         object.stayUpRight = true;
         object.lastMoved = undefined
         object.health = Math.random()
+        
+        const healthMaterial = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { type: 'f', value: 0.0 },
+            health: { type: 'f', value: object.health }
+          },
+          vertexShader: $('#health-vertex').text(),
+          fragmentShader: $('#health-fragment').text(),
+        });
+        const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+        //healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
+        const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
+        object.healthBar = healthBar;
 
         units.push(object);
         selectables.push(object);
         scene.add(object);
+        scene.add(healthBar);
       }
     };
   }
@@ -724,6 +738,7 @@ function updateUnitInfo() {
     const maxx = formatFloat(max.x);
     const maxy = formatFloat(max.y);
     const maxz = formatFloat(max.z);
+    const health = formatFloat(unit.health);
     let s = '<table>';
     s += '<tr><th></th><th>Position|</th><th>BBox-</th><th>BBox+</th></tr>';
 
@@ -739,6 +754,9 @@ function updateUnitInfo() {
     s += `<td>${z}</td><td>${minz}</td><td>${maxz}</td>`;
     s += '</tr>';
     s +=  '</table>';
+
+    s += '<span>Health </span>'
+    s += `<span>${health}</span>`
     $unitinfo.html(s);
   }
 }
@@ -766,6 +784,14 @@ function updateBBoxes() {
   }
 }
 
+function updateHealthBars() {
+  for (let unit of units) {
+    unit.healthBar.position.copy(unit.position);
+    unit.healthBar.position.y += getSize(unit.geometry).height * unit.scale.y;
+    unit.healthBar.lookAt(camera.position);
+  }
+}
+
 function updateShaders() {
   const nowTime = (new Date().getTime()) / 1000.0;
   const time = nowTime - startTime;
@@ -774,6 +800,7 @@ function updateShaders() {
     if (obj.material.uniforms !== undefined && obj.material.uniforms.time !== undefined) {
       obj.material.uniforms.time.value = time;
     }
+    unit.healthBar.material.uniforms.health.value = unit.health;
   }
 }
 
@@ -817,7 +844,9 @@ render = function() {
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
-  drawOutLine();
+  updateHealthBars();
+  // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
+  // drawOutLine();
   moveSkybox();
   renderer.render(scene, camera);
   render_stats.update();
