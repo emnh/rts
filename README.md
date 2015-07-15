@@ -18,13 +18,12 @@ Unfinished project. Testing.
  - Progress indicator for loading
 
 ## Functionality
- - Fix more RTS-like tank movement
+ - Collision detection
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Select more than unit with ctrl or shift
  - Move selected unit according to its move speed
-  - Need to trace a path in terrain, or adjust velocity to gradient for each
-    step
+  - Target
   - Waypoint queue
  - Select rectangular area of units
   - Transparent rectangle to indicate selection
