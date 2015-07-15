@@ -846,14 +846,13 @@ createShape = (function() {
   };
 })();
 
-function chechCollisions() {
+function checkCollisions() {
   const boxes = [];
   for (let unit of units) {
     const pos = unit.position;
-    //const bbox = unit.geometry.boundingBox;
     const bbox = unit.bbox.clone();
-    bbox.applyMatrix4(unit.matrix);
-    // TODO: rotate bbox
+    const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
+    bbox.applyMatrix4(mat);
     const box = [
       pos.x + bbox.min.x * unit.scale.x,
       pos.y + bbox.min.y * unit.scale.y,
