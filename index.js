@@ -384,7 +384,6 @@ function initScene() {
   */
 
   loadModels();
-  //createShape();
 };
 
 function clearLog() {
@@ -763,10 +762,10 @@ function updateUnitInfo() {
     s += '</tr>';
     s +=  '</table>';
 
-    s += '<div>'
-    s += '<span>Health </span>'
-    s += `<span>${health}</span>`
-    s += '</div>'
+    s += '<div>';
+    s += '<span>Health </span>';
+    s += `<span>${health}</span>`;
+    s += '</div>';
     $unitinfo.html(s);
   }
 }
@@ -869,75 +868,6 @@ render = function() {
   render_stats.update();
   requestAnimationFrame(render);
 };
-
-createShape = (function() {
-  var addshapes = true,
-    shapes = 0,
-    box_geometry = new THREE.BoxGeometry( 3, 3, 3 ),
-    sphere_geometry = new THREE.SphereGeometry( 1.5, 32, 32 ),
-    cylinder_geometry = new THREE.CylinderGeometry( 2, 2, 1, 32 ),
-    cone_geometry = new THREE.CylinderGeometry( 0, 2, 4, 32 ),
-    octahedron_geometry = new THREE.OctahedronGeometry( 1.7, 1 ),
-    torus_geometry = new THREE.TorusKnotGeometry ( 1.7, .2, 32, 4 ),
-    doCreateShape;
-
-  doCreateShape = function() {
-    var shape;
-    // material = new THREE.MeshLambertMaterial({ opacity: 0, transparent: true });
-    var texture = THREE.ImageUtils.loadTexture( 'models/images/bricks.jpg' );
-    texture.anisotropy = renderer.getMaxAnisotropy();
-    texture.minFilter = THREE.NearestFilter;
-
-    var material = new THREE.MeshLambertMaterial( { map: texture } );
-
-    switch ( Math.floor(Math.random() * 2) ) {
-      case 0:
-        shape = new Physijs.BoxMesh(
-          box_geometry,
-          material
-        );
-        break;
-
-      case 1:
-        shape = new Physijs.SphereMesh(
-          sphere_geometry,
-          material,
-          undefined,
-          { restitution: Math.random() * 1.5 }
-        );
-        break;
-    }
-
-    shape.material.color.setRGB( Math.random() * 100 / 100, Math.random() * 100 / 100, Math.random() * 100 / 100 );
-    shape.castShadow = true;
-    shape.receiveShadow = true;
-
-    shape.position.set(
-      Math.random() * 30 - 15,
-      40,
-      Math.random() * 30 - 15
-    );
-
-    shape.rotation.set(
-      Math.random() * Math.PI,
-      Math.random() * Math.PI,
-      Math.random() * Math.PI
-    );
-
-    shapes++;
-    if (shapes < 200 && addshapes ) {
-      shape.addEventListener( 'ready', createShape );
-    }
-    scene.add(shape);
-    selectables.push(shape);
-
-    new TWEEN.Tween(shape.material).to({opacity: 1}, 500).start();
-  };
-
-  return function() {
-    setTimeout( doCreateShape, 1 );
-  };
-})();
 
 function checkCollisions() {
   // prepare world-{aligned, positioned, rotated} bounding boxes
