@@ -12,6 +12,7 @@ const boxIntersect = require('box-intersect');
 
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
+const Util = new (require('./js/Util.js').Util)();
 
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
@@ -38,8 +39,8 @@ let sceneHeight = window.innerHeight - controlsHeight;
 let raycaster;
 let cameraControls;
 let selector;
-let redSphere;
-let blueSpheres;
+let redMarker;
+let blueMarker;
 let $unitinfo;
 let skyBox;
 
@@ -83,14 +84,6 @@ function getSize(geometry) {
 function formatFloat(f, decimals=2) {
   const mul = Math.pow(10, decimals);
   return Math.round(f * mul) / mul;
-}
-
-function mix(a, b, alpha) {
-  return a + (b - a) * alpha;
-}
-
-function isInt(n) {
-  return Number(n) === n && n % 1 === 0;
 }
 
 function isFloat(n) {
@@ -161,9 +154,9 @@ function initSkyBox() {
 
 function moveSkyBox() {
   skyBox.position.copy(camera.position);
-};
+}
 
-function addLight(scene) {
+function initLight() {
   // Light
   light = new THREE.DirectionalLight(0xFFFFFF);
   light.position.set(20, 40, -15);
@@ -244,22 +237,6 @@ function initGround() {
   mapBounds.max.z = config.terrain.height / 2;
 }
 
-function debugLoadMarkers() {
-  function loadMarker(color) {
-    const geometry = new THREE.BoxGeometry(4, 4, 4);
-    const material = new THREE.MeshLambertMaterial({ color: color });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-    return mesh;
-  }
-  redMarker = loadMarker(0xFF0000);
-  blueMarkers = [];
-  blueMarkers.push(loadMarker(0x0000FF));
-  blueMarkers.push(loadMarker(0x0000FF));
-  blueMarkers.push(loadMarker(0x0000FF));
-  blueMarkers.push(loadMarker(0x0000FF));
-}
-
 function initCameraControls() {
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
@@ -275,71 +252,6 @@ function initCameraControls() {
       renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
-}
-
-function initScene() {
-  $('.controls').height(controlsHeight);
-
-  TWEEN.start();
-
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(sceneWidth, sceneHeight);
-  renderer.shadowMapEnabled = true;
-  renderer.shadowMapSoft = true;
-  $('#viewport').append(renderer.domElement);
-  $('#viewport').height(sceneHeight);
-
-  raycaster = new THREE.Raycaster();
-
-  initStats();
-  
-  scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  scene.setGravity(new THREE.Vector3(0, -100, 0));
-  scene.addEventListener('update', updateSimulation);
-
-  const frustumFar = 100000;
-  const frustumNear = 1;
-  camera = new THREE.PerspectiveCamera(
-    35,
-    sceneWidth / sceneHeight,
-    frustumNear,
-    frustumFar
-  );
-  scene.add(camera);
-
-  addLight(scene);
-  initGround();
-  initSkyBox();
-  initCameraControls();
-
-  // camera.position.set(107, 114, 82);
-  camera.position.set(320, 340, 245);
-  camera.lookAt(scene.position);
-
-  $unitinfo = $('.unitinfo .content');
-
-  requestAnimationFrame(render);
-  scene.simulate();
-  
-  loadModels();
-}
-
-function clearLog() {
-  const $debug = $('.debug');
-  $debug.html('');
-}
-
-function log(...args) {
-  const $debug = $('.debug');
-  let s = '';
-  for (let arg of args) {
-    if (isFloat(arg)) {
-      arg = formatFloat(arg);
-    }
-    s += arg + ' ';
-  }
-  s += '<br/>';
-  $debug.append(s);
 }
 
 function getGroundHeight(x, y) {
@@ -434,8 +346,8 @@ function moveAlignedToGround(object) {
     xzDirection.z = -xzDirection.z;
   }
   // add velocity to position
-  //object.position.x += xzDirection.x;
-  //object.position.z += xzDirection.z;
+  // object.position.x += xzDirection.x;
+  // object.position.z += xzDirection.z;
 
   // align to ground
   object.position.y = getGroundAlignment(object);
@@ -448,7 +360,7 @@ function moveAlignedToGround(object) {
   object.lookAt(dir);
 
   // rotate left/right. doesnt' work, so disabled
-  const delta = 1;
+  /*
   const yAxis = new THREE.Vector3(0, 0.1, 0);
   yAxis.applyQuaternion(object.quaternion);
   yAxis.y = 0;
@@ -457,24 +369,10 @@ function moveAlignedToGround(object) {
   yAxis2.applyQuaternion(object.quaternion);
   yAxis2.y = 0;
   const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
-  // object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
-}
-
-function getGroundHeightRay(x, y) {
-  const z = y;
-
-  const origin = new THREE.Vector3(x, config.terrain.maxElevation + 1, z);
-  const direction = new THREE.Vector3(0, -1, 0);
-  raycaster.set(origin, direction);
-  const intersects = raycaster.intersectObject(ground);
-  if (intersects.length > 0) {
-    return intersects[0].point.y;
-  }
-  throw new Error('failed to get height');
+  */
 }
 
 function loadModels() {
-
   function getOnSuccess(options) {
     const scale = options.scale;
     const rotation = options.rotation;
@@ -513,9 +411,7 @@ function loadModels() {
       bboxHelper.update();
       scene.remove(proto);
       for (let vertex of boxGeometry.vertices) {
-        vertex.x += (bboxHelper.box.min.x + bboxHelper.box.max.x) / 2;
-        vertex.y += (bboxHelper.box.min.y + bboxHelper.box.max.y) / 2;
-        vertex.z += (bboxHelper.box.min.z + bboxHelper.box.max.z) / 2;
+        vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
       }
 
       const shaderMaterial = new THREE.ShaderMaterial({
@@ -752,13 +648,13 @@ function updateUnitInfo() {
     s += '</tr>';
 
     s += '<tr><th>Y</th>';
-    s += `<td>${y}</td><td>${minx}</td><td>${maxy}</td>`;
+    s += `<td>${y}</td><td>${miny}</td><td>${maxy}</td>`;
     s += '</tr>';
 
     s += '<tr><th>Z</th>';
     s += `<td>${z}</td><td>${minz}</td><td>${maxz}</td>`;
     s += '</tr>';
-    s +=  '</table>';
+    s += '</table>';
 
     s += '<div>';
     s += '<span>Health </span>';
@@ -803,46 +699,11 @@ function updateShaders() {
   const nowTime = (new Date().getTime()) / 1000.0;
   const time = nowTime - startTime;
   for (let unit of units) {
-    let obj = unit.bboxMesh;
-    if (obj.material.uniforms !== undefined && obj.material.uniforms.time !== undefined) {
-      obj.material.uniforms.time.value = time;
+    const mesh = unit.bboxMesh;
+    if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
+      mesh.material.uniforms.time.value = time;
     }
     unit.healthBar.material.uniforms.health.value = unit.health;
-  }
-}
-
-function drawOutLine() {
-  const viewport = $('#viewport');
-  for (let unit of units) {
-    // need to get corners of bbox
-    // make a cube, then rotate it
-    const geometry = unit.bboxMesh.geometry.clone();
-    const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
-    geometry.applyMatrix(mat);
-    const screenBox = new THREE.Box2();
-    for (let vertex of geometry.vertices) {
-      const pos = vertex.clone().multiply(unit.scale).add(unit.position);
-      const vec2 = worldToScreen(pos);
-      screenBox.expandByPoint(vec2);
-    }
-    let div = unit.outline;
-    if (div === undefined) {
-      div = $('<div/>');
-      unit.outline = div;
-      viewport.append(div);
-    }
-    const left = screenBox.min.x;
-    const top = screenBox.min.y;
-    const width = screenBox.max.x - screenBox.min.x;
-    const height = screenBox.max.y - screenBox.min.y;
-    /*div.css({
-      position: 'absolute',
-      left,
-      top,
-      height,
-      width,
-      border: '1px solid black',
-    });*/
   }
 }
 
@@ -928,6 +789,53 @@ function updateSimulation() {
   checkCollisions();
   scene.simulate(undefined, 1);
   physicsStats.update();
+}
+
+function initScene() {
+  $('.controls').height(controlsHeight);
+
+  TWEEN.start();
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(sceneWidth, sceneHeight);
+  renderer.shadowMapEnabled = true;
+  renderer.shadowMapSoft = true;
+  $('#viewport').append(renderer.domElement);
+  $('#viewport').height(sceneHeight);
+
+  raycaster = new THREE.Raycaster();
+
+  initStats();
+
+  scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
+  scene.setGravity(new THREE.Vector3(0, -100, 0));
+  scene.addEventListener('update', updateSimulation);
+
+  const frustumFar = 100000;
+  const frustumNear = 1;
+  camera = new THREE.PerspectiveCamera(
+    35,
+    sceneWidth / sceneHeight,
+    frustumNear,
+    frustumFar
+  );
+  scene.add(camera);
+
+  initLight();
+  initGround();
+  initSkyBox();
+  initCameraControls();
+
+  // camera.position.set(107, 114, 82);
+  camera.position.set(320, 340, 245);
+  camera.lookAt(scene.position);
+
+  $unitinfo = $('.unitinfo .content');
+
+  requestAnimationFrame(render);
+  scene.simulate();
+
+  loadModels();
 }
 
 function main() {
