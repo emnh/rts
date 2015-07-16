@@ -14,6 +14,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Progress indicator for loading
 
 ## Functionality
+ - Disable unit selection when mouse control for camera is enabled
  - Scroll terrain with arrow buttons
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
