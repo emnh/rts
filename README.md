@@ -21,9 +21,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Move selected unit according to its move speed
   - Target
   - Waypoint queue
- - Select rectangular area of units
-  - Transparent rectangle to indicate selection
-  - Raycasting / collision detection on area. Use box-intersect probably.
+ - Select rectangular area of units by screen rectangle, not terrain
  - Attack another unit
   - Select target unit
   - Shot animation
