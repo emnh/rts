@@ -44,11 +44,18 @@ let blueMarker;
 let $unitinfo;
 let skyBox;
 
+const UnitType = {
+  Air: 'air',
+  Ground: 'ground',
+  Building: 'building',
+}
+
 const config = {
   units: {
     count: 20,
     speed: 20,
     randomLocation: false,
+    airAltitude: 40
   },
   terrain: {
     maxElevation: 32,
@@ -310,7 +317,10 @@ function getGroundHeight(x, y) {
 
 function getGroundAlignment(unit) {
   const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
-  const y = groundHeight - unit.bbox.min.y * unit.scale.y;
+  let y = groundHeight - unit.bbox.min.y * unit.scale.y;
+  if (unit.type === UnitType.Air) {
+    y += config.units.airAltitude;
+  }
   return y;
 }
 
@@ -425,30 +435,29 @@ function loadModels() {
       });
 
       for (let i = 0; i < config.units.count; i++) {
-        const object = new THREE.Mesh(geometry, material.clone());
+        const unit = new THREE.Mesh(geometry, material.clone());
         const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
         scene.add(boxMesh);
 
-        object.bboxMesh = boxMesh;
-        object.bbox = bboxHelper.box;
+        unit.bboxMesh = boxMesh;
+        unit.bbox = bboxHelper.box;
 
-        object.scale.set(scale, scale, scale);
+        unit.scale.set(scale, scale, scale);
         if (config.units.randomLocation) {
-          object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
-          object.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+          unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
+          unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
         }
-        const height = size.height * object.scale.y;
-        const groundHeight = getGroundHeight(object.position.x, object.position.z);
-        object.position.y = groundHeight + height + 10;
-        object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
-        object.stayUpRight = true;
-        object.lastMoved = undefined;
-        object.health = Math.random();
+        const height = size.height * unit.scale.y;
+        const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
+        unit.position.y = groundHeight + height + 10;
+        unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+        unit.stayUpRight = true;
+        unit.lastMoved = undefined;
 
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
             time: { type: 'f', value: 0.0 },
-            health: { type: 'f', value: object.health },
+            health: { type: 'f', value: unit.health },
           },
           vertexShader: $('#health-vertex').text(),
           fragmentShader: $('#health-fragment').text(),
@@ -456,12 +465,16 @@ function loadModels() {
         const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
         // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
         const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
-        object.healthBar = healthBar;
+        unit.healthBar = healthBar;
 
-        units.push(object);
-        selectables.push(object);
-        scene.add(object);
+        units.push(unit);
+        selectables.push(unit);
+        scene.add(unit);
         scene.add(healthBar);
+
+        // game properties
+        unit.health = Math.random();
+        unit.type = options.type;
       }
     };
   }
@@ -474,6 +487,7 @@ function loadModels() {
     texturePath: 'models/images/camouflage.jpg',
     textureRepeat: new THREE.Vector2(1, 1),
     opacity: 1,
+    type: UnitType.GroundUnit,
   };
 
   const models = [
@@ -489,12 +503,14 @@ function loadModels() {
       path: 'models/3d/dragon.json',
       scale: 1,
       texturePath: 'models/images/dragon.jpg',
+      type: UnitType.Air,
     },
     {
       name: 'house',
       path: 'models/3d/house.json',
       scale: 0.03,
       texturePath: 'models/images/house.jpg',
+      type: UnitType.Building,
     },
     {
       name: 'ant',
@@ -529,6 +545,7 @@ function loadModels() {
       scale: 3,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       texturePath: 'models/images/fighter.jpg',
+      type: UnitType.Air,
     },
     {
       name: 'thor',
@@ -542,18 +559,19 @@ function loadModels() {
       scale: 1,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
       texturePath: 'models/images/biplane.jpg',
+      type: UnitType.Air,
     },
     {
       name: 'farm',
       path: 'models/3d/farm.json',
       scale: 500,
       texturePath: 'models/images/farm.jpg',
+      type: UnitType.Building,
     },
   ];
 
   for (const model of models) {
-    if (model.name !== 'house' &&
-        model.name !== 'farm') {
+    if (model.type !== UnitType.Building) {
       const modelOptions = $.extend({}, options, model);
       loader.load(model.path, getOnSuccess(modelOptions));
     }

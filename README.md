@@ -15,7 +15,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 
 ## Functionality
  - Scroll terrain with arrow buttons
- - Make aircraft fly a constant distance above ground
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Select more than unit with ctrl or shift
