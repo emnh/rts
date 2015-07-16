@@ -11,7 +11,6 @@ Unfinished project. Testing.
 # TODO
 
 ## Code
- - Fix eslint warnings and errors
  - Refactor index.js to use gameState for all globals
  - Separate game logic from rendering
  - Progress indicator for loading
