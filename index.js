@@ -95,9 +95,9 @@ function moveAlignedToGround(object) {
   if (object.position.z + xzDirection.z >= mapBounds.max.z) {
     xzDirection.z = -xzDirection.z;
   }
-  // add velocity
-  object.position.x += xzDirection.x;
-  object.position.z += xzDirection.z;
+  // add velocity to position
+  //object.position.x += xzDirection.x;
+  //object.position.z += xzDirection.z;
   
   // align to ground
   const groundHeight = getGroundHeight(object.position.x, object.position.z);
@@ -112,7 +112,7 @@ function moveAlignedToGround(object) {
   dir.add(object.position);
   object.lookAt(dir);
   
-  // rotate left/right
+  // rotate left/right. doesnt' work, so disabled
   const delta = 1;
   const yAxis = new THREE.Vector3(0, 0.1, 0);
   yAxis.applyQuaternion(object.quaternion);
@@ -349,7 +349,11 @@ function initScene() {
 
   planeMesh.rotation.x = Math.PI / -2; //ground.rotation.x;
   planeMesh.visible = false;
-  cameraControls = new MapControls(camera, planeMesh, () => null, renderer.domElement);
+  cameraControls = new MapControls(
+      camera,
+      planeMesh,
+      () => null,
+      renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
   //camera.position.set(107, 114, 82);
@@ -936,6 +940,7 @@ createShape = (function() {
 })();
 
 function checkCollisions() {
+  // prepare world-{aligned, positioned, rotated} bounding boxes
   const boxes = [];
   for (let unit of units) {
     const pos = unit.position;
@@ -954,6 +959,8 @@ function checkCollisions() {
     box.unit = unit;
     boxes.push(box);
   }
+
+  // intersect boxes
   boxIntersect(boxes, function(i, j) {
     const p1 = boxes[i].unit.position;
     const p2 = boxes[j].unit.position;
@@ -962,6 +969,11 @@ function checkCollisions() {
     //log(i, j, p1, p2, d);
     d.sub(p1);
     d.y = 0;
+    // randomize if they have same position
+    if (d.equals(new THREE.Vector3(0, 0, 0))) {
+      d.x = Math.random();
+      d.z = Math.random();
+    }
     d.normalize();
     d.multiplyScalar(1.0);
     const p1new = p1.clone().sub(d);

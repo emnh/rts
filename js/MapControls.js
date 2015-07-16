@@ -8,13 +8,13 @@
 
 export function MapControls(camera, mesh, renderFunction, domElement) {
 
-  this.object = camera;
 	this.camera = camera;
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
 	this.render = renderFunction;
 	this.enabled = true;
 	this.target = new THREE.Vector3();
 	this.zoomSpeed = 1.0;
+  this.scrollSpeed = 10.0;
 	this.minDistance = 0;
 	this.maxDistance = Infinity;
 	this.rotateSpeed = 0.3;
@@ -37,6 +37,9 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 	var STATE = { NONE : -1, ROTATE : 0, DOLLY : 1, PAN : 2 };
 	var state = STATE.NONE;
 	var vector, projector, raycaster, intersects;
+  var scrollFunctions = [];
+  var lastMouseX;
+  var lastMouseY;
 
 
 	this.update = function () {
@@ -96,13 +99,52 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	}
 
+  function scroll() {
+    // scroll at edge of element
+    var edgeSize = 0.1;
+    
+    if (lastMouseX < -1.0 + edgeSize) {
+      var delta = new THREE.Vector3(-scope.scrollSpeed, 0, 0);
+      delta.applyQuaternion(camera.quaternion);
+      camera.position.add(delta);
+    }
+    if (lastMouseX > 1.0 - edgeSize) {
+      var delta = new THREE.Vector3(scope.scrollSpeed, 0, 0);
+      delta.applyQuaternion(camera.quaternion);
+      camera.position.add(delta);
+    }
+    if (lastMouseY < -1.0 + edgeSize) {
+      var delta = new THREE.Vector3(0, -1, 0);
+      delta.applyQuaternion(camera.quaternion);
+      delta.y = 0;
+      delta.normalize();
+      delta.multiplyScalar(scope.scrollSpeed);
+      camera.position.add(delta);
+    }
+    if (lastMouseY > 1.0 - edgeSize) {
+      var delta = new THREE.Vector3(0, 1, 0);
+      delta.applyQuaternion(camera.quaternion);
+      delta.y = 0;
+      delta.normalize();
+      delta.multiplyScalar(scope.scrollSpeed);
+      camera.position.add(delta);
+    }
+  }
+
+  function onMouseMoveScroll(event) {
+    var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+
+    lastMouseX = ( event.clientX / element.width ) * 2 - 1;
+    lastMouseY = -( event.clientY / element.height ) * 2 + 1;
+  }
+
 	function onMouseMove( event ) {
 
 		if ( scope.enabled === false ) return;
 
-		event.preventDefault();
-
-		var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+    event.preventDefault();
+		
+    var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
 
 		if ( state === STATE.PAN ) {
 
@@ -121,7 +163,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 				var delta = new THREE.Vector3();
 				delta.subVectors( panStart, panDelta );
 
-				scope.object.position.addVectors( scope.object.position, delta );
+				camera.position.addVectors( camera.position, delta );
 
 			}
 
@@ -133,7 +175,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 			thetaDelta -=  2 * Math.PI * rotateDelta.x / element.clientWidth * scope.rotateSpeed;
 			phiDelta -=  2 * Math.PI * rotateDelta.y / element.clientHeight * scope.rotateSpeed;
 
-			var position = scope.object.position;
+			var position = camera.position;
 			var offset = position.clone().sub( scope.target );
 
 			// angle from z-axis around y-axis
@@ -162,7 +204,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 			position.copy( scope.target ).add( offset );
 
-			scope.object.lookAt( scope.target );
+			camera.lookAt( scope.target );
 
 			thetaDelta = 0;
 			phiDelta = 0;	
@@ -203,15 +245,17 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 		}
 
 		var zoomOffset = new THREE.Vector3();
-		var te = scope.object.matrix.elements;
+		var te = camera.matrix.elements;
 		zoomOffset.set( te[8], te[9], te[10] );
-		zoomOffset.multiplyScalar( delta * -scope.zoomSpeed * scope.object.position.y/1000 );
-		scope.object.position.addVectors( scope.object.position, zoomOffset );
+		zoomOffset.multiplyScalar( delta * -scope.zoomSpeed * camera.position.y/1000 );
+		camera.position.addVectors( camera.position, zoomOffset );
 
 	}
 
 	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
 	this.domElement.addEventListener( 'mousedown', onMouseDown, false );
 	this.domElement.addEventListener( 'mousewheel', onMouseWheel, false );
+	this.domElement.addEventListener( 'mousemove', onMouseMoveScroll, false );
+  setInterval(scroll, 10);
 
 };
