@@ -21,6 +21,7 @@ const selectables = [];
 const mapBounds = new THREE.Box3();
 const startTime = (new Date().getTime()) / 1000.0;
 const units = [];
+const heightField = [];
 let render;
 let noiseGen;
 let renderer;
@@ -36,12 +37,11 @@ let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight;
 let raycaster;
 let cameraControls;
-let moveSkybox;
 let selector;
-let heightField = [];
 let redSphere;
 let blueSpheres;
 let $unitinfo;
+let skyBox;
 
 const config = {
   units: {
@@ -71,64 +71,6 @@ const config = {
   },
 };
 
-function moveAlignedToGround(object) {
-  const nowTime = (new Date().getTime()) / 1000.0;
-  if (object.lastMoved === undefined) {
-    object.lastMoved = nowTime;
-    return;
-  }
-  const oldTime = object.lastMoved;
-  const timeDelta = nowTime - oldTime;
-  object.lastMoved = nowTime;
-  const eps = 1e-7;
-  if (timeDelta < eps) {
-    // prevent zero time from making direction vector zero.
-    // in that case units turn to original rotation.
-    return;
-  }
-  const zAxis = new THREE.Vector3(0, 0, config.units.speed * timeDelta);
-  zAxis.applyQuaternion(object.quaternion);
-  zAxis.y = 0;
-  const xzDirection = zAxis;
-  const oldGroundHeight = getGroundAlignment(object);
-  if (object.position.x + xzDirection.x <= mapBounds.min.x) {
-    xzDirection.x = -xzDirection.x;
-  }
-  if (object.position.x + xzDirection.x >= mapBounds.max.x) {
-    xzDirection.x = -xzDirection.x;
-  }
-  if (object.position.z + xzDirection.z <= mapBounds.min.z) {
-    xzDirection.z = -xzDirection.z;
-  }
-  if (object.position.z + xzDirection.z >= mapBounds.max.z) {
-    xzDirection.z = -xzDirection.z;
-  }
-  // add velocity to position
-  //object.position.x += xzDirection.x;
-  //object.position.z += xzDirection.z;
-
-  // align to ground
-  object.position.y = getGroundAlignment(object);
-  const groundHeight = object.position.y;
-
-  // rotate in velocity direction
-  const dir = xzDirection.clone();
-  dir.y = groundHeight - oldGroundHeight;
-  dir.add(object.position);
-  object.lookAt(dir);
-
-  // rotate left/right. doesnt' work, so disabled
-  const delta = 1;
-  const yAxis = new THREE.Vector3(0, 0.1, 0);
-  yAxis.applyQuaternion(object.quaternion);
-  yAxis.y = 0;
-  const leftGroundHeight = getGroundHeight(object.position.x + yAxis.x, object.position.z + yAxis.z);
-  const yAxis2 = new THREE.Vector3(0, -0.1, 0);
-  yAxis2.applyQuaternion(object.quaternion);
-  yAxis2.y = 0;
-  const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
-  // object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
-}
 
 function getSize(geometry) {
   return {
@@ -147,16 +89,16 @@ function mix(a, b, alpha) {
   return a + (b - a) * alpha;
 }
 
-function isInt(n){
+function isInt(n) {
   return Number(n) === n && n % 1 === 0;
 }
 
-function isFloat(n){
+function isFloat(n) {
   return n === Number(n) && n % 1 !== 0;
 }
 
 function isObject(obj) {
-  return Object.prototype.toString.call(obj) == '[object Object]';
+  return Object.prototype.toString.call(obj) === '[object Object]';
 }
 
 function worldToScreen(pos) {
@@ -168,7 +110,7 @@ function worldToScreen(pos) {
   return new THREE.Vector2(vector.x, vector.y);
 }
 
-function loadSkyBox() {
+function initSkyBox() {
   const cubeMap = new THREE.Texture([]);
   cubeMap.format = THREE.RGBFormat;
   cubeMap.flipY = false;
@@ -182,7 +124,7 @@ function loadSkyBox() {
       canvas.height = size;
 
       const context = canvas.getContext('2d');
-      context.drawImage(image, - x * size, - y * size);
+      context.drawImage(image, -x * size, -y * size);
 
       return canvas;
     };
@@ -209,58 +151,19 @@ function loadSkyBox() {
 
   const boxSize = 10000;
 
-  const skyBox = new THREE.Mesh(
+  skyBox = new THREE.Mesh(
         new THREE.BoxGeometry(boxSize, boxSize, boxSize),
         skyBoxMaterial
       );
 
-  return skyBox;
+  scene.add(skyBox);
 }
 
-function initScene() {
+function moveSkyBox() {
+  skyBox.position.copy(camera.position);
+};
 
-  $('.controls').height(controlsHeight);
-
-  TWEEN.start();
-
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(sceneWidth, sceneHeight);
-  renderer.shadowMapEnabled = true;
-  renderer.shadowMapSoft = true;
-  $('#viewport').append(renderer.domElement);
-  $('#viewport').height(sceneHeight);
-
-  raycaster = new THREE.Raycaster();
-
-  renderStats = new Stats();
-  renderStats.domElement.style.position = 'absolute';
-  renderStats.domElement.style.top = '0px';
-  renderStats.domElement.style.zIndex = 100;
-  $('body').append(renderStats.domElement);
-
-  physicsStats = new Stats();
-  physicsStats.domElement.style.position = 'absolute';
-  physicsStats.domElement.style.top = '50px';
-  physicsStats.domElement.style.zIndex = 100;
-  $('body').append(physicsStats.domElement);
-
-  scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  scene.setGravity(new THREE.Vector3( 0, -100, 0));
-  let count = 0;
-  scene.addEventListener('update', updateSimulation);
-
-  const frustumFar = 100000;
-  const frustumNear = 1;
-  camera = new THREE.PerspectiveCamera(
-    35,
-    sceneWidth / sceneHeight,
-    frustumNear,
-    frustumFar
-  );
-  // camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
-
-  scene.add(camera);
-
+function addLight(scene) {
   // Light
   light = new THREE.DirectionalLight(0xFFFFFF);
   light.position.set(20, 40, -15);
@@ -276,7 +179,23 @@ function initScene() {
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
   scene.add(light);
+}
 
+function initStats() {
+  renderStats = new Stats();
+  renderStats.domElement.style.position = 'absolute';
+  renderStats.domElement.style.top = '0px';
+  renderStats.domElement.style.zIndex = 100;
+  $('body').append(renderStats.domElement);
+
+  physicsStats = new Stats();
+  physicsStats.domElement.style.position = 'absolute';
+  physicsStats.domElement.style.top = '50px';
+  physicsStats.domElement.style.zIndex = 100;
+  $('body').append(physicsStats.domElement);
+}
+
+function initGround() {
   // Materials
   groundMaterial = Physijs.createMaterial(
     new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg' ) }),
@@ -284,7 +203,6 @@ function initScene() {
     0.0 // low restitution
   );
   groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
-  // groundMaterial.map.repeat.set( 2.5, 2.5 );
   groundMaterial.map.repeat.set( 10.0, 10.0 );
 
   // Ground
@@ -298,8 +216,6 @@ function initScene() {
   for (let i = 0; i <= config.terrain.xFaces; i++) {
     heightField[i] = [];
   }
-  // for (let i = 0; i < groundGeometry.vertices.length; i++) {
-  // var vertex = groundGeometry.vertices[i];
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
@@ -315,14 +231,6 @@ function initScene() {
   groundGeometry.computeFaceNormals();
   groundGeometry.computeVertexNormals();
 
-  /*ground = new Physijs.HeightfieldMesh(
-    groundGeometry,
-    groundMaterial,
-    0, // mass
-    config.terrain.xFaces,
-    config.terrain.yFaces
-  );
-  */
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   // ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
@@ -334,23 +242,32 @@ function initScene() {
   mapBounds.max.x = config.terrain.width / 2;
   mapBounds.max.y = config.terrain.maxElevation * 2;
   mapBounds.max.z = config.terrain.height / 2;
+}
 
-  const skyBox = loadSkyBox();
-  scene.add(skyBox);
-  moveSkybox = function() {
-    skyBox.position.x = camera.position.x;
-    skyBox.position.y = camera.position.y;
-    skyBox.position.z = camera.position.z;
-  };
+function debugLoadMarkers() {
+  function loadMarker(color) {
+    const geometry = new THREE.BoxGeometry(4, 4, 4);
+    const material = new THREE.MeshLambertMaterial({ color: color });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+    return mesh;
+  }
+  redMarker = loadMarker(0xFF0000);
+  blueMarkers = [];
+  blueMarkers.push(loadMarker(0x0000FF));
+  blueMarkers.push(loadMarker(0x0000FF));
+  blueMarkers.push(loadMarker(0x0000FF));
+  blueMarkers.push(loadMarker(0x0000FF));
+}
 
-  // Camera and controls
-
+function initCameraControls() {
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
-
   planeMesh.rotation.x = Math.PI / -2;
   planeMesh.visible = false;
+  scene.add(planeMesh);
+
   cameraControls = new MapControls(
       camera,
       planeMesh,
@@ -358,33 +275,52 @@ function initScene() {
       renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
+}
+
+function initScene() {
+  $('.controls').height(controlsHeight);
+
+  TWEEN.start();
+
+  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer.setSize(sceneWidth, sceneHeight);
+  renderer.shadowMapEnabled = true;
+  renderer.shadowMapSoft = true;
+  $('#viewport').append(renderer.domElement);
+  $('#viewport').height(sceneHeight);
+
+  raycaster = new THREE.Raycaster();
+
+  initStats();
+  
+  scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
+  scene.setGravity(new THREE.Vector3(0, -100, 0));
+  scene.addEventListener('update', updateSimulation);
+
+  const frustumFar = 100000;
+  const frustumNear = 1;
+  camera = new THREE.PerspectiveCamera(
+    35,
+    sceneWidth / sceneHeight,
+    frustumNear,
+    frustumFar
+  );
+  scene.add(camera);
+
+  addLight(scene);
+  initGround();
+  initSkyBox();
+  initCameraControls();
+
   // camera.position.set(107, 114, 82);
   camera.position.set(320, 340, 245);
   camera.lookAt(scene.position);
-  scene.add(planeMesh);
 
   $unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
   scene.simulate();
-
-  // the following debugging code may be useful later on
-  /*
-  function loadSphere(color) {
-    const geometry = new THREE.BoxGeometry(4, 4, 4);
-    const material = new THREE.MeshLambertMaterial({ color: color });
-    const mesh = new THREE.Mesh(geometry, material);
-    scene.add(mesh);
-    return mesh;
-  }
-  redSphere = loadSphere(0xFF0000);
-  blueSpheres = [];
-  blueSpheres.push(loadSphere(0x0000FF));
-  blueSpheres.push(loadSphere(0x0000FF));
-  blueSpheres.push(loadSphere(0x0000FF));
-  blueSpheres.push(loadSphere(0x0000FF));
-  */
-
+  
   loadModels();
 }
 
@@ -463,6 +399,65 @@ function getGroundAlignment(unit) {
   const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
   const y = groundHeight - unit.bbox.min.y * unit.scale.y;
   return y;
+}
+
+function moveAlignedToGround(object) {
+  const nowTime = (new Date().getTime()) / 1000.0;
+  if (object.lastMoved === undefined) {
+    object.lastMoved = nowTime;
+    return;
+  }
+  const oldTime = object.lastMoved;
+  const timeDelta = nowTime - oldTime;
+  object.lastMoved = nowTime;
+  const eps = 1e-7;
+  if (timeDelta < eps) {
+    // prevent zero time from making direction vector zero.
+    // in that case units turn to original rotation.
+    return;
+  }
+  const zAxis = new THREE.Vector3(0, 0, config.units.speed * timeDelta);
+  zAxis.applyQuaternion(object.quaternion);
+  zAxis.y = 0;
+  const xzDirection = zAxis;
+  const oldGroundHeight = getGroundAlignment(object);
+  if (object.position.x + xzDirection.x <= mapBounds.min.x) {
+    xzDirection.x = -xzDirection.x;
+  }
+  if (object.position.x + xzDirection.x >= mapBounds.max.x) {
+    xzDirection.x = -xzDirection.x;
+  }
+  if (object.position.z + xzDirection.z <= mapBounds.min.z) {
+    xzDirection.z = -xzDirection.z;
+  }
+  if (object.position.z + xzDirection.z >= mapBounds.max.z) {
+    xzDirection.z = -xzDirection.z;
+  }
+  // add velocity to position
+  //object.position.x += xzDirection.x;
+  //object.position.z += xzDirection.z;
+
+  // align to ground
+  object.position.y = getGroundAlignment(object);
+  const groundHeight = object.position.y;
+
+  // rotate in velocity direction
+  const dir = xzDirection.clone();
+  dir.y = groundHeight - oldGroundHeight;
+  dir.add(object.position);
+  object.lookAt(dir);
+
+  // rotate left/right. doesnt' work, so disabled
+  const delta = 1;
+  const yAxis = new THREE.Vector3(0, 0.1, 0);
+  yAxis.applyQuaternion(object.quaternion);
+  yAxis.y = 0;
+  const leftGroundHeight = getGroundHeight(object.position.x + yAxis.x, object.position.z + yAxis.z);
+  const yAxis2 = new THREE.Vector3(0, -0.1, 0);
+  yAxis2.applyQuaternion(object.quaternion);
+  yAxis2.y = 0;
+  const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
+  // object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
 }
 
 function getGroundHeightRay(x, y) {
@@ -866,7 +861,7 @@ render = function() {
   updateHealthBars();
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // drawOutLine();
-  moveSkybox();
+  moveSkyBox();
   renderer.render(scene, camera);
   renderStats.update();
   requestAnimationFrame(render);
