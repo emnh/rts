@@ -14,6 +14,11 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Progress indicator for loading
 
 ## Functionality
+ - Minimap
+   - Make it possible to click on minimap to change screen location
+    - Show (accurate) rectangle on minimap
+   - Add terrain
+   - Units as colored squares with black border
  - Disable unit selection when mouse control for camera is enabled
  - Scroll terrain with arrow buttons
  - Export/import terrain as JSON

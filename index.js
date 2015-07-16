@@ -23,7 +23,6 @@ const mapBounds = new THREE.Box3();
 const startTime = (new Date().getTime()) / 1000.0;
 const units = [];
 const heightField = [];
-let render;
 let noiseGen;
 let renderer;
 let renderStats;
@@ -44,6 +43,7 @@ let blueMarker;
 let $unitinfo;
 let skyBox;
 let planeMesh;
+let minimap;
 
 const UnitType = {
   Air: 'air',
@@ -760,7 +760,61 @@ function funTerrain() {
   ground.geometry.attributes.position.needsUpdate = true;
 }
 
-render = function() {
+function MiniMap() {
+
+  //const minimapGeometry = new THREE.Geometry();
+  const minimapHeight = controlsHeight - 2;
+  const minimapWidth = minimapHeight;
+  const $minimap = $(".minimap");
+  const minimapRenderer = new THREE.WebGLRenderer({ antialias: true });
+  //minimapRenderer.setClearColor(0xffffff, 1);
+  minimapRenderer.setSize(minimapWidth, minimapHeight);
+  minimapRenderer.setPixelRatio(minimapWidth / minimapHeight);
+  minimapRenderer.autoClear = true;
+  $minimap.append(minimapRenderer.domElement);
+  $(minimapRenderer.domElement).css({
+    border: '1px solid white'
+  });
+  const minimapScene = new THREE.Scene();
+  const minimapCamera = new THREE.PerspectiveCamera(35, minimapWidth, minimapHeight, 0, 1000);
+  minimapCamera.position.set(0, 3.5, 0);
+  minimapCamera.lookAt(minimapScene.position);
+  minimapCamera.aspect = minimapWidth / minimapHeight;
+  minimapCamera.updateProjectionMatrix();
+  minimapScene.add(minimapCamera);
+  const minimapMaterial = new THREE.PointCloudMaterial({ size: 0.1 });
+  //const pointCloud = new THREE.PointCloud(minimapGeometry, minimapMaterial);
+  //minimapScene.add(pointCloud);
+  const light = new THREE.AmbientLight(0xFFFFFF); // soft white light
+  minimapScene.add(light);
+
+  let oldCloud;
+
+  this.render = function() {
+    if (oldCloud !== undefined) {
+      minimapScene.remove(oldCloud);
+      oldCloud.geometry.dispose();
+    }
+    const geom = new THREE.Geometry();
+    let i = 0;
+    for (let unit of units) {
+      if (unit.minimap === undefined) {
+        unit.minimap = {};
+      }
+      const v = new THREE.Vector3(unit.position.x * 2 / config.terrain.width, 0, unit.position.z * 2 / config.terrain.height);
+      geom.vertices[i] = v;
+      i++;
+    }
+    console.log(geom.vertices.length);
+    const pointCloud = new THREE.PointCloud(geom, minimapMaterial);
+    minimapScene.add(pointCloud);
+    oldCloud = pointCloud;
+
+    minimapRenderer.render(minimapScene, minimapCamera);
+  }
+}
+
+function render() {
   /*
   // 1st person perspective of a unit
   const unit = units[0];
@@ -770,6 +824,7 @@ render = function() {
   }
   */
   //funTerrain();
+  minimap.render();
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
@@ -851,6 +906,7 @@ function updateSimulation() {
   physicsStats.update();
 }
 
+
 function initScene() {
   $('.controls').height(controlsHeight);
 
@@ -885,6 +941,7 @@ function initScene() {
   initGround();
   initSkyBox();
   initCameraControls();
+  minimap = new MiniMap();
 
   // camera.position.set(107, 114, 82);
   camera.position.set(320, 340, 245);
