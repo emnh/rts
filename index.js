@@ -43,6 +43,7 @@ let redMarker;
 let blueMarker;
 let $unitinfo;
 let skyBox;
+let planeMesh;
 
 const UnitType = {
   Air: 'air',
@@ -65,7 +66,7 @@ const config = {
     height: 1000,
   },
   camera: {
-    mouseControl: true,
+    mouseControl: false,
     X: 0,
     Y: 0,
     Z: 0,
@@ -175,7 +176,7 @@ function initLight() {
   light.shadowCameraBottom = config.terrain.height;
   light.shadowCameraNear = 0;
   light.shadowCameraFar = 2000;
-  light.shadowCameraVisible = true;
+  // light.shadowCameraVisible = true;
   light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
@@ -249,7 +250,7 @@ function initGround() {
 function initCameraControls() {
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
-  const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
+  planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
   planeMesh.rotation.x = Math.PI / -2;
   planeMesh.visible = false;
   scene.add(planeMesh);
@@ -261,6 +262,7 @@ function initCameraControls() {
       renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
+  cameraControls.enabled = config.camera.mouseControl;
 }
 
 function getGroundHeight(x, y) {
@@ -586,17 +588,18 @@ function loadModels() {
 function initSelection() {
   const mouseElement = renderer.domElement;
   selector = new Selection({
+    boxIntersect,
+    getBBoxes,
+    mouseElement,
     raycaster,
     selectables,
     camera,
     ground,
+    scene,
+    config,
+    planeMesh,
     getGroundHeight: getGroundHeight,
   });
-  const handler = selector.getOnMouseMove(config, mouseElement);
-  $(mouseElement).mousemove(handler);
-
-  const downHandler = selector.getOnMouseDown();
-  $(mouseElement).mousedown(downHandler);
 }
 
 function initDAT() {
@@ -773,7 +776,7 @@ render = function() {
   requestAnimationFrame(render);
 };
 
-function checkCollisions() {
+function getBBoxes() {
   // prepare world-{aligned, positioned, rotated} bounding boxes
   const boxes = [];
   for (const unit of units) {
@@ -793,6 +796,11 @@ function checkCollisions() {
     box.unit = unit;
     boxes.push(box);
   }
+  return boxes;
+}
+
+function checkCollisions() {
+  const boxes = getBBoxes();
 
   // intersect boxes
   boxIntersect(boxes, function(i, j) {
