@@ -588,6 +588,11 @@ function loadModels() {
 function initSelection() {
   const mouseElement = renderer.domElement;
   selector = new Selection({
+    placeUnit: (unit, pos) => {
+      unit.position.copy(pos);
+      const groundHeight = getGroundAlignment(unit);
+      unit.y += groundHeight;
+    },
     boxIntersect,
     getBBoxes,
     mouseElement,

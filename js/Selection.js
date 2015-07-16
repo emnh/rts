@@ -88,17 +88,9 @@ export function Selection(options) {
         raycaster.setFromCamera(mouse, camera);
         const intersects = raycaster.intersectObject(options.ground);
         if (intersects.length > 0 && selection.selected.length > 0) {
-          const obj = selection.selected[0];
-          obj.position.copy(intersects[0].point);
-          // obj.position.y += obj.geometry.boundingSphere.radius * obj.geometry.scale.y;
-          // const height = (obj.geometry.boundingBox.max.y - obj.geometry.boundingBox.min.y) * obj.scale.y;
-          const height = obj.geometry.boundingBox.max.y * obj.scale.y;
-          obj.position.y += height;
-          obj.__dirtyPosition = true;
-          // obj.rotation.x = 0;
-          // obj.rotation.y = 0;
-          // obj.rotation.z = 0;
-          // obj.__dirtyRotation = true;
+          for (const unit of selection.selected) {
+            options.placeUnit(unit, intersects[0].point);
+          }
         }
       }
     };
