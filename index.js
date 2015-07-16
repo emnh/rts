@@ -166,15 +166,16 @@ function moveSkyBox() {
 function initLight() {
   // Light
   light = new THREE.DirectionalLight(0xFFFFFF);
-  light.position.set(20, 40, -15);
+  light.position.set(500, 1000, -400);
   light.target.position.copy(scene.position);
   light.castShadow = true;
-  light.shadowCameraLeft = -60;
-  light.shadowCameraTop = -60;
-  light.shadowCameraRight = 60;
-  light.shadowCameraBottom = 60;
-  light.shadowCameraNear = 20;
-  light.shadowCameraFar = 200;
+  light.shadowCameraLeft = -config.terrain.width;
+  light.shadowCameraTop = -config.terrain.height;
+  light.shadowCameraRight = config.terrain.width;
+  light.shadowCameraBottom = config.terrain.height;
+  light.shadowCameraNear = 0;
+  light.shadowCameraFar = 2000;
+  light.shadowCameraVisible = true;
   light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
@@ -453,11 +454,11 @@ function loadModels() {
         unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
         unit.stayUpRight = true;
         unit.lastMoved = undefined;
-
+        
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
             time: { type: 'f', value: 0.0 },
-            health: { type: 'f', value: unit.health },
+            health: { type: 'f', value: 0.0},
           },
           vertexShader: $('#health-vertex').text(),
           fragmentShader: $('#health-fragment').text(),
@@ -467,14 +468,18 @@ function loadModels() {
         const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
         unit.healthBar = healthBar;
 
+        unit.castShadow = true;
+        unit.receiveShadow = true;
+        
+        // game properties
+        unit.health = Math.random();
+        unit.type = options.type;
+
         units.push(unit);
         selectables.push(unit);
         scene.add(unit);
         scene.add(healthBar);
 
-        // game properties
-        unit.health = Math.random();
-        unit.type = options.type;
       }
     };
   }
