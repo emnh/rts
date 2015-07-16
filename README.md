@@ -19,6 +19,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
     - Show (accurate) rectangle on minimap
    - Add terrain
    - Units as colored squares with black border
+   - Link minimap camera to screen camera?
  - Disable unit selection when mouse control for camera is enabled
  - Scroll terrain with arrow buttons
  - Export/import terrain as JSON
