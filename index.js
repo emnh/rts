@@ -215,10 +215,11 @@ function initGround() {
     const noise = noiseGen.noise(x / 100, z / 100);
     // normalize [-1,1] to [0,1]
     const normalNoise = (noise + 1) / 2;
-    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
-    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
     const y = normalNoise * config.terrain.maxElevation;
     groundGeometry.attributes.position.array[i + 1] = y;
+
+    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
+    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
     heightField[xi][yi] = y;
   }
   groundGeometry.computeFaceNormals();
@@ -707,6 +708,25 @@ function updateShaders() {
   }
 }
 
+function funTerrain() {
+  const time = (new Date().getTime()) / 1000.0 - startTime;
+  for (let i = 0; i < ground.geometry.attributes.position.length; i += 3) {
+    const x = groundGeometry.attributes.position.array[i];
+    const z = groundGeometry.attributes.position.array[i + 2];
+    const noise = noiseGen.noise3d(x / 100, z / 100, time);
+    const normalNoise = (noise + 1) / 2;
+    const y = normalNoise * config.terrain.maxElevation;
+    ground.geometry.attributes.position.array[i + 1] = y;
+
+    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
+    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
+    heightField[xi][yi] = y;
+  }
+  ground.geometry.computeFaceNormals();
+  ground.geometry.computeVertexNormals();
+  ground.geometry.attributes.position.needsUpdate = true;
+}
+
 render = function() {
   /*
   const unit = units[0];
@@ -715,6 +735,7 @@ render = function() {
     camera.rotation.copy(unit.rotation);
   }
   */
+  funTerrain();
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
