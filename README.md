@@ -22,6 +22,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
   - Target
   - Waypoint queue
  - Select rectangular area of units by screen rectangle, not terrain
+  - Add opaque border around selection area
  - Attack another unit
   - Select target unit
   - Shot animation
