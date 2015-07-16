@@ -1,7 +1,7 @@
 /*jslint browser: true, es6: true */
 
 /* global
- * $, THREE, Stats, Physijs, TWEEN, SimplexNoise
+ * $, THREE, Stats, Physijs, TWEEN, SimplexNoise, dat
  */
 
 const jQuery = require('jquery');
@@ -90,7 +90,7 @@ function moveAlignedToGround(object) {
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
-  const oldGroundHeight = getGroundHeight(object.position.x, object.position.z);
+  const oldGroundHeight = getGroundAlignment(object);
   if (object.position.x + xzDirection.x <= mapBounds.min.x) {
     xzDirection.x = -xzDirection.x;
   }
@@ -104,15 +104,12 @@ function moveAlignedToGround(object) {
     xzDirection.z = -xzDirection.z;
   }
   // add velocity to position
-  // object.position.x += xzDirection.x;
-  // object.position.z += xzDirection.z;
+  //object.position.x += xzDirection.x;
+  //object.position.z += xzDirection.z;
 
   // align to ground
-  const groundHeight = getGroundHeight(object.position.x, object.position.z);
-  const size = getSize(object.geometry);
-  const yf = -object.geometry.boundingBox.min.y;
-  // const yf = size.height;
-  object.position.y = groundHeight + yf * object.scale.y;
+  object.position.y = getGroundAlignment(object);
+  const groundHeight = object.position.y;
 
   // rotate in velocity direction
   const dir = xzDirection.clone();
@@ -462,6 +459,12 @@ function getGroundHeight(x, y) {
   return fyy;
 }
 
+function getGroundAlignment(unit) {
+  const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
+  const y = groundHeight - unit.bbox.min.y * unit.scale.y;
+  return y;
+}
+
 function getGroundHeightRay(x, y) {
   const z = y;
 
@@ -542,7 +545,6 @@ function loadModels() {
           object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
           object.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
         }
-        const size = getSize(object.geometry);
         const height = size.height * object.scale.y;
         const groundHeight = getGroundHeight(object.position.x, object.position.z);
         object.position.y = groundHeight + height + 10;
