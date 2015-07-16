@@ -729,13 +729,14 @@ function funTerrain() {
 
 render = function() {
   /*
+  // 1st person perspective of a unit
   const unit = units[0];
   if (unit !== undefined) {
     camera.position.copy(unit.position);
     camera.rotation.copy(unit.rotation);
   }
   */
-  funTerrain();
+  //funTerrain();
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();

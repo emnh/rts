@@ -1,6 +1,4 @@
-Nothing to see here, move along please.
-
-Unfinished project. Testing.
+Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/).
 
 # Resources
  - [Physijs](http://chandlerprall.github.io/Physijs/)
