@@ -585,14 +585,16 @@ function loadModels() {
   }
 }
 
+function placeUnit(unit, pos) {
+  const newPos = pos.clone();
+  newPos.y = getGroundAlignment(unit);
+  unit.position.copy(newPos);
+}
+
 function initSelection() {
   const mouseElement = renderer.domElement;
   selector = new Selection({
-    placeUnit: (unit, pos) => {
-      unit.position.copy(pos);
-      const groundHeight = getGroundAlignment(unit);
-      unit.y += groundHeight;
-    },
+    placeUnit,
     boxIntersect,
     getBBoxes,
     mouseElement,
