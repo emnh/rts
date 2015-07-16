@@ -3,4 +3,5 @@
 npm-debug.log
 *.swp
 /bundle.js
+/bundle2.js
 /index.html
