@@ -346,8 +346,8 @@ function moveAlignedToGround(object) {
     xzDirection.z = -xzDirection.z;
   }
   // add velocity to position
-  // object.position.x += xzDirection.x;
-  // object.position.z += xzDirection.z;
+  object.position.x += xzDirection.x;
+  object.position.z += xzDirection.z;
 
   // align to ground
   object.position.y = getGroundAlignment(object);
@@ -410,7 +410,7 @@ function loadModels() {
       const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
       bboxHelper.update();
       scene.remove(proto);
-      for (let vertex of boxGeometry.vertices) {
+      for (const vertex of boxGeometry.vertices) {
         vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
       }
 
@@ -550,7 +550,7 @@ function loadModels() {
     },
   ];
 
-  for (let model of models) {
+  for (const model of models) {
     if (model.name !== 'house' &&
         model.name !== 'farm') {
       const modelOptions = $.extend({}, options, model);
@@ -580,12 +580,12 @@ function initDAT() {
   const controllers = {};
 
   // automagic dat GUI init from config
-  for (let varName in config) {
+  for (const varName in config) {
     if (config.hasOwnProperty(varName)) {
       const inner = config[varName];
       if (isObject(inner)) {
         const folder = gui.addFolder(varName);
-        for (let varName2 in inner) {
+        for (const varName2 in inner) {
           if (inner.hasOwnProperty(varName2)) {
             const controller = folder.add(inner, varName2);
             controller.listen();
@@ -680,7 +680,7 @@ function updateCameraInfo() {
 }
 
 function updateBBoxes() {
-  for (let unit of units) {
+  for (const unit of units) {
     unit.bboxMesh.position.copy(unit.position);
     unit.bboxMesh.scale.copy(unit.scale);
     unit.bboxMesh.rotation.copy(unit.rotation);
@@ -688,7 +688,7 @@ function updateBBoxes() {
 }
 
 function updateHealthBars() {
-  for (let unit of units) {
+  for (const unit of units) {
     unit.healthBar.position.copy(unit.position);
     unit.healthBar.position.y += getSize(unit.geometry).height * unit.scale.y;
     unit.healthBar.lookAt(camera.position);
@@ -698,7 +698,7 @@ function updateHealthBars() {
 function updateShaders() {
   const nowTime = (new Date().getTime()) / 1000.0;
   const time = nowTime - startTime;
-  for (let unit of units) {
+  for (const unit of units) {
     const mesh = unit.bboxMesh;
     if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
       mesh.material.uniforms.time.value = time;
@@ -731,7 +731,7 @@ render = function() {
 function checkCollisions() {
   // prepare world-{aligned, positioned, rotated} bounding boxes
   const boxes = [];
-  for (let unit of units) {
+  for (const unit of units) {
     const pos = unit.position;
     const bbox = unit.bbox.clone();
     // rotate bounding box with object
@@ -783,8 +783,8 @@ function checkCollisions() {
 }
 
 function updateSimulation() {
-  for (let obj of units) {
-    moveAlignedToGround(obj);
+  for (const unit of units) {
+    moveAlignedToGround(unit);
   }
   checkCollisions();
   scene.simulate(undefined, 1);
