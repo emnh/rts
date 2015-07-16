@@ -944,7 +944,8 @@ function initScene() {
   minimap = new MiniMap();
 
   // camera.position.set(107, 114, 82);
-  camera.position.set(320, 340, 245);
+  //camera.position.set(320, 340, 245);
+  camera.position.set(330, 300, 0);
   camera.lookAt(scene.position);
 
   $unitinfo = $('.unitinfo .content');
