@@ -16,14 +16,25 @@ const Selection = require('./js/Selection.js').Selection;
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
-var render, createShape, NoiseGen,
-  renderer, renderStats, physicsStats, scene, light, ground, groundGeometry, groundMaterial, camera;
 const controlsHeight = 250;
+const selectables = [];
+const mapBounds = new THREE.Box3();
+const startTime = (new Date().getTime()) / 1000.0;
+const units = [];
+let render;
+let noiseGen;
+let renderer;
+let renderStats;
+let physicsStats;
+let scene;
+let light;
+let ground;
+let groundGeometry;
+let groundMaterial;
+let camera;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight;
-// $('.controls').css({ height: controlsHeight + 'px' });
-var raycaster;
-const selectables = [];
+let raycaster;
 let cameraControls;
 let moveSkybox;
 let selector;
@@ -31,22 +42,19 @@ let heightField = [];
 let redSphere;
 let blueSpheres;
 let $unitinfo;
-const mapBounds = new THREE.Box3();
-const startTime = (new Date().getTime()) / 1000.0;
-const units = [];
 
 const config = {
   units: {
     count: 20,
     speed: 20,
-    randomLocation: false
+    randomLocation: false,
   },
   terrain: {
     maxElevation: 32,
     xFaces: 100,
     yFaces: 100,
     width: 1000,
-    height: 1000
+    height: 1000,
   },
   camera: {
     mouseControl: true,
@@ -55,12 +63,12 @@ const config = {
     Z: 0,
     rotationX: 0,
     rotationY: 0,
-    rotationZ: 0
+    rotationZ: 0,
   },
   debug: {
     mouseX: 0,
     mouseY: 0,
-  }
+  },
 };
 
 function moveAlignedToGround(object) {
@@ -129,7 +137,7 @@ function getSize(geometry) {
   return {
     height: geometry.boundingBox.max.x - geometry.boundingBox.min.x,
     width: geometry.boundingBox.max.y - geometry.boundingBox.min.y,
-    depth: geometry.boundingBox.max.z - geometry.boundingBox.min.z
+    depth: geometry.boundingBox.max.z - geometry.boundingBox.min.z,
   };
 }
 
@@ -155,7 +163,7 @@ function isObject(obj) {
 }
 
 function worldToScreen(pos) {
-  var vector = pos.project(camera);
+  const vector = pos.project(camera);
 
   vector.x = (vector.x + 1) / 2 * sceneWidth;
   vector.y = -(vector.y - 1) / 2 * sceneHeight;
@@ -171,12 +179,12 @@ function loadSkyBox() {
   const loader = new THREE.ImageLoader();
   loader.load( 'models/images/sky.jpg', function(image) {
     const getSide = function(x, y) {
-      var size = 1024;
-      var canvas = document.createElement('canvas');
+      const size = 1024;
+      const canvas = document.createElement('canvas');
       canvas.width = size;
       canvas.height = size;
 
-      var context = canvas.getContext('2d');
+      const context = canvas.getContext('2d');
       context.drawImage(image, - x * size, - y * size);
 
       return canvas;
@@ -191,20 +199,20 @@ function loadSkyBox() {
     cubeMap.needsUpdate = true;
   });
 
-  var cubeShader = THREE.ShaderLib['cube'];
-  cubeShader.uniforms['tCube'].value = cubeMap;
+  const cubeShader = THREE.ShaderLib.cube;
+  cubeShader.uniforms.tCube.value = cubeMap;
 
-  var skyBoxMaterial = new THREE.ShaderMaterial( {
+  const skyBoxMaterial = new THREE.ShaderMaterial( {
     fragmentShader: cubeShader.fragmentShader,
     vertexShader: cubeShader.vertexShader,
     uniforms: cubeShader.uniforms,
     depthWrite: false,
-    side: THREE.BackSide
+    side: THREE.BackSide,
   });
 
   const boxSize = 10000;
 
-  var skyBox = new THREE.Mesh(
+  const skyBox = new THREE.Mesh(
         new THREE.BoxGeometry(boxSize, boxSize, boxSize),
         skyBoxMaterial
       );
@@ -283,7 +291,7 @@ function initScene() {
   groundMaterial.map.repeat.set( 10.0, 10.0 );
 
   // Ground
-  NoiseGen = new SimplexNoise();
+  noiseGen = new SimplexNoise();
   groundGeometry = new THREE.PlaneBufferGeometry(
       config.terrain.width,
       config.terrain.height,
@@ -298,7 +306,7 @@ function initScene() {
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
-    const noise = NoiseGen.noise(x / 100, z / 100);
+    const noise = noiseGen.noise(x / 100, z / 100);
     // normalize [-1,1] to [0,1]
     const normalNoise = (noise + 1) / 2;
     const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
@@ -344,7 +352,7 @@ function initScene() {
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
 
-  planeMesh.rotation.x = Math.PI / -2; // ground.rotation.x;
+  planeMesh.rotation.x = Math.PI / -2;
   planeMesh.visible = false;
   cameraControls = new MapControls(
       camera,
@@ -412,15 +420,13 @@ function getGroundHeight(x, y) {
   const x2 = x1 + 1 * config.terrain.width / config.terrain.xFaces;
   const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
-  // clearLog();
-  // log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2);
   if (xi < 0 ||
       yi < 0 ||
       xi >= heightField.length ||
       xi + 1 >= heightField.length ||
       yi >= heightField[xi].length ||
       yi + 1 >= heightField[xi].length) {
-      return 0;
+    return 0;
   }
   const fQ11 = heightField[xi][yi];
   const fQ21 = heightField[xi + 1][yi];
@@ -430,7 +436,6 @@ function getGroundHeight(x, y) {
   const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
   const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
   const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
-  // log('xi, yi', xi, yi, 'f', fQ11, fQ21, fQ12, fQ22, 'fx', fxy1, fxy2);
 
   /*
   redSphere.position.x = x;
@@ -467,8 +472,7 @@ function getGroundHeightRay(x, y) {
   if (intersects.length > 0) {
     return intersects[0].point.y;
   }
-  throw 'failed to get height';
-  return 0;
+  throw new Error('failed to get height');
 }
 
 function loadModels() {
@@ -522,7 +526,7 @@ function loadModels() {
         },
         vertexShader: $('#loader-vertex').text(),
         fragmentShader: $('#loader-fragment').text(),
-        transparent: true
+        transparent: true,
       });
 
       for (let i = 0; i < config.units.count; i++) {
@@ -550,7 +554,7 @@ function loadModels() {
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
             time: { type: 'f', value: 0.0 },
-            health: { type: 'f', value: object.health }
+            health: { type: 'f', value: object.health },
           },
           vertexShader: $('#health-vertex').text(),
           fragmentShader: $('#health-fragment').text(),
@@ -575,7 +579,7 @@ function loadModels() {
     rotation: new THREE.Vector3(),
     texturePath: 'models/images/camouflage.jpg',
     textureRepeat: new THREE.Vector2(1, 1),
-    opacity: 1
+    opacity: 1,
   };
 
   const models = [
@@ -584,32 +588,32 @@ function loadModels() {
       path: 'models/3d/tank-m1a1.json',
       scale: 0.05,
       texturePath: 'models/images/camouflage.jpg',
-      textureRepeat: new THREE.Vector2(0.2, 0.2)
+      textureRepeat: new THREE.Vector2(0.2, 0.2),
     },
     {
       name: 'dragon',
       path: 'models/3d/dragon.json',
       scale: 1,
-      texturePath: 'models/images/dragon.jpg'
+      texturePath: 'models/images/dragon.jpg',
     },
     {
       name: 'house',
       path: 'models/3d/house.json',
       scale: 0.03,
-      texturePath: 'models/images/house.jpg'
+      texturePath: 'models/images/house.jpg',
     },
     {
       name: 'ant',
       path: 'models/3d/ant.json',
       scale: 10,
       rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
-      texturePath: 'models/images/ant.jpg'
+      texturePath: 'models/images/ant.jpg',
     },
     {
       name: 'tank-apc',
       path: 'models/3d/tank-apc.json',
       scale: 0.2,
-      rotation: new THREE.Vector3(0, Math.PI / 2, 0)
+      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
     },
     {
       name: 'diamond',
@@ -617,39 +621,39 @@ function loadModels() {
       scale: 3,
       texturePath: 'models/images/diamond.jpg',
       textureRepeat: new THREE.Vector2(0.01, 0.01),
-      opacity: 0.6
+      opacity: 0.6,
     },
     {
       name: 'horse',
       path: 'models/3d/horse.json',
       scale: 1.5,
-      texturePath: 'models/images/horse.jpg'
+      texturePath: 'models/images/horse.jpg',
     },
     {
       name: 'fighter',
       path: 'models/3d/fighter.json',
       scale: 3,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
-      texturePath: 'models/images/fighter.jpg'
+      texturePath: 'models/images/fighter.jpg',
     },
     {
       name: 'thor',
       path: 'models/3d/thor.json',
       scale: 5,
-      texturePath: 'models/images/thor.jpg'
+      texturePath: 'models/images/thor.jpg',
     },
     {
       name: 'biplane',
       path: 'models/3d/biplane.json',
       scale: 1,
       rotation: new THREE.Vector3(0, Math.PI / 2, 0),
-      texturePath: 'models/images/biplane.jpg'
+      texturePath: 'models/images/biplane.jpg',
     },
     {
       name: 'farm',
       path: 'models/3d/farm.json',
       scale: 500,
-      texturePath: 'models/images/farm.jpg'
+      texturePath: 'models/images/farm.jpg',
     },
   ];
 
@@ -669,7 +673,7 @@ function initSelection() {
     selectables,
     camera,
     ground,
-    getGroundHeight: getGroundHeight
+    getGroundHeight: getGroundHeight,
   });
   const handler = selector.getOnMouseMove(config, mouseElement);
   $(mouseElement).mousemove(handler);
