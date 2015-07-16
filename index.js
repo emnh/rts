@@ -21,7 +21,7 @@ var render, createShape, NoiseGen,
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight; 
-//$('.controls').css({ height: controlsHeight + 'px' });
+// $('.controls').css({ height: controlsHeight + 'px' });
 var raycaster;
 const selectables = [];
 let cameraControls;
@@ -71,7 +71,7 @@ function moveAlignedToGround(object) {
   }
   const oldTime = object.lastMoved;
   const timeDelta = nowTime - oldTime;
-  object.lastMoved = nowTime
+  object.lastMoved = nowTime;
   const eps = 1e-7;
   if (timeDelta < eps) {
     // prevent zero time from making direction vector zero.
@@ -96,14 +96,14 @@ function moveAlignedToGround(object) {
     xzDirection.z = -xzDirection.z;
   }
   // add velocity to position
-  //object.position.x += xzDirection.x;
-  //object.position.z += xzDirection.z;
+  // object.position.x += xzDirection.x;
+  // object.position.z += xzDirection.z;
   
   // align to ground
   const groundHeight = getGroundHeight(object.position.x, object.position.z);
   const size = getSize(object.geometry);
   const yf = -object.geometry.boundingBox.min.y;
-  //const yf = size.height;
+  // const yf = size.height;
   object.position.y = groundHeight + yf * object.scale.y;
 
   // rotate in velocity direction
@@ -122,7 +122,7 @@ function moveAlignedToGround(object) {
   yAxis2.applyQuaternion(object.quaternion);
   yAxis2.y = 0;
   const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
-  //object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
+  // object.rotation.z = Math.atan2(rightGroundHeight - leftGroundHeight, 0.2);
 }
 
 function getSize(geometry) {
@@ -252,7 +252,7 @@ function initScene() {
     frustumNear,
     frustumFar
   );
-  //camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
+  // camera = new THREE.OrthographicCamera(sceneWidth / -2, sceneWidth / 2, sceneHeight / -2, sceneHeight, 1, 10000);
 
   scene.add(camera);
 
@@ -267,9 +267,9 @@ function initScene() {
   light.shadowCameraBottom = 60;
   light.shadowCameraNear = 20;
   light.shadowCameraFar = 200;
-  light.shadowBias = -.0001
+  light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
-  light.shadowDarkness = .7;
+  light.shadowDarkness = 0.7;
   scene.add(light);
 
   // Materials
@@ -279,7 +279,7 @@ function initScene() {
     0.0 // low restitution
   );
   groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
-  //groundMaterial.map.repeat.set( 2.5, 2.5 );
+  // groundMaterial.map.repeat.set( 2.5, 2.5 );
   groundMaterial.map.repeat.set( 10.0, 10.0 );
 
   // Ground
@@ -296,8 +296,8 @@ function initScene() {
   for (let i = 0; i <= config.terrain.xFaces; i++) {
     heightField[i] = [];
   }
-  //for (let i = 0; i < groundGeometry.vertices.length; i++) {
-  //  var vertex = groundGeometry.vertices[i];
+  // for (let i = 0; i < groundGeometry.vertices.length; i++) {
+  // var vertex = groundGeometry.vertices[i];
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
@@ -322,7 +322,7 @@ function initScene() {
   );
   */
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  //ground.rotation.x = Math.PI / -2;
+  // ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
   scene.add(ground);
 
@@ -347,7 +347,7 @@ function initScene() {
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
 
-  planeMesh.rotation.x = Math.PI / -2; //ground.rotation.x;
+  planeMesh.rotation.x = Math.PI / -2; // ground.rotation.x;
   planeMesh.visible = false;
   cameraControls = new MapControls(
       camera,
@@ -356,7 +356,7 @@ function initScene() {
       renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
-  //camera.position.set(107, 114, 82);
+  // camera.position.set(107, 114, 82);
   camera.position.set(320, 340, 245);
   camera.lookAt(scene.position);
   scene.add(planeMesh);
@@ -384,7 +384,7 @@ function initScene() {
   */
 
   loadModels();
-};
+}
 
 function clearLog() {
   const $debug = $('.debug');
@@ -400,7 +400,7 @@ function log(...args) {
     }
     s += arg + ' ';
   }
-  s += '<br/>'
+  s += '<br/>';
   $debug.append(s);
 }
 
@@ -410,13 +410,13 @@ function getGroundHeight(x, y) {
   const xi = Math.floor(xd);
   const yi = Math.floor(yd);
 
-  // https://en.wikipedia.org/wiki/Bilinear_interpolation
+  // https:// en.wikipedia.org/wiki/Bilinear_interpolation
   const x1 = x - (xd % 1) * config.terrain.width / config.terrain.xFaces;
   const x2 = x1 + 1 * config.terrain.width / config.terrain.xFaces;
   const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
-  //clearLog();
-  //log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2); 
+  // clearLog();
+  // log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2); 
   if (xi < 0 ||
       yi < 0 ||
       xi >= heightField.length ||
@@ -433,7 +433,7 @@ function getGroundHeight(x, y) {
   const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
   const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
   const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
-  //log('xi, yi', xi, yi, 'f', fQ11, fQ21, fQ12, fQ22, 'fx', fxy1, fxy2);
+  // log('xi, yi', xi, yi, 'f', fQ11, fQ21, fQ12, fQ22, 'fx', fxy1, fxy2);
 
   /*
   redSphere.position.x = x;
@@ -470,7 +470,7 @@ function getGroundHeightRay(x, y) {
   if (intersects.length > 0) {
     return intersects[0].point.y;
   }
-  console.warn('failed to get height');
+  throw 'failed to get height';
   return 0;
 }
 
@@ -547,8 +547,8 @@ function loadModels() {
         object.position.y = groundHeight + height + 10;
         object.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
         object.stayUpRight = true;
-        object.lastMoved = undefined
-        object.health = Math.random()
+        object.lastMoved = undefined;
+        object.health = Math.random();
         
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
@@ -559,7 +559,7 @@ function loadModels() {
           fragmentShader: $('#health-fragment').text(),
         });
         const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-        //healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
+        // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
         const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
         object.healthBar = healthBar;
 
@@ -787,7 +787,7 @@ function updateCameraInfo() {
 
 function updateBBoxes() {
   for (let unit of units) {
-    unit.bboxMesh.position.copy(unit.position)
+    unit.bboxMesh.position.copy(unit.position);
     unit.bboxMesh.scale.copy(unit.scale);
     unit.bboxMesh.rotation.copy(unit.rotation);
   }
@@ -831,7 +831,7 @@ function drawOutLine() {
     if (div === undefined) {
       div = $('<div/>');
       unit.outline = div;
-      viewport.append(div)
+      viewport.append(div);
     }
     const left = screenBox.min.x;
     const top = screenBox.min.y;
@@ -895,8 +895,8 @@ function checkCollisions() {
     const p1 = boxes[i].unit.position;
     const p2 = boxes[j].unit.position;
     const d = p2.clone();
-    //clearLog();
-    //log(i, j, p1, p2, d);
+    // clearLog();
+    // log(i, j, p1, p2, d);
     d.sub(p1);
     d.y = 0;
     // randomize if they have same position
