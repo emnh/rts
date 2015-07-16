@@ -20,7 +20,7 @@ var render, createShape, NoiseGen,
   renderer, render_stats, physics_stats, scene, light, ground, groundGeometry, groundMaterial, camera;
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
-let sceneHeight = window.innerHeight - controlsHeight; 
+let sceneHeight = window.innerHeight - controlsHeight;
 // $('.controls').css({ height: controlsHeight + 'px' });
 var raycaster;
 const selectables = [];
@@ -98,7 +98,7 @@ function moveAlignedToGround(object) {
   // add velocity to position
   // object.position.x += xzDirection.x;
   // object.position.z += xzDirection.z;
-  
+
   // align to ground
   const groundHeight = getGroundHeight(object.position.x, object.position.z);
   const size = getSize(object.geometry);
@@ -111,7 +111,7 @@ function moveAlignedToGround(object) {
   dir.y = groundHeight - oldGroundHeight;
   dir.add(object.position);
   object.lookAt(dir);
-  
+
   // rotate left/right. doesnt' work, so disabled
   const delta = 1;
   const yAxis = new THREE.Vector3(0, 0.1, 0);
@@ -213,9 +213,9 @@ function loadSkyBox() {
 }
 
 function initScene() {
-  
+
   $('.controls').height(controlsHeight);
-  
+
   TWEEN.start();
 
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -342,7 +342,7 @@ function initScene() {
   };
 
   // Camera and controls
-  
+
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   const planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
@@ -360,7 +360,7 @@ function initScene() {
   camera.position.set(320, 340, 245);
   camera.lookAt(scene.position);
   scene.add(planeMesh);
-    
+
   $unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
@@ -416,7 +416,7 @@ function getGroundHeight(x, y) {
   const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
   // clearLog();
-  // log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2); 
+  // log('x, y', x, y, 'x1, x2', x1, x2, 'y1, y2', y1, y2);
   if (xi < 0 ||
       yi < 0 ||
       xi >= heightField.length ||
@@ -498,7 +498,7 @@ function loadModels() {
 
       const size = getSize(geometry);
 
-      const texture = THREE.ImageUtils.loadTexture(texturePath); 
+      const texture = THREE.ImageUtils.loadTexture(texturePath);
       texture.anisotropy = renderer.getMaxAnisotropy();
       texture.minFilter = THREE.NearestFilter;
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -527,7 +527,7 @@ function loadModels() {
         fragmentShader: $('#loader-fragment').text(),
         transparent: true
       });
-      
+
       for (let i = 0; i < config.units.count; i++) {
         const object = new THREE.Mesh(geometry, material.clone());
         const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
@@ -535,7 +535,7 @@ function loadModels() {
 
         object.bboxMesh = boxMesh;
         object.bbox = bboxHelper.box;
-      
+
         object.scale.set(scale, scale, scale);
         if (config.units.randomLocation) {
           object.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
@@ -549,7 +549,7 @@ function loadModels() {
         object.stayUpRight = true;
         object.lastMoved = undefined;
         object.health = Math.random();
-        
+
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
             time: { type: 'f', value: 0.0 },
