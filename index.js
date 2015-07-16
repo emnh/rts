@@ -1,7 +1,7 @@
 /*jslint browser: true, es6: true */
 
 /* global
- * $, THREE, Stats, Physijs, TWEEN
+ * $, THREE, Stats, Physijs, TWEEN, SimplexNoise
  */
 
 const jQuery = require('jquery');
@@ -17,7 +17,7 @@ Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
 var render, createShape, NoiseGen,
-  renderer, render_stats, physics_stats, scene, light, ground, groundGeometry, groundMaterial, camera;
+  renderer, renderStats, physicsStats, scene, light, ground, groundGeometry, groundMaterial, camera;
 const controlsHeight = 250;
 let sceneWidth = window.innerWidth;
 let sceneHeight = window.innerHeight - controlsHeight;
@@ -227,17 +227,17 @@ function initScene() {
 
   raycaster = new THREE.Raycaster();
 
-  render_stats = new Stats();
-  render_stats.domElement.style.position = 'absolute';
-  render_stats.domElement.style.top = '0px';
-  render_stats.domElement.style.zIndex = 100;
-  $('body').append(render_stats.domElement);
+  renderStats = new Stats();
+  renderStats.domElement.style.position = 'absolute';
+  renderStats.domElement.style.top = '0px';
+  renderStats.domElement.style.zIndex = 100;
+  $('body').append(renderStats.domElement);
 
-  physics_stats = new Stats();
-  physics_stats.domElement.style.position = 'absolute';
-  physics_stats.domElement.style.top = '50px';
-  physics_stats.domElement.style.zIndex = 100;
-  $('body').append(physics_stats.domElement);
+  physicsStats = new Stats();
+  physicsStats.domElement.style.position = 'absolute';
+  physicsStats.domElement.style.top = '50px';
+  physicsStats.domElement.style.zIndex = 100;
+  $('body').append(physicsStats.domElement);
 
   scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
   scene.setGravity(new THREE.Vector3( 0, -100, 0));
@@ -283,10 +283,7 @@ function initScene() {
   groundMaterial.map.repeat.set( 10.0, 10.0 );
 
   // Ground
-  NoiseGen = new SimplexNoise;
-
-  const groundWidth = 1000;
-  const groundHeight = 1000;
+  NoiseGen = new SimplexNoise();
   groundGeometry = new THREE.PlaneBufferGeometry(
       config.terrain.width,
       config.terrain.height,
@@ -814,7 +811,7 @@ function updateShaders() {
 }
 
 function drawOutLine() {
-  const viewport = $("#viewport");
+  const viewport = $('#viewport');
   for (let unit of units) {
     // need to get corners of bbox
     // make a cube, then rotate it
@@ -865,7 +862,7 @@ render = function() {
   // drawOutLine();
   moveSkybox();
   renderer.render(scene, camera);
-  render_stats.update();
+  renderStats.update();
   requestAnimationFrame(render);
 };
 
@@ -929,7 +926,7 @@ function updateSimulation() {
   }
   checkCollisions();
   scene.simulate(undefined, 1);
-  physics_stats.update();
+  physicsStats.update();
 }
 
 function main() {
