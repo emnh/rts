@@ -61,8 +61,8 @@ const config = {
     airAltitude: 40
   },
   terrain: {
-    seaLevel: 10,
-    minElevation: 10,
+    seaLevel: 0,
+    minElevation: 0,
     maxElevation: 48,
     xFaces: 100,
     yFaces: 100,
