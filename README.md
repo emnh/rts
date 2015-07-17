@@ -35,6 +35,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
   - Shot animation
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
+ - Add ocean floor at edge of map
 
 ## Server needed
  - Multiplayer
