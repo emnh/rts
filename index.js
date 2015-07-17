@@ -291,13 +291,14 @@ function Sea() {
     //planeMesh.position = camera.position.clone();
     //planeMesh.position.x = camera.position.x - 3;
     material.uniforms.iGlobalTime.value = time;
-    material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
+    //material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
+    material.uniforms.ang.value = new THREE.Vector3(0, Math.PI / 2, 0);
     //material.uniforms.ang.value = camera.rotation;
     const angv = camera.position.clone();
     //angv.normalize();
     angv.applyQuaternion(camera.quaternion);
     material.uniforms.angv.value = angv;
-    const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(1.0);;
+    const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(10.0);;
     //ori.x = camera.position.x;
     //ori.y = camera.position.z;
     //ori.z = camera.position.y;
