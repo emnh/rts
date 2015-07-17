@@ -60,7 +60,7 @@ const config = {
     airAltitude: 40
   },
   terrain: {
-    maxElevation: 32,
+    maxElevation: 48,
     xFaces: 100,
     yFaces: 100,
     width: 1000,
@@ -206,7 +206,7 @@ function initGround() {
     0.0 // low restitution
   );
   groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
-  groundMaterial.map.repeat.set( 10.0, 10.0 );
+  groundMaterial.map.repeat.set(config.terrain.width / 100.0, config.terrain.height / 100.0);
 
   // Ground
   noiseGen = new SimplexNoise();
@@ -222,11 +222,19 @@ function initGround() {
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
-    const noise = noiseGen.noise(x / 100, z / 100);
-    // normalize [-1,1] to [0,1]
-    const normalNoise = (noise + 1) / 2;
-    const y = normalNoise * config.terrain.maxElevation;
-    groundGeometry.attributes.position.array[i + 1] = y;
+    let y = 0;
+    // let edges of map be 0
+    const eps = 0.01;
+    if (x > -config.terrain.width / 2 + eps &&
+        x < config.terrain.width / 2 - eps &&
+        z > -config.terrain.height / 2 + eps &&
+        z < config.terrain.height / 2 - eps) {
+      const noise = noiseGen.noise(x / 100, z / 100);
+      // normalize [-1,1] to [0,1]
+      const normalNoise = (noise + 1) / 2;
+      y = normalNoise * config.terrain.maxElevation;
+      groundGeometry.attributes.position.array[i + 1] = y;
+    }
 
     const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
     const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
