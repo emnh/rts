@@ -40,7 +40,11 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
   var scrollFunctions = [];
   var lastMouseX;
   var lastMouseY;
-
+  
+  let scrollLeft = false;
+  let scrollTop = false;
+  let scrollRight = false;
+  let scrollBottom = false;
 
 	this.update = function () {
 
@@ -103,17 +107,17 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
     // scroll at edge of element
     var edgeSize = 0.1;
     
-    if (lastMouseX < -1.0 + edgeSize) {
+    if (lastMouseX < -1.0 + edgeSize || scrollLeft) {
       var delta = new THREE.Vector3(-scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseX > 1.0 - edgeSize) {
+    if (lastMouseX > 1.0 - edgeSize || scrollRight) {
       var delta = new THREE.Vector3(scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseY < -1.0 + edgeSize) {
+    if (lastMouseY < -1.0 + edgeSize || scrollBottom) {
       var delta = new THREE.Vector3(0, -1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
@@ -121,7 +125,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
       delta.multiplyScalar(scope.scrollSpeed);
       camera.position.add(delta);
     }
-    if (lastMouseY > 1.0 - edgeSize) {
+    if (lastMouseY > 1.0 - edgeSize || scrollTop) {
       var delta = new THREE.Vector3(0, 1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
@@ -252,10 +256,38 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	}
 
-	this.domElement.addEventListener( 'contextmenu', function ( event ) { event.preventDefault(); }, false );
-	this.domElement.addEventListener( 'mousedown', onMouseDown, false );
-	this.domElement.addEventListener( 'mousewheel', onMouseWheel, false );
-	this.domElement.addEventListener( 'mousemove', onMouseMoveScroll, false );
+  function setScroll(keyCode, val) {
+    if (keyCode == window.KeyEvent.DOM_VK_LEFT) {
+      scrollLeft = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_RIGHT) {
+      scrollRight = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_UP) {
+      scrollTop = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_DOWN) {
+      scrollBottom = val;
+    }
+  }
+
+  function onKeyUp(evt) {
+    setScroll(evt.keyCode, false);
+  }
+
+  function onKeyDown(evt) {
+    setScroll(evt.keyCode, true);
+  }
+
+	this.domElement.addEventListener('contextmenu', function ( event ) { event.preventDefault(); }, false);
+	this.domElement.addEventListener('mousedown', onMouseDown, false);
+	this.domElement.addEventListener('mousewheel', onMouseWheel, false);
+	this.domElement.addEventListener('mousemove', onMouseMoveScroll, false);
+	// this.domElement.addEventListener('keydown', onKeyDown, false);
+	// this.domElement.addEventListener('keyup', onKeyUp, false);
+  const body = document.body;
+	body.addEventListener('keydown', onKeyDown, false);
+	body.addEventListener('keyup', onKeyUp, false);
   setInterval(scroll, 10);
 
 };

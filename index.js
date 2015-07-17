@@ -10,6 +10,7 @@ global.jQuery = jQuery;
 const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
 
+require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
 const Util = new (require('./js/Util.js').Util)();
@@ -805,7 +806,6 @@ function MiniMap() {
       geom.vertices[i] = v;
       i++;
     }
-    console.log(geom.vertices.length);
     const pointCloud = new THREE.PointCloud(geom, minimapMaterial);
     minimapScene.add(pointCloud);
     oldCloud = pointCloud;
