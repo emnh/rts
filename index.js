@@ -45,6 +45,7 @@ let $unitinfo;
 let skyBox;
 let planeMesh;
 let minimap;
+let sea;
 
 const UnitType = {
   Air: 'air',
@@ -60,6 +61,8 @@ const config = {
     airAltitude: 40
   },
   terrain: {
+    seaLevel: 10,
+    minElevation: 10,
     maxElevation: 48,
     xFaces: 100,
     yFaces: 100,
@@ -232,7 +235,7 @@ function initGround() {
       const noise = noiseGen.noise(x / 100, z / 100);
       // normalize [-1,1] to [0,1]
       const normalNoise = (noise + 1) / 2;
-      y = normalNoise * config.terrain.maxElevation;
+      y = normalNoise * config.terrain.maxElevation + config.terrain.minElevation;
       groundGeometry.attributes.position.array[i + 1] = y;
     }
 
@@ -254,6 +257,53 @@ function initGround() {
   mapBounds.max.x = config.terrain.width / 2;
   mapBounds.max.y = config.terrain.maxElevation * 2;
   mapBounds.max.z = config.terrain.height / 2;
+}
+
+function Sea() {
+  const plane = new THREE.PlaneGeometry(config.terrain.width * 2, config.terrain.height * 2, 1, 1);
+
+  plane.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: {
+      iGlobalTime: { type: 'f', value: 0.0 },
+      angv: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
+      ang: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
+      ori: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
+      dir: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
+    },
+    vertexShader: $('#water-vertex').text(),
+    fragmentShader: $('#water-fragment').text(),
+    transparent: true,
+  })
+
+  const planeMesh = new THREE.Mesh(plane, material);
+
+  planeMesh.position.y = config.terrain.seaLevel;
+
+  scene.add(planeMesh);
+
+  const startTime = (new Date().getTime()) / 1000.0;
+
+  this.render = function() {
+    const endTime = (new Date().getTime()) / 1000.0;
+    const time = endTime - startTime;
+    //planeMesh.position = camera.position.clone();
+    //planeMesh.position.x = camera.position.x - 3;
+    material.uniforms.iGlobalTime.value = time;
+    material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
+    //material.uniforms.ang.value = camera.rotation;
+    const angv = camera.position.clone();
+    //angv.normalize();
+    angv.applyQuaternion(camera.quaternion);
+    material.uniforms.angv.value = angv;
+    const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(1.0);;
+    //ori.x = camera.position.x;
+    //ori.y = camera.position.z;
+    //ori.z = camera.position.y;
+    material.uniforms.ori.value = ori;
+    //material.uniforms.dir.value = dir;
+  }
 }
 
 function initCameraControls() {
@@ -833,6 +883,7 @@ function render() {
   */
   //funTerrain();
   minimap.render();
+  sea.render();
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
@@ -947,6 +998,7 @@ function initScene() {
 
   initLight();
   initGround();
+  sea = new Sea();
   initSkyBox();
   initCameraControls();
   minimap = new MiniMap();
