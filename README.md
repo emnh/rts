@@ -21,7 +21,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
    - Units as colored squares with black border
    - Link minimap camera to screen camera?
  - Disable unit selection when mouse control for camera is enabled
- - Scroll terrain with arrow buttons
+ - Configurable (or at least listable) keyboard controls
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Select more than unit with ctrl or shift

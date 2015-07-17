@@ -21,7 +21,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	// How far you can orbit vertically, upper and lower limits.
 	this.minPolarAngle = 0; // radians
-	this.maxPolarAngle = Math.PI / 2; // radians
+	this.maxPolarAngle = Math.PI / 2 - Math.PI / 16; // radians
 
 	// internals
 	var scope = this;
@@ -45,6 +45,10 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
   let scrollTop = false;
   let scrollRight = false;
   let scrollBottom = false;
+  let rotateLeft = false;
+  let rotateRight = false;
+  let rotateUp = false;
+  let rotateDown = false;
 
 	this.update = function () {
 
@@ -103,6 +107,56 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	}
 
+  function arcBallRotation(mul, updown = false) {
+    // determine focal point
+    vector = new THREE.Vector3(0, 0, camera.near);
+    vector.unproject(camera);
+    raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+    intersects = raycaster.intersectObject(mesh);
+    if (intersects.length > 0) {
+      // rotate
+      const focus = intersects[0].point;
+      const axis = camera.position.clone();
+      axis.sub(focus);
+      // TODO: consolidate two different methods of arc ball rotation
+      if (updown) {
+        const offset = axis;
+        const phiDelta = scope.rotateSpeed * mul;
+
+        // angle from z-axis around y-axis
+        let theta = Math.atan2( offset.x, offset.z );
+
+			  // angle from y-axis
+        let phi = Math.atan2(Math.sqrt(offset.x * offset.x + offset.z * offset.z), offset.y);
+			
+        phi += phiDelta;
+
+        // restrict phi to be between desired limits
+        phi = Math.max(scope.minPolarAngle, Math.min(scope.maxPolarAngle, phi));
+
+        // restrict phi to be betwee EPS and PI-EPS
+        phi = Math.max( EPS, Math.min( Math.PI - EPS, phi ) );
+
+        let radius = offset.length();
+
+        offset.x = radius * Math.sin( phi ) * Math.sin( theta );
+        offset.y = radius * Math.cos( phi );
+        offset.z = radius * Math.sin( phi ) * Math.cos( theta );
+
+        camera.position.copy(focus).add(offset);
+      } else {
+        axis.y = 0;
+        axis.normalize();
+        const old = camera.position.clone();
+        camera.position.applyAxisAngle(axis, scope.rotateSpeed * mul);
+        if (!updown) {
+          camera.position.y = old.y;
+        }
+      }
+      camera.lookAt(focus);
+    }
+  }
+
   function scroll() {
     // scroll at edge of element
     var edgeSize = 0.1;
@@ -132,6 +186,19 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
       delta.normalize();
       delta.multiplyScalar(scope.scrollSpeed);
       camera.position.add(delta);
+    }
+    const mul = 0.1;
+    if (rotateUp) {
+      arcBallRotation(-mul, true);
+    }
+    if (rotateDown) {
+      arcBallRotation(mul, true);
+    }
+    if (rotateLeft) {
+      arcBallRotation(mul);
+    }
+    if (rotateRight) {
+      arcBallRotation(-mul);
     }
   }
 
@@ -271,12 +338,32 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
     }
   }
 
+  function setRotate(keyCode, val) {
+    if (keyCode == window.KeyEvent.DOM_VK_LEFT) {
+      rotateLeft = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_RIGHT) {
+      rotateRight = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_UP) {
+      rotateUp = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_DOWN) {
+      rotateDown = val;
+    }
+  }
+
   function onKeyUp(evt) {
     setScroll(evt.keyCode, false);
+    setRotate(evt.keyCode, false);
   }
 
   function onKeyDown(evt) {
-    setScroll(evt.keyCode, true);
+    if (evt.ctrlKey) {
+      setRotate(evt.keyCode, true);
+    } else {
+      setScroll(evt.keyCode, true);
+    }
   }
 
 	this.domElement.addEventListener('contextmenu', function ( event ) { event.preventDefault(); }, false);
