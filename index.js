@@ -17,13 +17,13 @@ const Util = new (require('./js/Util.js').Util)();
 
 const config = {
   dom: {
-    controlsHeight: 250
+    controlsHeight: 250,
   },
   units: {
     count: 20,
     speed: 20,
     randomLocation: false,
-    airAltitude: 40
+    airAltitude: 40,
   },
   terrain: {
     seaLevel: 0,
@@ -63,14 +63,14 @@ const game = {
   startTime: (new Date().getTime()) / 1000.0,
   units: [],
   heightField: [],
-  components: []
+  components: [],
 };
 
 const UnitType = {
   Air: 'air',
   Ground: 'ground',
   Building: 'building',
-}
+};
 
 function getSize(geometry) {
   return {
@@ -83,10 +83,6 @@ function getSize(geometry) {
 function formatFloat(f, decimals=2) {
   const mul = Math.pow(10, decimals);
   return Math.round(f * mul) / mul;
-}
-
-function isFloat(n) {
-  return n === Number(n) && n % 1 !== 0;
 }
 
 function isObject(obj) {
@@ -152,7 +148,7 @@ function SkyBox() {
 
   this.render = function() {
     mesh.position.copy(game.scene.camera.position);
-  }
+  };
 }
 
 function initLight() {
@@ -191,13 +187,13 @@ function initStats() {
 function initGround() {
   // Materials
   const groundMaterial = new THREE.MeshLambertMaterial({
-    map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg')
+    map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg'),
   });
   groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
   groundMaterial.map.repeat.set(config.terrain.width / 100.0, config.terrain.height / 100.0);
 
   // Ground
-  const noiseGen = new SimplexNoise();
+  game.noiseGen = new SimplexNoise();
   const groundGeometry = new THREE.PlaneBufferGeometry(
       config.terrain.width,
       config.terrain.height,
@@ -217,7 +213,7 @@ function initGround() {
         x < config.terrain.width / 2 - eps &&
         z > -config.terrain.height / 2 + eps &&
         z < config.terrain.height / 2 - eps) {
-      const noise = noiseGen.noise(x / 100, z / 100);
+      const noise = game.noiseGen.noise(x / 100, z / 100);
       // normalize [-1,1] to [0,1]
       const normalNoise = (noise + 1) / 2;
       y = normalNoise * config.terrain.maxElevation + config.terrain.minElevation;
@@ -260,7 +256,7 @@ function Sea() {
     vertexShader: $('#water-vertex').text(),
     fragmentShader: $('#water-fragment').text(),
     transparent: true,
-  })
+  });
 
   const seaMesh = new THREE.Mesh(plane, material);
 
@@ -273,23 +269,30 @@ function Sea() {
   this.render = function() {
     const endTime = (new Date().getTime()) / 1000.0;
     const time = endTime - startTime;
-    //seaMesh.position = camera.position.clone();
-    //seaMesh.position.x = camera.position.x - 3;
+    // seaMesh.position = camera.position.clone();
+    // seaMesh.position.x = camera.position.x - 3;
     material.uniforms.iGlobalTime.value = time;
-    //material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
+    // material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
     material.uniforms.ang.value = new THREE.Vector3(0, Math.PI / 2, 0);
-    //material.uniforms.ang.value = camera.rotation;
+    // material.uniforms.ang.value = camera.rotation;
     const angv = game.scene.camera.position.clone();
-    //angv.normalize();
+    // angv.normalize();
     angv.applyQuaternion(game.scene.camera.quaternion);
     material.uniforms.angv.value = angv;
-    const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(10.0);;
-    //ori.x = camera.position.x;
-    //ori.y = camera.position.z;
-    //ori.z = camera.position.y;
+    const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(10.0);
+    // ori.x = camera.position.x;
+    // ori.y = camera.position.z;
+    // ori.z = camera.position.y;
     material.uniforms.ori.value = ori;
-    //material.uniforms.dir.value = dir;
-  }
+    // material.uniforms.dir.value = dir;
+  };
+}
+
+function resetCamera() {
+  // camera.position.set(107, 114, 82);
+  // camera.position.set(320, 340, 245);
+  game.scene.camera.position.set(330, 300, 0);
+  game.scene.camera.lookAt(game.scene.scene3.position);
 }
 
 function initCameraControls() {
@@ -503,7 +506,7 @@ function loadModels() {
         unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
         unit.stayUpRight = true;
         unit.lastMoved = undefined;
-        
+
         const healthMaterial = new THREE.ShaderMaterial({
           uniforms: {
             time: { type: 'f', value: 0.0 },
@@ -519,7 +522,7 @@ function loadModels() {
 
         unit.castShadow = true;
         unit.receiveShadow = true;
-        
+
         // game properties
         unit.health = Math.random();
         unit.type = options.type;
@@ -528,7 +531,6 @@ function loadModels() {
         game.selectables.push(unit);
         game.scene.scene3.add(unit);
         game.scene.scene3.add(healthBar);
-
       }
     };
   }
@@ -638,12 +640,29 @@ function placeUnit(unit, pos) {
   unit.position.copy(newPos);
 }
 
-function resetCamera() {
-  // camera.position.set(107, 114, 82);
-  //camera.position.set(320, 340, 245);
-  game.scene.camera.position.set(330, 300, 0);
-  game.scene.camera.lookAt(game.scene.scene3.position);
+function getBBoxes() {
+  // prepare world-{aligned, positioned, rotated} bounding boxes
+  const boxes = [];
+  for (const unit of game.units) {
+    const pos = unit.position;
+    const bbox = unit.bbox.clone();
+    // rotate bounding box with object
+    const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
+    bbox.applyMatrix4(mat);
+    const box = [
+      pos.x + bbox.min.x * unit.scale.x,
+      pos.y + bbox.min.y * unit.scale.y,
+      pos.z + bbox.min.z * unit.scale.z,
+      pos.x + bbox.max.x * unit.scale.x,
+      pos.y + bbox.max.y * unit.scale.y,
+      pos.z + bbox.max.z * unit.scale.z,
+    ];
+    box.unit = unit;
+    boxes.push(box);
+  }
+  return boxes;
 }
+
 
 function initSelection() {
   const mouseElement = game.scene.renderer.domElement;
@@ -800,7 +819,7 @@ function funTerrain() {
   for (let i = 0; i < game.scene.ground.geometry.attributes.position.length; i += 3) {
     const x = game.scene.ground.geometry.attributes.position.array[i];
     const z = game.scene.ground.geometry.attributes.position.array[i + 2];
-    const noise = noiseGen.noise3d(x / 100, z / 100, time);
+    const noise = game.noiseGen.noise3d(x / 100, z / 100, time);
     const normalNoise = (noise + 1) / 2;
     const y = normalNoise * config.terrain.maxElevation;
     game.scene.ground.geometry.attributes.position.array[i + 1] = y;
@@ -815,19 +834,16 @@ function funTerrain() {
 }
 
 function MiniMap() {
-
-  //const minimapGeometry = new THREE.Geometry();
   const minimapHeight = config.dom.controlsHeight - 2;
   const minimapWidth = minimapHeight;
-  const $minimap = $(".minimap");
+  const $minimap = $('.minimap');
   const minimapRenderer = new THREE.WebGLRenderer({ antialias: true });
-  //minimapRenderer.setClearColor(0xffffff, 1);
   minimapRenderer.setSize(minimapWidth, minimapHeight);
   minimapRenderer.setPixelRatio(minimapWidth / minimapHeight);
   minimapRenderer.autoClear = true;
   $minimap.append(minimapRenderer.domElement);
   $(minimapRenderer.domElement).css({
-    border: '1px solid white'
+    border: '1px solid white',
   });
   const minimapScene = new THREE.Scene();
   const minimapCamera = new THREE.PerspectiveCamera(35, minimapWidth, minimapHeight, 0, 1000);
@@ -837,8 +853,6 @@ function MiniMap() {
   minimapCamera.updateProjectionMatrix();
   minimapScene.add(minimapCamera);
   const minimapMaterial = new THREE.PointCloudMaterial({ size: 0.1 });
-  //const pointCloud = new THREE.PointCloud(minimapGeometry, minimapMaterial);
-  //minimapScene.add(pointCloud);
   const light = new THREE.AmbientLight(0xFFFFFF); // soft white light
   minimapScene.add(light);
 
@@ -851,7 +865,7 @@ function MiniMap() {
     }
     const geom = new THREE.Geometry();
     let i = 0;
-    for (let unit of game.units) {
+    for (const unit of game.units) {
       if (unit.minimap === undefined) {
         unit.minimap = {};
       }
@@ -864,7 +878,7 @@ function MiniMap() {
     oldCloud = pointCloud;
 
     minimapRenderer.render(minimapScene, minimapCamera);
-  }
+  };
 }
 
 function render() {
@@ -877,7 +891,7 @@ function render() {
   }
   */
 
-  //funTerrain();
+  // funTerrain();
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // drawOutLine();
@@ -891,29 +905,6 @@ function render() {
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
   game.scene.renderStats.update();
   requestAnimationFrame(render);
-};
-
-function getBBoxes() {
-  // prepare world-{aligned, positioned, rotated} bounding boxes
-  const boxes = [];
-  for (const unit of game.units) {
-    const pos = unit.position;
-    const bbox = unit.bbox.clone();
-    // rotate bounding box with object
-    const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
-    bbox.applyMatrix4(mat);
-    const box = [
-      pos.x + bbox.min.x * unit.scale.x,
-      pos.y + bbox.min.y * unit.scale.y,
-      pos.z + bbox.min.z * unit.scale.z,
-      pos.x + bbox.max.x * unit.scale.x,
-      pos.y + bbox.max.y * unit.scale.y,
-      pos.z + bbox.max.z * unit.scale.z,
-    ];
-    box.unit = unit;
-    boxes.push(box);
-  }
-  return boxes;
 }
 
 function checkCollisions() {
@@ -1000,7 +991,7 @@ function initScene() {
   game.dom.$unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
-  setInterval(updateSimulation, 1000/120);
+  setInterval(updateSimulation, 1000 / 120);
 
   loadModels();
 }

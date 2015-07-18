@@ -7,6 +7,10 @@ export function Util() {
     return Number(n) === n && n % 1 === 0;
   }
 
+  function isFloat(n) {
+    return n === Number(n) && n % 1 !== 0;
+  }
+
   function clearLog() {
     const $debug = $('.debug');
     $debug.html('');
