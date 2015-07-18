@@ -295,14 +295,14 @@ function Sea() {
 function initCameraControls() {
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
-  game.scene.selectionPlane = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
-  game.scene.selectionPlane.rotation.x = Math.PI / -2;
-  game.scene.selectionPlane.visible = false;
-  game.scene.scene3.add(game.scene.selectionPlane);
+  game.scene.navigationPlane = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
+  game.scene.navigationPlane.rotation.x = Math.PI / -2;
+  game.scene.navigationPlane.visible = false;
+  game.scene.scene3.add(game.scene.navigationPlane);
 
   game.scene.cameraControls = new MapControls(
       game.scene.camera,
-      game.scene.selectionPlane,
+      game.scene.navigationPlane,
       () => null,
       game.scene.renderer.domElement);
   game.scene.cameraControls.minDistance = 10;
@@ -649,7 +649,7 @@ function initSelection() {
     ground: game.scene.ground,
     scene: game.scene.scene3,
     config,
-    planeMesh: game.scene.selectionPlane,
+    planeMesh: game.scene.navigationPlane,
     getGroundHeight: getGroundHeight,
   });
 }
@@ -679,12 +679,12 @@ function initDAT() {
       }
     }
   }
-  controllers['game.scene.camera.rotationX'].step(0.01);
-  controllers['game.scene.camera.rotationY'].step(0.01);
-  controllers['game.scene.camera.rotationZ'].step(0.01);
+  controllers['camera.rotationX'].step(0.01);
+  controllers['camera.rotationY'].step(0.01);
+  controllers['camera.rotationZ'].step(0.01);
   controllers['debug.mouseX'].step(0.01);
   controllers['debug.mouseY'].step(0.01);
-  controllers['game.scene.camera.mouseControl'].onChange(() => {
+  controllers['camera.mouseControl'].onChange(() => {
     game.scene.cameraControls.enabled = config.camera.mouseControl;
   });
 }

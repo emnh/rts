@@ -51,20 +51,19 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
   let rotateDown = false;
 
 	this.update = function () {
-
-		if ( lastPosition.distanceTo( this.camera.position ) > 0 ) {
-
+		if (lastPosition.distanceTo(this.camera.position) > 0) {
 			this.render();
-			lastPosition.copy( this.camera.position );
-
+			lastPosition.copy(this.camera.position);
 		}
-
 	};
 
 
-	function onMouseDown( event ) {
+	function onMouseDown(event) {
 
-		if ( scope.enabled === false ) { return; }
+		if (scope.enabled === false) { 
+      return true;
+    }
+
 		event.preventDefault();
 
 		if ( event.button === 0 ) {
@@ -207,11 +206,15 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
     lastMouseX = ( event.clientX / element.width ) * 2 - 1;
     lastMouseY = -( event.clientY / element.height ) * 2 + 1;
+
+    return true;
   }
 
 	function onMouseMove( event ) {
 
-		if ( scope.enabled === false ) return;
+		if (scope.enabled === false) {
+      return true;
+    }
 
     event.preventDefault();
 		
@@ -290,7 +293,9 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	function onMouseUp( /* event */ ) {
 
-		if ( scope.enabled === false ) return;
+		if (scope.enabled === false) {
+      return true;
+    }
 
 		scope.domElement.removeEventListener( 'mousemove', onMouseMove, false );
 		scope.domElement.removeEventListener( 'mouseup', onMouseUp, false );
@@ -301,7 +306,9 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	function onMouseWheel( event ) {
 
-		if ( scope.enabled === false ) return;
+		if (scope.enabled === false) {
+      return true;
+    }
 
 		var delta = 0;
 
