@@ -68,6 +68,7 @@ const game = {
   units: [],
   heightField: [],
   components: [],
+  models: {},
 };
 
 function getGameTime() {
@@ -438,6 +439,87 @@ function moveAlignedToGround(object) {
   */
 }
 
+function createMissile(options) {
+  const material = options.material;
+  const geometry = options.geometry;
+  const materialClone = material.clone();
+  const unit = new THREE.Mesh(geometry, materialClone);
+  return unit;
+}
+
+function createUnit(options) {
+  const material = options.material;
+  const geometry = options.geometry;
+  const boxGeometry = options.boxGeometry;
+  const boxMaterial = options.boxMaterial;
+  const bboxHelper = options.bboxHelper;
+  const size = options.size;
+
+  const materialClone = material.clone();
+  const unit = new THREE.Mesh(geometry, materialClone);
+  const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
+  game.scene.scene3.add(boxMesh);
+
+  unit.bboxMesh = boxMesh;
+  unit.bbox = bboxHelper.box;
+
+  //unit.scale.set(scale, scale, scale);
+  if (config.units.randomLocation) {
+    unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
+    unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+  }
+  const height = size.height * unit.scale.y;
+  const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
+  unit.position.y = groundHeight + height + 10;
+  unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+  unit.stayUpRight = true;
+  unit.lastMoved = undefined;
+
+  const healthMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { type: 'f', value: 0.0 },
+      health: { type: 'f', value: 0.0},
+    },
+    vertexShader: $('#health-vertex').text(),
+    fragmentShader: $('#health-fragment').text(),
+  });
+  const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+  // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
+  const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
+  unit.healthBar = healthBar;
+
+  unit.castShadow = true;
+  unit.receiveShadow = true;
+
+  // game properties
+  unit.health = 1.0 //Math.random();
+  unit.type = options.type;
+  unit.weapon = {
+    range: 50.0,
+    damage: 0.1,
+    reload: 0.5,
+  };
+  unit.shots = []
+  unit.team = Math.floor(Math.random() * 2);
+  unit.attackTarget = undefined;
+
+  const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
+  const rangeMaterial = new THREE.MeshLambertMaterial({
+    transparent: true,
+    opacity: 0.1
+  });
+  const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
+  //unit.add(rangeMesh);
+  //game.scene.scene3.add(rangeMesh);
+
+  game.units.push(unit);
+  game.selectables.push(unit);
+  game.scene.scene3.add(unit);
+  game.scene.scene3.add(healthBar);
+
+  return unit;
+}
+
 function loadModels(finishCallback) {
   function getLoadTextureSuccess(options, material, units) {
     return function(texture) {
@@ -501,71 +583,22 @@ function loadModels(finishCallback) {
         transparent: true,
       });
 
+      options.material = material;
+      options.geometry = geometry;
+      options.boxGeometry = boxGeometry;
+      options.boxMaterial = boxMaterial;
+      options.bboxHelper = bboxHelper;
+      options.size = size;
+
+      game.models[options.name] = options;
+
       const units = [];
-
-      for (let i = 0; i < config.units.count; i++) {
-        const materialClone = material.clone();
-        const unit = new THREE.Mesh(geometry, materialClone);
-        units.push(unit);
-        const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
-        game.scene.scene3.add(boxMesh);
-
-        unit.bboxMesh = boxMesh;
-        unit.bbox = bboxHelper.box;
-
-        //unit.scale.set(scale, scale, scale);
-        if (config.units.randomLocation) {
-          unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
-          unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+      if (options.type === UnitType.Air ||
+          options.type === UnitType.Ground) {
+        for (let i = 0; i < config.units.count; i++) {
+          const unit = createUnit(options);
+          units.push(unit);
         }
-        const height = size.height * unit.scale.y;
-        const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
-        unit.position.y = groundHeight + height + 10;
-        unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
-        unit.stayUpRight = true;
-        unit.lastMoved = undefined;
-
-        const healthMaterial = new THREE.ShaderMaterial({
-          uniforms: {
-            time: { type: 'f', value: 0.0 },
-            health: { type: 'f', value: 0.0},
-          },
-          vertexShader: $('#health-vertex').text(),
-          fragmentShader: $('#health-fragment').text(),
-        });
-        const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-        // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
-        const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
-        unit.healthBar = healthBar;
-
-        unit.castShadow = true;
-        unit.receiveShadow = true;
-
-        // game properties
-        unit.health = 1.0 //Math.random();
-        unit.type = options.type;
-        unit.weapon = {
-          range: 50.0,
-          damage: 0.1,
-          reload: 0.5,
-        };
-        unit.shots = []
-        unit.team = Math.floor(Math.random() * 2);
-        unit.attackTarget = undefined;
-
-        const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
-        const rangeMaterial = new THREE.MeshLambertMaterial({
-          transparent: true, 
-          opacity: 0.1
-        });
-        const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
-        //unit.add(rangeMesh);
-        //game.scene.scene3.add(rangeMesh);
-
-        game.units.push(unit);
-        game.selectables.push(unit);
-        game.scene.scene3.add(unit);
-        game.scene.scene3.add(healthBar);
       }
 
       textureLoader.load(
@@ -581,7 +614,7 @@ function loadModels(finishCallback) {
     texturePath: 'models/images/camouflage.jpg',
     textureRepeat: new THREE.Vector2(1, 1),
     opacity: 1,
-    type: UnitType.GroundUnit,
+    type: UnitType.Ground,
     downloadedModel: 0,
     downloadedTexture: 0
   };
@@ -631,23 +664,20 @@ function loadModels(finishCallback) {
   const $progress = $(".unitinfo .progress-bar");
   const $progressText = $progress; //.find("span");
 
-
   const optionList = [];
 
   const loader = new THREE.BufferGeometryLoader();
   const textureLoader = new THREE.TextureLoader();
 
   for (const model of Models) {
-    if (model.type !== UnitType.Building) {
-      const modelOptions = $.extend({}, options, model);
-      modelOptions.modelSize = modelSizes.models[modelOptions.path];
-      modelOptions.textureSize = modelSizes.images[modelOptions.texturePath];
-      optionList.push(modelOptions);
-      loader.load(
-        model.path,
-        getOnSuccess(modelOptions),
-        getOnProgress(modelOptions));
-    }
+    const modelOptions = $.extend({}, options, model);
+    modelOptions.modelSize = modelSizes.models[modelOptions.path];
+    modelOptions.textureSize = modelSizes.images[modelOptions.texturePath];
+    optionList.push(modelOptions);
+    loader.load(
+      model.path,
+      getOnSuccess(modelOptions),
+      getOnProgress(modelOptions));
   }
   requestAnimationFrame(setModelProgress);
 }
@@ -1009,14 +1039,18 @@ function attackTargets() {
             shotMesh.position.x = diff.x;
             shotMesh.position.y = diff.y;
             shotMesh.position.z = diff.z;
+            shotMesh.lookAt(target.position);
           }).onComplete(function() {
             target.health -= unit.weapon.damage;
             game.scene.scene3.remove(shotMesh);
           });
+        /*
         const shotGeometry = new THREE.Geometry();
         shotGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
         const shotMaterial = new THREE.PointCloudMaterial({ color: 0xFF0000, size: 10.0 });
         const shotMesh = new THREE.PointCloud(shotGeometry, shotMaterial);
+        */
+        const shotMesh = createMissile(game.models.missile);
         game.scene.scene3.add(shotMesh);
         unit.lastShot = getGameTime();
         tween.start();
