@@ -6,7 +6,7 @@
 
 // It is an adaptation of the three.js OrbitControls class to map environments
 
-export function MapControls(camera, mesh, renderFunction, domElement) {
+export function MapControls(camera, mesh, renderFunction, domElement, resetCamera) {
 
 	this.camera = camera;
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
@@ -45,10 +45,14 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
   let scrollTop = false;
   let scrollRight = false;
   let scrollBottom = false;
+  
   let rotateLeft = false;
   let rotateRight = false;
   let rotateUp = false;
   let rotateDown = false;
+
+  let zoomIn = false;
+  let zoomOut = false;
 
 	this.update = function () {
 		if (lastPosition.distanceTo(this.camera.position) > 0) {
@@ -159,7 +163,6 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
   function scroll() {
     // scroll at edge of element
     var edgeSize = 0.1;
-    
     if (lastMouseX < -1.0 + edgeSize || scrollLeft) {
       var delta = new THREE.Vector3(-scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
@@ -186,6 +189,8 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
       delta.multiplyScalar(scope.scrollSpeed);
       camera.position.add(delta);
     }
+
+    // rotation
     const mul = 0.1;
     if (rotateUp) {
       arcBallRotation(-mul, true);
@@ -198,6 +203,16 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
     }
     if (rotateRight) {
       arcBallRotation(-mul);
+    }
+
+    // zoom
+    const zmul = 50;
+    if (zoomIn) {
+      zoom(zmul);
+    }
+    
+    if (zoomOut) {
+      zoom(-zmul);
     }
   }
 
@@ -304,6 +319,14 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 	}
 
+  function zoom(delta) {
+    const zoomOffset = new THREE.Vector3();
+		const te = camera.matrix.elements;
+		zoomOffset.set(te[8], te[9], te[10]);
+		zoomOffset.multiplyScalar(delta * -scope.zoomSpeed * camera.position.y/1000);
+		camera.position.addVectors(camera.position, zoomOffset);
+  }
+
 	function onMouseWheel( event ) {
 
 		if (scope.enabled === false) {
@@ -312,22 +335,15 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
 
 		var delta = 0;
 
-		if ( event.wheelDelta ) { // WebKit / Opera / Explorer 9
-
+		if (event.wheelDelta) {
+      // WebKit / Opera / Explorer 9
 			delta = event.wheelDelta;
-
-		} else if ( event.detail ) { // Firefox
-
-			delta = - event.detail;
-
+		} else if (event.detail) {
+      // Firefox
+			delta = -event.detail;
 		}
 
-		var zoomOffset = new THREE.Vector3();
-		var te = camera.matrix.elements;
-		zoomOffset.set( te[8], te[9], te[10] );
-		zoomOffset.multiplyScalar( delta * -scope.zoomSpeed * camera.position.y/1000 );
-		camera.position.addVectors( camera.position, zoomOffset );
-
+    zoom(delta);
 	}
 
   function setScroll(keyCode, val) {
@@ -360,9 +376,22 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
     }
   }
 
+  function setZoom(keyCode, val) {
+    if (keyCode == window.KeyEvent.DOM_VK_PAGE_UP) {
+      zoomIn = val;
+    }
+    if (keyCode == window.KeyEvent.DOM_VK_PAGE_DOWN) {
+      zoomOut = val;
+    }
+  }
+
   function onKeyUp(evt) {
     setScroll(evt.keyCode, false);
     setRotate(evt.keyCode, false);
+    setZoom(evt.keyCode, false);
+    if (evt.keyCode === window.KeyEvent.DOM_VK_HOME) {
+      resetCamera();
+    }
   }
 
   function onKeyDown(evt) {
@@ -371,6 +400,7 @@ export function MapControls(camera, mesh, renderFunction, domElement) {
     } else {
       setScroll(evt.keyCode, true);
     }
+    setZoom(evt.keyCode, true);
   }
 
 	this.domElement.addEventListener('contextmenu', function ( event ) { event.preventDefault(); }, false);

@@ -13,8 +13,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Progress indicator for loading
 
 ## Functionality
- - Press PgUp/PgDn to zoom
- - Press Home to return to a safe camera position (if you get lost)
  - Constrain camera controls to stay on map
  - Minimap
    - Make it possible to click on minimap to change screen location

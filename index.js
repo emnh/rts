@@ -304,7 +304,9 @@ function initCameraControls() {
       game.scene.camera,
       game.scene.navigationPlane,
       () => null,
-      game.scene.renderer.domElement);
+      game.scene.renderer.domElement,
+      resetCamera
+      );
   game.scene.cameraControls.minDistance = 10;
   game.scene.cameraControls.maxDistance = 1000;
   game.scene.cameraControls.enabled = config.camera.mouseControl;
@@ -634,6 +636,13 @@ function placeUnit(unit, pos) {
   const newPos = pos.clone();
   newPos.y = getGroundAlignment(unit);
   unit.position.copy(newPos);
+}
+
+function resetCamera() {
+  // camera.position.set(107, 114, 82);
+  //camera.position.set(320, 340, 245);
+  game.scene.camera.position.set(330, 300, 0);
+  game.scene.camera.lookAt(game.scene.scene3.position);
 }
 
 function initSelection() {
@@ -986,10 +995,7 @@ function initScene() {
   game.components.push(new SkyBox());
   game.components.push(new MiniMap());
 
-  // camera.position.set(107, 114, 82);
-  //camera.position.set(320, 340, 245);
-  game.scene.camera.position.set(330, 300, 0);
-  game.scene.camera.lookAt(game.scene.scene3.position);
+  resetCamera();
 
   game.dom.$unitinfo = $('.unitinfo .content');
 
