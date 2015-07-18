@@ -59,30 +59,21 @@ const game = {
     width: window.innerWidth,
     height: window.innerHeight - config.dom.controlsHeight,
     ground: undefined,
-  }
+  },
+  selector: undefined,
+  selectables: [],
+  mapBounds: new THREE.Box3(),
+  startTime: (new Date().getTime()) / 1000.0,
+  units: [],
+  heightField: [],
+  components: []
 };
-
-const selectables = [];
-const mapBounds = new THREE.Box3();
-const startTime = (new Date().getTime()) / 1000.0;
-const units = [];
-const heightField = [];
-let ground;
-let camera;
-let raycaster;
-let cameraControls;
-let selector;
-let $unitinfo;
-let planeMesh;
-let components = [];
 
 const UnitType = {
   Air: 'air',
   Ground: 'ground',
   Building: 'building',
 }
-
-
 
 function getSize(geometry) {
   return {
@@ -106,7 +97,7 @@ function isObject(obj) {
 }
 
 function worldToScreen(pos) {
-  const vector = pos.project(camera);
+  const vector = pos.project(game.scene.camera);
 
   vector.x = (vector.x + 1) / 2 * game.scene.width;
   vector.y = -(vector.y - 1) / 2 * game.scene.height;
@@ -163,7 +154,7 @@ function SkyBox() {
   game.scene.scene3.add(mesh);
 
   this.render = function() {
-    mesh.position.copy(camera.position);
+    mesh.position.copy(game.scene.camera.position);
   }
 }
 
@@ -219,7 +210,7 @@ function initGround() {
       config.terrain.yFaces);
   groundGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
   for (let i = 0; i <= config.terrain.xFaces; i++) {
-    heightField[i] = [];
+    game.heightField[i] = [];
   }
   for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
     const x = groundGeometry.attributes.position.array[i];
@@ -240,22 +231,22 @@ function initGround() {
 
     const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
     const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    heightField[xi][yi] = y;
+    game.heightField[xi][yi] = y;
   }
   groundGeometry.computeFaceNormals();
   groundGeometry.computeVertexNormals();
 
-  ground = new THREE.Mesh(groundGeometry, groundMaterial);
+  game.scene.ground = new THREE.Mesh(groundGeometry, groundMaterial);
   // ground.rotation.x = Math.PI / -2;
-  ground.receiveShadow = true;
-  game.scene.scene3.add(ground);
+  game.scene.ground.receiveShadow = true;
+  game.scene.scene3.add(game.scene.ground);
 
-  mapBounds.min.x = -config.terrain.width / 2;
-  mapBounds.min.y = 0;
-  mapBounds.min.z = -config.terrain.height / 2;
-  mapBounds.max.x = config.terrain.width / 2;
-  mapBounds.max.y = config.terrain.maxElevation * 2;
-  mapBounds.max.z = config.terrain.height / 2;
+  game.mapBounds.min.x = -config.terrain.width / 2;
+  game.mapBounds.min.y = 0;
+  game.mapBounds.min.z = -config.terrain.height / 2;
+  game.mapBounds.max.x = config.terrain.width / 2;
+  game.mapBounds.max.y = config.terrain.maxElevation * 2;
+  game.mapBounds.max.z = config.terrain.height / 2;
 }
 
 function Sea() {
@@ -293,9 +284,9 @@ function Sea() {
     //material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
     material.uniforms.ang.value = new THREE.Vector3(0, Math.PI / 2, 0);
     //material.uniforms.ang.value = camera.rotation;
-    const angv = camera.position.clone();
+    const angv = game.scene.camera.position.clone();
     //angv.normalize();
-    angv.applyQuaternion(camera.quaternion);
+    angv.applyQuaternion(game.scene.camera.quaternion);
     material.uniforms.angv.value = angv;
     const ori = new THREE.Vector3(4, 5.5, 5.0).multiplyScalar(10.0);;
     //ori.x = camera.position.x;
@@ -309,19 +300,19 @@ function Sea() {
 function initCameraControls() {
   // Construct semi-infinite plane, since MapControls doesn't work well with height map mesh
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
-  planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
-  planeMesh.rotation.x = Math.PI / -2;
-  planeMesh.visible = false;
-  game.scene.scene3.add(planeMesh);
+  game.scene.selectionPlane = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
+  game.scene.selectionPlane.rotation.x = Math.PI / -2;
+  game.scene.selectionPlane.visible = false;
+  game.scene.scene3.add(game.scene.selectionPlane);
 
-  cameraControls = new MapControls(
-      camera,
-      planeMesh,
+  game.scene.cameraControls = new MapControls(
+      game.scene.camera,
+      game.scene.selectionPlane,
       () => null,
       game.scene.renderer.domElement);
-  cameraControls.minDistance = 10;
-  cameraControls.maxDistance = 1000;
-  cameraControls.enabled = config.camera.mouseControl;
+  game.scene.cameraControls.minDistance = 10;
+  game.scene.cameraControls.maxDistance = 1000;
+  game.scene.cameraControls.enabled = config.camera.mouseControl;
 }
 
 function getGroundHeight(x, y) {
@@ -337,16 +328,16 @@ function getGroundHeight(x, y) {
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
   if (xi < 0 ||
       yi < 0 ||
-      xi >= heightField.length ||
-      xi + 1 >= heightField.length ||
-      yi >= heightField[xi].length ||
-      yi + 1 >= heightField[xi].length) {
+      xi >= game.heightField.length ||
+      xi + 1 >= game.heightField.length ||
+      yi >= game.heightField[xi].length ||
+      yi + 1 >= game.heightField[xi].length) {
     return 0;
   }
-  const fQ11 = heightField[xi][yi];
-  const fQ21 = heightField[xi + 1][yi];
-  const fQ12 = heightField[xi][yi + 1];
-  const fQ22 = heightField[xi + 1][yi + 1];
+  const fQ11 = game.heightField[xi][yi];
+  const fQ21 = game.heightField[xi + 1][yi];
+  const fQ12 = game.heightField[xi][yi + 1];
+  const fQ22 = game.heightField[xi + 1][yi + 1];
 
   const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
   const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
@@ -406,16 +397,16 @@ function moveAlignedToGround(object) {
   zAxis.y = 0;
   const xzDirection = zAxis;
   const oldGroundHeight = getGroundAlignment(object);
-  if (object.position.x + xzDirection.x <= mapBounds.min.x) {
+  if (object.position.x + xzDirection.x <= game.mapBounds.min.x) {
     xzDirection.x = -xzDirection.x;
   }
-  if (object.position.x + xzDirection.x >= mapBounds.max.x) {
+  if (object.position.x + xzDirection.x >= game.mapBounds.max.x) {
     xzDirection.x = -xzDirection.x;
   }
-  if (object.position.z + xzDirection.z <= mapBounds.min.z) {
+  if (object.position.z + xzDirection.z <= game.mapBounds.min.z) {
     xzDirection.z = -xzDirection.z;
   }
-  if (object.position.z + xzDirection.z >= mapBounds.max.z) {
+  if (object.position.z + xzDirection.z >= game.mapBounds.max.z) {
     xzDirection.z = -xzDirection.z;
   }
   // add velocity to position
@@ -536,8 +527,8 @@ function loadModels() {
         unit.health = Math.random();
         unit.type = options.type;
 
-        units.push(unit);
-        selectables.push(unit);
+        game.units.push(unit);
+        game.selectables.push(unit);
         game.scene.scene3.add(unit);
         game.scene.scene3.add(healthBar);
 
@@ -652,18 +643,18 @@ function placeUnit(unit, pos) {
 
 function initSelection() {
   const mouseElement = game.scene.renderer.domElement;
-  selector = new Selection({
+  game.selector = new Selection({
     placeUnit,
     boxIntersect,
     getBBoxes,
     mouseElement,
-    raycaster,
-    selectables,
-    camera,
-    ground,
+    raycaster: game.scene.raycaster,
+    selectables: game.selectables,
+    camera: game.scene.camera,
+    ground: game.scene.ground,
     scene: game.scene.scene3,
     config,
-    planeMesh,
+    planeMesh: game.scene.selectionPlane,
     getGroundHeight: getGroundHeight,
   });
 }
@@ -693,13 +684,13 @@ function initDAT() {
       }
     }
   }
-  controllers['camera.rotationX'].step(0.01);
-  controllers['camera.rotationY'].step(0.01);
-  controllers['camera.rotationZ'].step(0.01);
+  controllers['game.scene.camera.rotationX'].step(0.01);
+  controllers['game.scene.camera.rotationY'].step(0.01);
+  controllers['game.scene.camera.rotationZ'].step(0.01);
   controllers['debug.mouseX'].step(0.01);
   controllers['debug.mouseY'].step(0.01);
-  controllers['camera.mouseControl'].onChange(() => {
-    cameraControls.enabled = config.camera.mouseControl;
+  controllers['game.scene.camera.mouseControl'].onChange(() => {
+    game.scene.cameraControls.enabled = config.camera.mouseControl;
   });
 }
 
@@ -708,8 +699,8 @@ function onResize() {
   game.scene.height = window.innerHeight - config.dom.controlsHeight;
   $('#viewport').height(game.scene.height);
   $(game.scene.renderer.domElement).height(game.scene.height);
-  camera.aspect = game.scene.width / game.scene.height;
-  camera.updateProjectionMatrix();
+  game.scene.camera.aspect = game.scene.width / game.scene.height;
+  game.scene.camera.updateProjectionMatrix();
   game.scene.renderer.setSize(game.scene.width, game.scene.height);
 }
 
@@ -719,8 +710,8 @@ function initUI() {
 }
 
 function updateUnitInfo() {
-  if (selector.selected.length > 0) {
-    const unit = selector.selected[0];
+  if (game.selector.selected.length > 0) {
+    const unit = game.selector.selected[0];
     const x = formatFloat(unit.position.x);
     const y = formatFloat(unit.position.y);
     const z = formatFloat(unit.position.z);
@@ -753,17 +744,17 @@ function updateUnitInfo() {
     s += '<span>Health </span>';
     s += `<span>${health}</span>`;
     s += '</div>';
-    $unitinfo.html(s);
+    game.dom.$unitinfo.html(s);
   }
 }
 
 function updateCameraInfo() {
-  const x = camera.position.x;
-  const y = camera.position.y;
-  const z = camera.position.z;
-  const xr = camera.rotation.x;
-  const yr = camera.rotation.y;
-  const zr = camera.rotation.z;
+  const x = game.scene.camera.position.x;
+  const y = game.scene.camera.position.y;
+  const z = game.scene.camera.position.z;
+  const xr = game.scene.camera.rotation.x;
+  const yr = game.scene.camera.rotation.y;
+  const zr = game.scene.camera.rotation.z;
   config.camera.X = x;
   config.camera.Y = y;
   config.camera.Z = z;
@@ -773,7 +764,7 @@ function updateCameraInfo() {
 }
 
 function updateBBoxes() {
-  for (const unit of units) {
+  for (const unit of game.units) {
     unit.bboxMesh.position.copy(unit.position);
     unit.bboxMesh.scale.copy(unit.scale);
     unit.bboxMesh.rotation.copy(unit.rotation);
@@ -781,17 +772,17 @@ function updateBBoxes() {
 }
 
 function updateHealthBars() {
-  for (const unit of units) {
+  for (const unit of game.units) {
     unit.healthBar.position.copy(unit.position);
     unit.healthBar.position.y += getSize(unit.geometry).height * unit.scale.y;
-    unit.healthBar.lookAt(camera.position);
+    unit.healthBar.lookAt(game.scene.camera.position);
   }
 }
 
 function updateShaders() {
   const nowTime = (new Date().getTime()) / 1000.0;
-  const time = nowTime - startTime;
-  for (const unit of units) {
+  const time = nowTime - game.startTime;
+  for (const unit of game.units) {
     const mesh = unit.bboxMesh;
     if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
       mesh.material.uniforms.time.value = time;
@@ -801,22 +792,22 @@ function updateShaders() {
 }
 
 function funTerrain() {
-  const time = (new Date().getTime()) / 1000.0 - startTime;
-  for (let i = 0; i < ground.geometry.attributes.position.length; i += 3) {
-    const x = ground.geometry.attributes.position.array[i];
-    const z = ground.geometry.attributes.position.array[i + 2];
+  const time = (new Date().getTime()) / 1000.0 - game.startTime;
+  for (let i = 0; i < game.scene.ground.geometry.attributes.position.length; i += 3) {
+    const x = game.scene.ground.geometry.attributes.position.array[i];
+    const z = game.scene.ground.geometry.attributes.position.array[i + 2];
     const noise = noiseGen.noise3d(x / 100, z / 100, time);
     const normalNoise = (noise + 1) / 2;
     const y = normalNoise * config.terrain.maxElevation;
-    ground.geometry.attributes.position.array[i + 1] = y;
+    game.scene.ground.geometry.attributes.position.array[i + 1] = y;
 
     const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
     const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    heightField[xi][yi] = y;
+    game.heightField[xi][yi] = y;
   }
-  ground.geometry.computeFaceNormals();
-  ground.geometry.computeVertexNormals();
-  ground.geometry.attributes.position.needsUpdate = true;
+  game.scene.ground.geometry.computeFaceNormals();
+  game.scene.ground.geometry.computeVertexNormals();
+  game.scene.ground.geometry.attributes.position.needsUpdate = true;
 }
 
 function MiniMap() {
@@ -856,7 +847,7 @@ function MiniMap() {
     }
     const geom = new THREE.Geometry();
     let i = 0;
-    for (let unit of units) {
+    for (let unit of game.units) {
       if (unit.minimap === undefined) {
         unit.minimap = {};
       }
@@ -892,8 +883,8 @@ function render() {
   updateCameraInfo();
   updateBBoxes();
   updateHealthBars();
-  components.forEach((x) => { x.render(); });
-  game.scene.renderer.render(game.scene.scene3, camera);
+  game.components.forEach((x) => { x.render(); });
+  game.scene.renderer.render(game.scene.scene3, game.scene.camera);
   game.scene.renderStats.update();
   requestAnimationFrame(render);
 };
@@ -901,7 +892,7 @@ function render() {
 function getBBoxes() {
   // prepare world-{aligned, positioned, rotated} bounding boxes
   const boxes = [];
-  for (const unit of units) {
+  for (const unit of game.units) {
     const pos = unit.position;
     const bbox = unit.bbox.clone();
     // rotate bounding box with object
@@ -942,23 +933,23 @@ function checkCollisions() {
     d.multiplyScalar(1.0);
     const p1new = p1.clone().sub(d);
     const p2new = p2.clone().add(d);
-    if (p1new.x >= mapBounds.min.x &&
-        p1new.x <= mapBounds.max.x &&
-        p1new.z >= mapBounds.min.z &&
-        p1new.z <= mapBounds.max.z) {
+    if (p1new.x >= game.mapBounds.min.x &&
+        p1new.x <= game.mapBounds.max.x &&
+        p1new.z >= game.mapBounds.min.z &&
+        p1new.z <= game.mapBounds.max.z) {
       p1.sub(d);
     }
-    if (p2new.x >= mapBounds.min.x &&
-        p2new.x <= mapBounds.max.x &&
-        p2new.z >= mapBounds.min.z &&
-        p2new.z <= mapBounds.max.z) {
+    if (p2new.x >= game.mapBounds.min.x &&
+        p2new.x <= game.mapBounds.max.x &&
+        p2new.z >= game.mapBounds.min.z &&
+        p2new.z <= game.mapBounds.max.z) {
       p2.add(d);
     }
   });
 }
 
 function updateSimulation() {
-  for (const unit of units) {
+  for (const unit of game.units) {
     moveAlignedToGround(unit);
   }
   checkCollisions();
@@ -978,7 +969,7 @@ function initScene() {
   $('#viewport').append(game.scene.renderer.domElement);
   $('#viewport').height(game.scene.height);
 
-  raycaster = new THREE.Raycaster();
+  game.scene.raycaster = new THREE.Raycaster();
 
   initStats();
 
@@ -988,27 +979,27 @@ function initScene() {
 
   const frustumFar = 100000;
   const frustumNear = 1;
-  camera = new THREE.PerspectiveCamera(
+  game.scene.camera = new THREE.PerspectiveCamera(
     35,
     game.scene.width / game.scene.height,
     frustumNear,
     frustumFar
   );
-  game.scene.scene3.add(camera);
+  game.scene.scene3.add(game.scene.camera);
 
   initLight();
   initGround();
   initCameraControls();
-  components.push(new Sea());
-  components.push(new SkyBox());
-  components.push(new MiniMap());
+  game.components.push(new Sea());
+  game.components.push(new SkyBox());
+  game.components.push(new MiniMap());
 
   // camera.position.set(107, 114, 82);
   //camera.position.set(320, 340, 245);
-  camera.position.set(330, 300, 0);
-  camera.lookAt(game.scene.scene3.position);
+  game.scene.camera.position.set(330, 300, 0);
+  game.scene.camera.lookAt(game.scene.scene3.position);
 
-  $unitinfo = $('.unitinfo .content');
+  game.dom.$unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
   game.scene.scene3.simulate();
