@@ -9,7 +9,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 # TODO
 
 ## Code
- - Refactor index.js to use gameState for all globals
  - Separate game logic from rendering
  - Progress indicator for loading
 
