@@ -1,7 +1,7 @@
 /*jslint browser: true, es6: true */
 
 /* global
- * $, THREE, Stats, Physijs, TWEEN, SimplexNoise, dat
+ * $, THREE, Stats, TWEEN, SimplexNoise, dat
  */
 
 const jQuery = require('jquery');
@@ -14,9 +14,6 @@ require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
 const Util = new (require('./js/Util.js').Util)();
-
-Physijs.scripts.worker = 'jscache/physijs_worker.js';
-Physijs.scripts.ammo = 'ammo.js';
 
 const config = {
   dom: {
@@ -193,11 +190,9 @@ function initStats() {
 
 function initGround() {
   // Materials
-  const groundMaterial = Physijs.createMaterial(
-    new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg' ) }),
-    0.8, // high friction
-    0.0 // low restitution
-  );
+  const groundMaterial = new THREE.MeshLambertMaterial({
+    map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg')
+  });
   groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
   groundMaterial.map.repeat.set(config.terrain.width / 100.0, config.terrain.height / 100.0);
 
@@ -953,7 +948,6 @@ function updateSimulation() {
     moveAlignedToGround(unit);
   }
   checkCollisions();
-  game.scene.scene3.simulate(undefined, 1);
   game.scene.physicsStats.update();
 }
 
@@ -973,9 +967,7 @@ function initScene() {
 
   initStats();
 
-  game.scene.scene3 = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  game.scene.scene3.setGravity(new THREE.Vector3(0, -100, 0));
-  game.scene.scene3.addEventListener('update', updateSimulation);
+  game.scene.scene3 = new THREE.Scene();
 
   const frustumFar = 100000;
   const frustumNear = 1;
@@ -1002,7 +994,7 @@ function initScene() {
   game.dom.$unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
-  game.scene.scene3.simulate();
+  setInterval(updateSimulation, 1000/120);
 
   loadModels();
 }
