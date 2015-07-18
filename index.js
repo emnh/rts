@@ -69,10 +69,11 @@ const game = {
   heightField: [],
   components: [],
   models: {},
+  emitters: [],
 };
 
 function getGameTime() {
-  return (new Date().getTime()) / 1000.0;
+  return (new Date().getTime()) / 1000.0 - game.startTime;
 }
 
 function getSize(geometry) {
@@ -495,13 +496,14 @@ function createUnit(options) {
   unit.health = 1.0 //Math.random();
   unit.type = options.type;
   unit.weapon = {
-    range: 50.0,
-    damage: 0.1,
+    range: 100.0,
+    damage: 0.01,
     reload: 0.5,
   };
   unit.shots = []
   unit.team = Math.floor(Math.random() * 2);
   unit.attackTarget = undefined;
+  unit.dead = false;
 
   const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
   const rangeMaterial = new THREE.MeshLambertMaterial({
@@ -1019,6 +1021,53 @@ function findTargets() {
   }
 }
 
+function Explosions() {
+  const texture = THREE.ImageUtils.loadTexture('models/images/explosion.png');
+  /*
+  texture.needsUpdate = true;
+  texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
+  texture.minFilter = THREE.NearestFilter;
+  texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+  */
+
+  const material = new THREE.ShaderMaterial({
+    uniforms: { 
+      tExplosion: { 
+        type: "t", 
+        value: texture, 
+      },
+      time: { 
+        type: "f", 
+        value: 0.0,
+      },
+      opacity: { 
+        type: "f", 
+        value: 0.0,
+      }
+    },
+    vertexShader: $('#explosion-vertex').text(),
+    fragmentShader: $('#explosion-fragment').text(),
+    transparent: true
+  });
+  const geometry = new THREE.IcosahedronGeometry(20, 4);
+  geometry.computeFaceNormals();
+  geometry.computeVertexNormals();
+
+  const explosions = [];
+
+  this.createExplosion = function(pos) {
+    console.log("creating explosion");
+    const newMaterial = material.clone();
+    newMaterial.uniforms.tExplosion.value = texture;
+    const mesh = new THREE.Mesh(geometry, newMaterial);
+    mesh.position.copy(pos);
+
+    explosions.push(mesh);
+
+    return mesh;
+  }
+}
+
 function attackTargets() {
   for (const unit of game.units) {
     if (unit.attackTarget !== undefined) {
@@ -1041,8 +1090,31 @@ function attackTargets() {
             shotMesh.position.z = diff.z;
             shotMesh.lookAt(target.position);
           }).onComplete(function() {
+            const oldHealth = target.health;
             target.health -= unit.weapon.damage;
             game.scene.scene3.remove(shotMesh);
+            if (target.health <= 0 && oldHealth > 0) {
+              target.dead = true;
+              const explosion = game.explosions.createExplosion(target.position);
+              explosion.time = 0;
+              explosion.tscale = 0;
+              explosion.opacity = 2;
+              explosion.material.uniforms.time.value = this.time;
+              //explosion.material.uniforms.tExplosion.value = game.explosion;
+              game.scene.scene3.add(explosion);
+              const seed = Math.random();
+              const tween = new TWEEN.Tween(explosion)
+                .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
+                .onUpdate(function() {
+                  this.material.uniforms.time.value = this.time + seed;
+                  this.material.uniforms.opacity.value = this.opacity;
+                  let scale = this.tscale;
+                  this.scale.set(scale, scale, scale);
+                })
+                .onComplete(function() {
+                  game.scene.scene3.remove(this);
+                }).start();
+            }
           });
         /*
         const shotGeometry = new THREE.Geometry();
@@ -1059,6 +1131,38 @@ function attackTargets() {
   }
 }
 
+function updateExplosions() {
+  const time = getGameTime();
+  game.emitters.forEach((emitter) => {
+    const delta = time - emitter.startTime;
+    emitter.update(delta).render();
+    emitter.startTime = time;
+    console.log("v", emitter.particleSystem.geometry.vertices);
+    /*
+    const material = new THREE.PointCloudMaterial({ size: 100 });
+    const pt = new THREE.PointCloud(emitter.particleSystem.geometry, material); //emitter.particleSystem.material);
+    if (emitter.pt !== undefined) {
+      game.scene.scene3.remove(emitter.pt);
+    }
+    game.scene.scene3.add(pt);
+    emitter.pt = pt;
+    */
+  });
+  game.emitters = game.emitters.filter((emitter) => {
+    return !emitter.dead;
+  });
+}
+
+function removeDead() {
+  game.units = game.units.filter((unit) => {
+    if (unit.dead) {
+      game.scene.scene3.remove(unit.healthBar);
+      game.scene.scene3.remove(unit);
+    }
+    return !unit.dead;
+  });
+}
+
 function updateSimulation() {
   for (const unit of game.units) {
     moveAlignedToGround(unit);
@@ -1066,6 +1170,8 @@ function updateSimulation() {
   checkCollisions();
   findTargets();
   attackTargets();
+  updateExplosions();
+  removeDead();
   game.scene.physicsStats.update();
 }
 
@@ -1105,6 +1211,8 @@ function initScene() {
   resetCamera();
 
   game.dom.$unitinfo = $('.unitinfo .content');
+
+  game.explosions = new Explosions();
 
   requestAnimationFrame(render);
 
