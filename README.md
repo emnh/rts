@@ -13,6 +13,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 
 ## Functionality
  - Constrain camera controls to stay on map
+ - Pathfinding / A-star
  - Minimap
    - Make it possible to click on minimap to change screen location
     - Show (accurate) rectangle on minimap
