@@ -1,4 +1,5 @@
 export function Debug() {
+
   function debugLoadMarkers(scene) {
     function loadMarker(color) {
       const geometry = new THREE.BoxGeometry(4, 4, 4);
@@ -7,8 +8,8 @@ export function Debug() {
       scene.add(mesh);
       return mesh;
     }
-    redMarker = loadMarker(0xFF0000);
-    const blueMarkers = [];
+    this.redMarker = loadMarker(0xFF0000);
+    this.blueMarkers = [];
     blueMarkers.push(loadMarker(0x0000FF));
     blueMarkers.push(loadMarker(0x0000FF));
     blueMarkers.push(loadMarker(0x0000FF));

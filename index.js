@@ -18,42 +18,10 @@ const Util = new (require('./js/Util.js').Util)();
 Physijs.scripts.worker = 'jscache/physijs_worker.js';
 Physijs.scripts.ammo = 'ammo.js';
 
-const controlsHeight = 250;
-const selectables = [];
-const mapBounds = new THREE.Box3();
-const startTime = (new Date().getTime()) / 1000.0;
-const units = [];
-const heightField = [];
-let noiseGen;
-let renderer;
-let renderStats;
-let physicsStats;
-let scene;
-let light;
-let ground;
-let groundGeometry;
-let groundMaterial;
-let camera;
-let sceneWidth = window.innerWidth;
-let sceneHeight = window.innerHeight - controlsHeight;
-let raycaster;
-let cameraControls;
-let selector;
-let redMarker;
-let blueMarker;
-let $unitinfo;
-let skyBox;
-let planeMesh;
-let minimap;
-let sea;
-
-const UnitType = {
-  Air: 'air',
-  Ground: 'ground',
-  Building: 'building',
-}
-
 const config = {
+  dom: {
+    controlsHeight: 250
+  },
   units: {
     count: 20,
     speed: 20,
@@ -84,6 +52,37 @@ const config = {
   },
 };
 
+const game = {
+  dom: {
+  },
+  scene: {
+    width: window.innerWidth,
+    height: window.innerHeight - config.dom.controlsHeight,
+    ground: undefined,
+  }
+};
+
+const selectables = [];
+const mapBounds = new THREE.Box3();
+const startTime = (new Date().getTime()) / 1000.0;
+const units = [];
+const heightField = [];
+let ground;
+let camera;
+let raycaster;
+let cameraControls;
+let selector;
+let $unitinfo;
+let planeMesh;
+let components = [];
+
+const UnitType = {
+  Air: 'air',
+  Ground: 'ground',
+  Building: 'building',
+}
+
+
 
 function getSize(geometry) {
   return {
@@ -109,13 +108,13 @@ function isObject(obj) {
 function worldToScreen(pos) {
   const vector = pos.project(camera);
 
-  vector.x = (vector.x + 1) / 2 * sceneWidth;
-  vector.y = -(vector.y - 1) / 2 * sceneHeight;
+  vector.x = (vector.x + 1) / 2 * game.scene.width;
+  vector.y = -(vector.y - 1) / 2 * game.scene.height;
 
   return new THREE.Vector2(vector.x, vector.y);
 }
 
-function initSkyBox() {
+function SkyBox() {
   const cubeMap = new THREE.Texture([]);
   cubeMap.format = THREE.RGBFormat;
   cubeMap.flipY = false;
@@ -156,23 +155,23 @@ function initSkyBox() {
 
   const boxSize = 10000;
 
-  skyBox = new THREE.Mesh(
+  const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(boxSize, boxSize, boxSize),
         skyBoxMaterial
       );
 
-  scene.add(skyBox);
-}
+  game.scene.scene3.add(mesh);
 
-function moveSkyBox() {
-  skyBox.position.copy(camera.position);
+  this.render = function() {
+    mesh.position.copy(camera.position);
+  }
 }
 
 function initLight() {
   // Light
-  light = new THREE.DirectionalLight(0xFFFFFF);
+  const light = new THREE.DirectionalLight(0xFFFFFF);
   light.position.set(500, 1000, -400);
-  light.target.position.copy(scene.position);
+  light.target.position.copy(game.scene.scene3.position);
   light.castShadow = true;
   light.shadowCameraLeft = -config.terrain.width;
   light.shadowCameraTop = -config.terrain.height;
@@ -184,26 +183,26 @@ function initLight() {
   light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
-  scene.add(light);
+  game.scene.scene3.add(light);
 }
 
 function initStats() {
-  renderStats = new Stats();
-  renderStats.domElement.style.position = 'absolute';
-  renderStats.domElement.style.top = '0px';
-  renderStats.domElement.style.zIndex = 100;
-  $('body').append(renderStats.domElement);
+  game.scene.renderStats = new Stats();
+  game.scene.renderStats.domElement.style.position = 'absolute';
+  game.scene.renderStats.domElement.style.top = '0px';
+  game.scene.renderStats.domElement.style.zIndex = 100;
+  $('body').append(game.scene.renderStats.domElement);
 
-  physicsStats = new Stats();
-  physicsStats.domElement.style.position = 'absolute';
-  physicsStats.domElement.style.top = '50px';
-  physicsStats.domElement.style.zIndex = 100;
-  $('body').append(physicsStats.domElement);
+  game.scene.physicsStats = new Stats();
+  game.scene.physicsStats.domElement.style.position = 'absolute';
+  game.scene.physicsStats.domElement.style.top = '50px';
+  game.scene.physicsStats.domElement.style.zIndex = 100;
+  $('body').append(game.scene.physicsStats.domElement);
 }
 
 function initGround() {
   // Materials
-  groundMaterial = Physijs.createMaterial(
+  const groundMaterial = Physijs.createMaterial(
     new THREE.MeshLambertMaterial({ map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg' ) }),
     0.8, // high friction
     0.0 // low restitution
@@ -212,8 +211,8 @@ function initGround() {
   groundMaterial.map.repeat.set(config.terrain.width / 100.0, config.terrain.height / 100.0);
 
   // Ground
-  noiseGen = new SimplexNoise();
-  groundGeometry = new THREE.PlaneBufferGeometry(
+  const noiseGen = new SimplexNoise();
+  const groundGeometry = new THREE.PlaneBufferGeometry(
       config.terrain.width,
       config.terrain.height,
       config.terrain.xFaces,
@@ -249,7 +248,7 @@ function initGround() {
   ground = new THREE.Mesh(groundGeometry, groundMaterial);
   // ground.rotation.x = Math.PI / -2;
   ground.receiveShadow = true;
-  scene.add(ground);
+  game.scene.scene3.add(ground);
 
   mapBounds.min.x = -config.terrain.width / 2;
   mapBounds.min.y = 0;
@@ -277,19 +276,19 @@ function Sea() {
     transparent: true,
   })
 
-  const planeMesh = new THREE.Mesh(plane, material);
+  const seaMesh = new THREE.Mesh(plane, material);
 
-  planeMesh.position.y = config.terrain.seaLevel;
+  seaMesh.position.y = config.terrain.seaLevel;
 
-  scene.add(planeMesh);
+  game.scene.scene3.add(seaMesh);
 
   const startTime = (new Date().getTime()) / 1000.0;
 
   this.render = function() {
     const endTime = (new Date().getTime()) / 1000.0;
     const time = endTime - startTime;
-    //planeMesh.position = camera.position.clone();
-    //planeMesh.position.x = camera.position.x - 3;
+    //seaMesh.position = camera.position.clone();
+    //seaMesh.position.x = camera.position.x - 3;
     material.uniforms.iGlobalTime.value = time;
     //material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
     material.uniforms.ang.value = new THREE.Vector3(0, Math.PI / 2, 0);
@@ -313,13 +312,13 @@ function initCameraControls() {
   planeMesh = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
   planeMesh.rotation.x = Math.PI / -2;
   planeMesh.visible = false;
-  scene.add(planeMesh);
+  game.scene.scene3.add(planeMesh);
 
   cameraControls = new MapControls(
       camera,
       planeMesh,
       () => null,
-      renderer.domElement);
+      game.scene.renderer.domElement);
   cameraControls.minDistance = 10;
   cameraControls.maxDistance = 1000;
   cameraControls.enabled = config.camera.mouseControl;
@@ -470,7 +469,7 @@ function loadModels() {
       const size = getSize(geometry);
 
       const texture = THREE.ImageUtils.loadTexture(texturePath);
-      texture.anisotropy = renderer.getMaxAnisotropy();
+      texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
       texture.minFilter = THREE.NearestFilter;
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
       texture.repeat.set(textureRepeat.x, textureRepeat.y);
@@ -480,10 +479,10 @@ function loadModels() {
       const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
       const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
       const proto = new THREE.Mesh(geometry, material.clone());
-      scene.add(proto);
+      game.scene.scene3.add(proto);
       const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
       bboxHelper.update();
-      scene.remove(proto);
+      game.scene.scene3.remove(proto);
       for (const vertex of boxGeometry.vertices) {
         vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
       }
@@ -500,7 +499,7 @@ function loadModels() {
       for (let i = 0; i < config.units.count; i++) {
         const unit = new THREE.Mesh(geometry, material.clone());
         const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
-        scene.add(boxMesh);
+        game.scene.scene3.add(boxMesh);
 
         unit.bboxMesh = boxMesh;
         unit.bbox = bboxHelper.box;
@@ -539,8 +538,8 @@ function loadModels() {
 
         units.push(unit);
         selectables.push(unit);
-        scene.add(unit);
-        scene.add(healthBar);
+        game.scene.scene3.add(unit);
+        game.scene.scene3.add(healthBar);
 
       }
     };
@@ -652,7 +651,7 @@ function placeUnit(unit, pos) {
 }
 
 function initSelection() {
-  const mouseElement = renderer.domElement;
+  const mouseElement = game.scene.renderer.domElement;
   selector = new Selection({
     placeUnit,
     boxIntersect,
@@ -662,7 +661,7 @@ function initSelection() {
     selectables,
     camera,
     ground,
-    scene,
+    scene: game.scene.scene3,
     config,
     planeMesh,
     getGroundHeight: getGroundHeight,
@@ -705,13 +704,13 @@ function initDAT() {
 }
 
 function onResize() {
-  sceneWidth = window.innerWidth;
-  sceneHeight = window.innerHeight - controlsHeight;
-  $('#viewport').height(sceneHeight);
-  $(renderer.domElement).height(sceneHeight);
-  camera.aspect = sceneWidth / sceneHeight;
+  game.scene.width = window.innerWidth;
+  game.scene.height = window.innerHeight - config.dom.controlsHeight;
+  $('#viewport').height(game.scene.height);
+  $(game.scene.renderer.domElement).height(game.scene.height);
+  camera.aspect = game.scene.width / game.scene.height;
   camera.updateProjectionMatrix();
-  renderer.setSize(sceneWidth, sceneHeight);
+  game.scene.renderer.setSize(game.scene.width, game.scene.height);
 }
 
 function initUI() {
@@ -804,8 +803,8 @@ function updateShaders() {
 function funTerrain() {
   const time = (new Date().getTime()) / 1000.0 - startTime;
   for (let i = 0; i < ground.geometry.attributes.position.length; i += 3) {
-    const x = groundGeometry.attributes.position.array[i];
-    const z = groundGeometry.attributes.position.array[i + 2];
+    const x = ground.geometry.attributes.position.array[i];
+    const z = ground.geometry.attributes.position.array[i + 2];
     const noise = noiseGen.noise3d(x / 100, z / 100, time);
     const normalNoise = (noise + 1) / 2;
     const y = normalNoise * config.terrain.maxElevation;
@@ -823,7 +822,7 @@ function funTerrain() {
 function MiniMap() {
 
   //const minimapGeometry = new THREE.Geometry();
-  const minimapHeight = controlsHeight - 2;
+  const minimapHeight = config.dom.controlsHeight - 2;
   const minimapWidth = minimapHeight;
   const $minimap = $(".minimap");
   const minimapRenderer = new THREE.WebGLRenderer({ antialias: true });
@@ -882,19 +881,20 @@ function render() {
     camera.rotation.copy(unit.rotation);
   }
   */
+
   //funTerrain();
-  minimap.render();
-  sea.render();
+
+  // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
+  // drawOutLine();
+
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
   updateHealthBars();
-  // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
-  // drawOutLine();
-  moveSkyBox();
-  renderer.render(scene, camera);
-  renderStats.update();
+  components.forEach((x) => { x.render(); });
+  game.scene.renderer.render(game.scene.scene3, camera);
+  game.scene.renderStats.update();
   requestAnimationFrame(render);
 };
 
@@ -962,57 +962,56 @@ function updateSimulation() {
     moveAlignedToGround(unit);
   }
   checkCollisions();
-  scene.simulate(undefined, 1);
-  physicsStats.update();
+  game.scene.scene3.simulate(undefined, 1);
+  game.scene.physicsStats.update();
 }
 
-
 function initScene() {
-  $('.controls').height(controlsHeight);
+  $('.controls').height(config.dom.controlsHeight);
 
-  TWEEN.start();
+  // TWEEN.start();
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
-  renderer.setSize(sceneWidth, sceneHeight);
-  renderer.shadowMapEnabled = true;
-  renderer.shadowMapSoft = true;
-  $('#viewport').append(renderer.domElement);
-  $('#viewport').height(sceneHeight);
+  game.scene.renderer = new THREE.WebGLRenderer({ antialias: true });
+  game.scene.renderer.setSize(game.scene.width, game.scene.height);
+  game.scene.renderer.shadowMapEnabled = true;
+  game.scene.renderer.shadowMapSoft = true;
+  $('#viewport').append(game.scene.renderer.domElement);
+  $('#viewport').height(game.scene.height);
 
   raycaster = new THREE.Raycaster();
 
   initStats();
 
-  scene = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
-  scene.setGravity(new THREE.Vector3(0, -100, 0));
-  scene.addEventListener('update', updateSimulation);
+  game.scene.scene3 = new Physijs.Scene({ fixedTimeStep: 1 / 120 });
+  game.scene.scene3.setGravity(new THREE.Vector3(0, -100, 0));
+  game.scene.scene3.addEventListener('update', updateSimulation);
 
   const frustumFar = 100000;
   const frustumNear = 1;
   camera = new THREE.PerspectiveCamera(
     35,
-    sceneWidth / sceneHeight,
+    game.scene.width / game.scene.height,
     frustumNear,
     frustumFar
   );
-  scene.add(camera);
+  game.scene.scene3.add(camera);
 
   initLight();
   initGround();
-  sea = new Sea();
-  initSkyBox();
   initCameraControls();
-  minimap = new MiniMap();
+  components.push(new Sea());
+  components.push(new SkyBox());
+  components.push(new MiniMap());
 
   // camera.position.set(107, 114, 82);
   //camera.position.set(320, 340, 245);
   camera.position.set(330, 300, 0);
-  camera.lookAt(scene.position);
+  camera.lookAt(game.scene.scene3.position);
 
   $unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
-  scene.simulate();
+  game.scene.scene3.simulate();
 
   loadModels();
 }
