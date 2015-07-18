@@ -78,5 +78,12 @@ export const Models = [
     texturePath: 'models/images/farm.jpg',
     type: UnitType.Building,
   },
+  {
+    name: 'missile',
+    path: 'models/3d/missile.json',
+    scale: 3,
+    texturePath: 'models/images/missile.jpg',
+    type: UnitType.Missile,
+  },
 ];
 

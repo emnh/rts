@@ -11,12 +11,14 @@
     "models/images/grass.jpg": 159996,
     "models/images/horse.jpg": 1081321,
     "models/images/house.jpg": 841353,
+    "models/images/missile.jpg": 102036,
     "models/images/sky.jpg": 886392,
     "models/images/thor.jpg": 1658337
   },
   "models": {
     "models/3d/ant.json": 5119061,
     "models/3d/biplane.json": 284892,
+    "models/3d/bullet.json": 122683,
     "models/3d/coin.json": 108543,
     "models/3d/diamond.json": 32573,
     "models/3d/dragon.json": 733297,
@@ -24,6 +26,7 @@
     "models/3d/fighter.json": 386604,
     "models/3d/horse.json": 2110239,
     "models/3d/house.json": 447889,
+    "models/3d/missile.json": 40683,
     "models/3d/tank-apc.json": 308217,
     "models/3d/tank-m1a1.json": 6561254,
     "models/3d/thor.json": 11237870

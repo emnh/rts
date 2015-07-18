@@ -1,7 +1,7 @@
 /*jslint browser: true, es6: true */
 
 /* global
- * $, THREE, Stats, TWEEN, SimplexNoise, dat
+ * $, THREE, Stats, SimplexNoise, dat
  */
 
 const jQuery = require('jquery');
@@ -9,6 +9,8 @@ const $ = jQuery;
 global.jQuery = jQuery;
 const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
+const kdtree = require('static-kdtree');
+const TWEEN = require('tween');
 
 require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
@@ -67,6 +69,10 @@ const game = {
   heightField: [],
   components: [],
 };
+
+function getGameTime() {
+  return (new Date().getTime()) / 1000.0;
+}
 
 function getSize(geometry) {
   return {
@@ -432,11 +438,10 @@ function moveAlignedToGround(object) {
   */
 }
 
-function loadModels() {
+function loadModels(finishCallback) {
   function getLoadTextureSuccess(options, material, units) {
     return function(texture) {
       options.downloadedTexture = options.textureSize;
-      console.log("loaded", options.texturePath);
       texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
       texture.minFilter = THREE.NearestFilter;
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
@@ -462,6 +467,8 @@ function loadModels() {
       mat.makeRotationY(rotation.y);
       geometry.applyMatrix(mat);
       mat.makeRotationZ(rotation.z);
+      geometry.applyMatrix(mat);
+      mat.makeScale(scale, scale, scale);
       geometry.applyMatrix(mat);
 
       geometry.computeBoundingBox();
@@ -506,7 +513,7 @@ function loadModels() {
         unit.bboxMesh = boxMesh;
         unit.bbox = bboxHelper.box;
 
-        unit.scale.set(scale, scale, scale);
+        //unit.scale.set(scale, scale, scale);
         if (config.units.randomLocation) {
           unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
           unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
@@ -535,8 +542,25 @@ function loadModels() {
         unit.receiveShadow = true;
 
         // game properties
-        unit.health = Math.random();
+        unit.health = 1.0 //Math.random();
         unit.type = options.type;
+        unit.weapon = {
+          range: 50.0,
+          damage: 0.1,
+          reload: 0.5,
+        };
+        unit.shots = []
+        unit.team = Math.floor(Math.random() * 2);
+        unit.attackTarget = undefined;
+
+        const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
+        const rangeMaterial = new THREE.MeshLambertMaterial({
+          transparent: true, 
+          opacity: 0.1
+        });
+        const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
+        //unit.add(rangeMesh);
+        //game.scene.scene3.add(rangeMesh);
 
         game.units.push(unit);
         game.selectables.push(unit);
@@ -544,7 +568,6 @@ function loadModels() {
         game.scene.scene3.add(healthBar);
       }
 
-      console.log("loading", texturePath);
       textureLoader.load(
         texturePath,
         getLoadTextureSuccess(options, material, units),
@@ -585,6 +608,8 @@ function loadModels() {
     setProgress(progress);
     if (progress < 1) {
       requestAnimationFrame(setModelProgress);
+    } else {
+      finishCallback();
     }
   }
 
@@ -891,6 +916,7 @@ function render() {
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // drawOutLine();
 
+  TWEEN.update();
   updateShaders();
   updateUnitInfo();
   updateCameraInfo();
@@ -938,18 +964,79 @@ function checkCollisions() {
   });
 }
 
+function findTargets() {
+  const points = [];
+  for (const unit of game.units) {
+    const pos = unit.position.toArray();
+    pos.unit = unit;
+    points.push(pos);
+  }
+  const tree = kdtree(points);
+  for (const unit of game.units) {
+    let minHealth = Number.POSITIVE_INFINITY;
+    unit.attackTarget = undefined;
+    tree.rnn(unit.position.toArray(), unit.weapon.range, function(idx) {
+      const target = points[idx].unit;
+      if (target === unit) {
+        return;
+      }
+      // TODO: more complex target selection
+      if (target.health < minHealth) {
+        unit.attackTarget = target;
+        minHealth = unit.health;
+      }
+    });
+  }
+}
+
+function attackTargets() {
+  for (const unit of game.units) {
+    if (unit.attackTarget !== undefined) {
+      const time = getGameTime();
+      const target = unit.attackTarget;
+      if ((unit.lastShot === undefined ||
+           unit.lastShot + unit.weapon.reload < time)) {
+        const shot = {
+          delta: 0,
+        };
+        const startPos = unit.position.clone();
+        const tween = new TWEEN.Tween(shot)
+          .to({
+            delta: 1,
+          }, 500).onUpdate(function() {
+            const diff = target.position.clone().sub(startPos).multiplyScalar(this.delta);
+            diff.add(startPos);
+            shotMesh.position.x = diff.x;
+            shotMesh.position.y = diff.y;
+            shotMesh.position.z = diff.z;
+          }).onComplete(function() {
+            target.health -= unit.weapon.damage;
+            game.scene.scene3.remove(shotMesh);
+          });
+        const shotGeometry = new THREE.Geometry();
+        shotGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
+        const shotMaterial = new THREE.PointCloudMaterial({ color: 0xFF0000, size: 10.0 });
+        const shotMesh = new THREE.PointCloud(shotGeometry, shotMaterial);
+        game.scene.scene3.add(shotMesh);
+        unit.lastShot = getGameTime();
+        tween.start();
+      }
+    }
+  }
+}
+
 function updateSimulation() {
   for (const unit of game.units) {
     moveAlignedToGround(unit);
   }
   checkCollisions();
+  findTargets();
+  attackTargets();
   game.scene.physicsStats.update();
 }
 
 function initScene() {
   $('.controls').height(config.dom.controlsHeight);
-
-  // TWEEN.start();
 
   game.scene.renderer = new THREE.WebGLRenderer({ antialias: true });
   game.scene.renderer.setSize(game.scene.width, game.scene.height);
@@ -986,9 +1073,10 @@ function initScene() {
   game.dom.$unitinfo = $('.unitinfo .content');
 
   requestAnimationFrame(render);
-  setInterval(updateSimulation, 1000 / 120);
 
-  loadModels();
+  loadModels(() => {
+    setInterval(updateSimulation, 1000 / 120);
+  });
 }
 
 function main() {
