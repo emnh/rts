@@ -77,3 +77,13 @@ a {
 .actions {
   width: 30%;
 }
+
+.unitinfo .progress {
+  width: 50%;
+}
+.unitinfo .progress-bar {
+  color: black;
+  width: 0%;
+  height: 20px;
+}
+

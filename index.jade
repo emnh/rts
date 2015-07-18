@@ -8,10 +8,10 @@ html
     // Optional theme
     link(rel='stylesheet', href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css')
     link(rel='stylesheet', type='text/css', href='css/styles.css')
-    script(type='text/javascript', src='jscache/three.min.js')
     script(type='text/javascript', src='jscache/stats.js')
     script(type='text/javascript', src='jscache/simplex-noise.js')
     script(type='text/javascript', src='jscache/dat.gui.min.js')
+    script(type='text/javascript', src='jscache/three.min.js')
     // <script type="text/javascript" src="jscache/OrbitControls.js"></script>
     // <script type="text/javascript" src="js/MapControls.js"></script>
     script(type='text/javascript', src='bundle.js')
@@ -22,6 +22,9 @@ html
       .minimap
       .unitinfo
         h3 Unit Info
+        .progress
+          .progress-bar.progress-bar-striped.active(role='progressbar', aria-valuenow='0', aria-valuemin='0', aria-valuemax='100')
+            span.sr-only 0% Complete
         .debug
         .content
       .actions
@@ -32,6 +35,10 @@ html
         button.btn.btn-default.btn-lg.disabled(type='button')
           span.glyphicon.glyphicon-flash(aria-hidden='true')
           |  Attack
+
+    script#modelSizes(type='application/json')
+      include ./json/modelSizes.json
+
     script#sky-vertex(type='application/x-glsl')
       include ./shaders/sky-vertex.glsl
     script#sky-fragment(type='application/x-glsl')

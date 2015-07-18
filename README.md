@@ -10,7 +10,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 
 ## Code
  - Separate game logic from rendering
- - Progress indicator for loading
 
 ## Functionality
  - Constrain camera controls to stay on map

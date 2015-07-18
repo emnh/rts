@@ -14,6 +14,8 @@ require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
 const Util = new (require('./js/Util.js').Util)();
+const Models = require('./js/Models.js').Models;
+const UnitType = require('./js/UnitType.js').UnitType;
 
 const config = {
   dom: {
@@ -64,12 +66,6 @@ const game = {
   units: [],
   heightField: [],
   components: [],
-};
-
-const UnitType = {
-  Air: 'air',
-  Ground: 'ground',
-  Building: 'building',
 };
 
 function getSize(geometry) {
@@ -437,6 +433,21 @@ function moveAlignedToGround(object) {
 }
 
 function loadModels() {
+  function getLoadTextureSuccess(options, material, units) {
+    return function(texture) {
+      options.downloadedTexture = options.textureSize;
+      console.log("loaded", options.texturePath);
+      texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
+      texture.minFilter = THREE.NearestFilter;
+      texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+      texture.repeat.set(options.textureRepeat.x, options.textureRepeat.y);
+      material.map = texture;
+      for (const unit of units) {
+        unit.material = material.clone();
+      }
+    }
+  }
+
   function getOnSuccess(options) {
     const scale = options.scale;
     const rotation = options.rotation;
@@ -444,6 +455,7 @@ function loadModels() {
     const textureRepeat = options.textureRepeat;
     const opacity = options.opacity;
     return function(geometry) {
+      //options.downloadedModel = options.modelSize;
       const mat = new THREE.Matrix4();
       mat.makeRotationX(rotation.x);
       geometry.applyMatrix(mat);
@@ -459,12 +471,7 @@ function loadModels() {
 
       const size = getSize(geometry);
 
-      const texture = THREE.ImageUtils.loadTexture(texturePath);
-      texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
-      texture.minFilter = THREE.NearestFilter;
-      texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
-      texture.repeat.set(textureRepeat.x, textureRepeat.y);
-      const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, map: texture, transparent: true, opacity: opacity });
+      const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, transparent: true, opacity: opacity });
 
       // for showing bounding box
       const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
@@ -487,8 +494,12 @@ function loadModels() {
         transparent: true,
       });
 
+      const units = [];
+
       for (let i = 0; i < config.units.count; i++) {
-        const unit = new THREE.Mesh(geometry, material.clone());
+        const materialClone = material.clone();
+        const unit = new THREE.Mesh(geometry, materialClone);
+        units.push(unit);
         const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
         game.scene.scene3.add(boxMesh);
 
@@ -532,10 +543,14 @@ function loadModels() {
         game.scene.scene3.add(unit);
         game.scene.scene3.add(healthBar);
       }
+
+      console.log("loading", texturePath);
+      textureLoader.load(
+        texturePath,
+        getLoadTextureSuccess(options, material, units),
+        getLoadTextureProgress(options));
     };
   }
-  const loader = new THREE.BufferGeometryLoader();
-
 
   const options = {
     scale: 1,
@@ -544,94 +559,72 @@ function loadModels() {
     textureRepeat: new THREE.Vector2(1, 1),
     opacity: 1,
     type: UnitType.GroundUnit,
+    downloadedModel: 0,
+    downloadedTexture: 0
   };
 
-  const models = [
-    {
-      name: 'tank-m1a1',
-      path: 'models/3d/tank-m1a1.json',
-      scale: 0.05,
-      texturePath: 'models/images/camouflage.jpg',
-      textureRepeat: new THREE.Vector2(0.2, 0.2),
-    },
-    {
-      name: 'dragon',
-      path: 'models/3d/dragon.json',
-      scale: 1,
-      texturePath: 'models/images/dragon.jpg',
-      type: UnitType.Air,
-    },
-    {
-      name: 'house',
-      path: 'models/3d/house.json',
-      scale: 0.03,
-      texturePath: 'models/images/house.jpg',
-      type: UnitType.Building,
-    },
-    {
-      name: 'ant',
-      path: 'models/3d/ant.json',
-      scale: 10,
-      rotation: new THREE.Vector3(0, -Math.PI / 2, 0),
-      texturePath: 'models/images/ant.jpg',
-    },
-    {
-      name: 'tank-apc',
-      path: 'models/3d/tank-apc.json',
-      scale: 0.2,
-      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
-    },
-    {
-      name: 'diamond',
-      path: 'models/3d/diamond.json',
-      scale: 3,
-      texturePath: 'models/images/diamond.jpg',
-      textureRepeat: new THREE.Vector2(0.01, 0.01),
-      opacity: 0.6,
-    },
-    {
-      name: 'horse',
-      path: 'models/3d/horse.json',
-      scale: 1.5,
-      texturePath: 'models/images/horse.jpg',
-    },
-    {
-      name: 'fighter',
-      path: 'models/3d/fighter.json',
-      scale: 3,
-      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
-      texturePath: 'models/images/fighter.jpg',
-      type: UnitType.Air,
-    },
-    {
-      name: 'thor',
-      path: 'models/3d/thor.json',
-      scale: 5,
-      texturePath: 'models/images/thor.jpg',
-    },
-    {
-      name: 'biplane',
-      path: 'models/3d/biplane.json',
-      scale: 1,
-      rotation: new THREE.Vector3(0, Math.PI / 2, 0),
-      texturePath: 'models/images/biplane.jpg',
-      type: UnitType.Air,
-    },
-    {
-      name: 'farm',
-      path: 'models/3d/farm.json',
-      scale: 500,
-      texturePath: 'models/images/farm.jpg',
-      type: UnitType.Building,
-    },
-  ];
+  function setProgress(value) {
+    const val = Math.round(value * 100);
+    $progress.attr("aria-valuenow", val);
+    $progress.css({
+      width: val + "%",
+    });
+    $progressText.html(val + "% Complete");
+  }
 
-  for (const model of models) {
-    if (model.type !== UnitType.Building) {
-      const modelOptions = $.extend({}, options, model);
-      loader.load(model.path, getOnSuccess(modelOptions));
+  function setModelProgress() {
+    let downloadedSize = 0;
+    let totalSize = 0;
+    for (const model of optionList) {
+      downloadedSize += model.downloadedModel;
+      downloadedSize += model.downloadedTexture;
+      totalSize += model.modelSize;
+      totalSize += model.textureSize;
+    }
+    const progress = downloadedSize / totalSize; 
+    setProgress(progress);
+    if (progress < 1) {
+      requestAnimationFrame(setModelProgress);
     }
   }
+
+  function getOnProgress(modelOptions) {
+    return function(xhr) {
+      modelOptions.downloadedModel = xhr.loaded;
+    }
+  }
+  
+  function getLoadTextureProgress(modelOptions) {
+    return function(xhr) {
+      modelOptions.downloadedTexture = xhr.loaded;
+    }; 
+  }
+
+  const $modelSizes = $("#modelSizes");
+  const modelSizes = JSON.parse($modelSizes.html());
+
+  const $progress = $(".unitinfo .progress-bar");
+  const $progressText = $progress; //.find("span");
+
+
+  const optionList = [];
+
+  const loader = new THREE.BufferGeometryLoader();
+  const textureLoader = new THREE.TextureLoader();
+
+  for (const model of Models) {
+    if (model.type !== UnitType.Building) {
+      const modelOptions = $.extend({}, options, model);
+      modelOptions.modelSize = modelSizes.models[modelOptions.path];
+      modelOptions.textureSize = modelSizes.images[modelOptions.texturePath];
+      optionList.push(modelOptions);
+      loader.load(
+        model.path,
+        getOnSuccess(modelOptions),
+        getOnProgress(modelOptions));
+    }
+  }
+  requestAnimationFrame(setModelProgress);
 }
 
 function placeUnit(unit, pos) {
