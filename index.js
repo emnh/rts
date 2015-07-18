@@ -715,6 +715,8 @@ function initDAT() {
   controllers['camera.mouseControl'].onChange(() => {
     game.scene.cameraControls.enabled = config.camera.mouseControl;
   });
+
+  gui.close();
 }
 
 function onResize() {

@@ -18,6 +18,7 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 	this.minDistance = 0;
 	this.maxDistance = Infinity;
 	this.rotateSpeed = 0.3;
+  this.edgeSize = 0.1;
 
 	// How far you can orbit vertically, upper and lower limits.
 	this.minPolarAngle = 0; // radians
@@ -162,18 +163,17 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 
   function scroll() {
     // scroll at edge of element
-    var edgeSize = 0.1;
-    if (lastMouseX < -1.0 + edgeSize || scrollLeft) {
+    if (lastMouseX < -1.0 + scope.edgeSize || scrollLeft) {
       var delta = new THREE.Vector3(-scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseX > 1.0 - edgeSize || scrollRight) {
+    if (lastMouseX > 1.0 - scope.edgeSize || scrollRight) {
       var delta = new THREE.Vector3(scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseY < -1.0 + edgeSize || scrollBottom) {
+    if (lastMouseY < -1.0 + scope.edgeSize || scrollBottom) {
       var delta = new THREE.Vector3(0, -1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
@@ -181,7 +181,7 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
       delta.multiplyScalar(scope.scrollSpeed);
       camera.position.add(delta);
     }
-    if (lastMouseY > 1.0 - edgeSize || scrollTop) {
+    if (lastMouseY > 1.0 - scope.edgeSize || scrollTop) {
       var delta = new THREE.Vector3(0, 1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
@@ -217,10 +217,12 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
   }
 
   function onMouseMoveScroll(event) {
-    var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+    //var element = scope.domElement === document ? scope.domElement.body : scope.domElement;
+    const width = window.innerWidth;
+    const height = window.innerHeight;
 
-    lastMouseX = ( event.clientX / element.width ) * 2 - 1;
-    lastMouseY = -( event.clientY / element.height ) * 2 + 1;
+    lastMouseX = ( event.clientX / width ) * 2 - 1;
+    lastMouseY = -( event.clientY / height ) * 2 + 1;
 
     return true;
   }
@@ -403,13 +405,11 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
     setZoom(evt.keyCode, true);
   }
 
+  const body = document.body;
 	this.domElement.addEventListener('contextmenu', function ( event ) { event.preventDefault(); }, false);
 	this.domElement.addEventListener('mousedown', onMouseDown, false);
 	this.domElement.addEventListener('mousewheel', onMouseWheel, false);
-	this.domElement.addEventListener('mousemove', onMouseMoveScroll, false);
-	// this.domElement.addEventListener('keydown', onKeyDown, false);
-	// this.domElement.addEventListener('keyup', onKeyUp, false);
-  const body = document.body;
+	body.addEventListener('mousemove', onMouseMoveScroll, false);
 	body.addEventListener('keydown', onKeyDown, false);
 	body.addEventListener('keyup', onKeyUp, false);
   setInterval(scroll, 10);
