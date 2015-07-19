@@ -45,19 +45,9 @@ export function Selection(options) {
       rectangleSelect(evt);
     });;
 
-  function mark(unit) {
-    // TODO: use a Symbol for currentHex
-    unit.currentHex = unit.material.emissive.getHex();
-    unit.material.emissive.setHex(selectedColor);
-  }
-
-  function unmark(unit) {
-    unit.material.emissive.setHex(unit.currentHex);
-  }
-
   function getScreenBoxes() {
     const screenBoxes = [];
-    for (let unit of options.units) {
+    for (let unit of options.game.units) {
       const geometry = unit.bboxMesh.geometry.clone();
       const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
       geometry.applyMatrix(mat);
@@ -79,12 +69,12 @@ export function Selection(options) {
     const flatSelectionBox = [x1, y1, x2, y2];
     const selectedIndices = options.boxIntersect(screenBoxes, [flatSelectionBox]);
     for (const s of selection.selected) {
-      unmark(s);
+      options.unmark(s);
     }
     selection.selected.length = 0;
     for (const [i, j] of selectedIndices) {
       const unit = screenBoxes[i].unit;
-      mark(unit);
+      options.mark(unit);
       selection.selected.push(unit);
     }
   }
@@ -96,7 +86,7 @@ export function Selection(options) {
 
         // clear old selection
         for (const s of selection.selected) {
-          unmark(s);
+          options.unmark(s);
         }
 
         const eps = 1;

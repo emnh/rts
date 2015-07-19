@@ -27,6 +27,11 @@ const Mouse = {
   RBUTTON: 2
 }
 
+const TeamColors = [
+  new THREE.Color(255, 0, 0), // red
+  new THREE.Color(0, 0,255),  // blue
+]
+
 const config = {
   audio: {
     sounds: false,
@@ -528,6 +533,7 @@ function createUnit(options) {
   unit.attackTarget = null;
   unit.dead = false;
 
+  unit.material.emissive.set(TeamColors[unit.team]);
   /*
   const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
   const rangeMaterial = new THREE.MeshLambertMaterial({
@@ -539,7 +545,6 @@ function createUnit(options) {
   //unit.add(rangeMesh);
   //addToScene(rangeMesh);
 
-  game.units.push(unit);
   addToScene(unit);
   addToScene(healthBar);
 
@@ -557,6 +562,7 @@ function loadModels(finishCallback) {
       material.map = texture;
       for (const unit of units) {
         unit.material = material.clone();
+        unit.material.emissive.set(TeamColors[unit.team]);
       }
     }
   }
@@ -579,6 +585,7 @@ function loadModels(finishCallback) {
       mat.makeScale(scale, scale, scale);
       geometry.applyMatrix(mat);
 
+      geometry.computeBoundingSphere();
       geometry.computeBoundingBox();
       // needed for proper lighting
       geometry.computeFaceNormals();
@@ -624,6 +631,7 @@ function loadModels(finishCallback) {
         for (let i = 0; i < config.units.count; i++) {
           const unit = createUnit(options);
           units.push(unit);
+          game.units.push(unit);
         }
       }
 
@@ -737,16 +745,37 @@ function getBBoxes() {
   return boxes;
 }
 
+function mark(unit) {
+  // TODO: use a Symbol for currentHex
+  const geometry = new THREE.CircleGeometry(unit.geometry.boundingSphere.radius, 32);
+  geometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
+  const material = new THREE.MeshLambertMaterial({
+    color: 0x00FF00,
+    opacity: 0.5
+  });
+  const mesh = new THREE.Mesh(geometry, material);
+  unit.add(mesh);
+  unit.selectedMesh = mesh;
+}
+
+function unmark(unit) {
+  if (unit.selectedMesh) {
+    unit.remove(unit.selectedMesh);
+    unit.selectedMesh = undefined;
+  };
+}
 
 function initSelection() {
   const mouseElement = game.scene.renderer.domElement;
   game.selector = new Selection({
+    mark,
+    unmark,
     placeUnit,
     boxIntersect,
     getBBoxes,
     mouseElement,
     worldToScreen,
-    units: game.units,
+    game,
     raycaster: game.scene.raycaster,
     camera: game.scene.camera,
     ground: game.scene.ground,
@@ -1127,7 +1156,7 @@ function findTargets() {
     unit.attackTarget = null;
     tree.rnn(unit.position.toArray(), unit.weapon.range, function(idx) {
       const target = points[idx].unit;
-      if (target === unit) {
+      if (target === unit || target.team === unit.team) {
         return;
       }
       // TODO: more complex target selection
@@ -1257,7 +1286,9 @@ function removeDead() {
     }
     return !unit.dead;
   });
-  toAdd.forEach((u) => game.units.push(u));
+  toAdd.forEach((u) => {
+    game.units.push(u);
+  });
 }
 
 function updateSimulation() {
