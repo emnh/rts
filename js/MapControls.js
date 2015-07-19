@@ -352,31 +352,41 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
   function setScroll(keyCode, val) {
     if (keyCode == window.KeyEvent.DOM_VK_LEFT) {
       scrollLeft = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_RIGHT) {
       scrollRight = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_UP) {
       scrollTop = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_DOWN) {
       scrollBottom = val;
+      return true;
     }
+    return false;
   }
 
   function setRotate(keyCode, val) {
     if (keyCode == window.KeyEvent.DOM_VK_LEFT) {
       rotateLeft = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_RIGHT) {
       rotateRight = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_UP) {
       rotateUp = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_DOWN) {
       rotateDown = val;
+      return true;
     }
+    return false;
   }
 
   function setZoom(keyCode, val) {
@@ -389,8 +399,12 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
   }
 
   function onKeyUp(evt) {
-    setScroll(evt.keyCode, false);
-    setRotate(evt.keyCode, false);
+    if (setScroll(evt.keyCode, false)) {
+      evt.preventDefault();
+    };
+    if (setRotate(evt.keyCode, false)) {
+      evt.preventDefault();
+    };
     setZoom(evt.keyCode, false);
     if (evt.keyCode === window.KeyEvent.DOM_VK_HOME) {
       resetCamera();
@@ -399,9 +413,13 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 
   function onKeyDown(evt) {
     if (evt.ctrlKey) {
-      setRotate(evt.keyCode, true);
+      if (setRotate(evt.keyCode, true)) {
+        evt.preventDefault();
+      };
     } else {
-      setScroll(evt.keyCode, true);
+      if (setScroll(evt.keyCode, true)) {
+        evt.preventDefault();
+      };
     }
     setZoom(evt.keyCode, true);
   }

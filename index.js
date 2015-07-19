@@ -11,6 +11,7 @@ const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
 const kdtree = require('static-kdtree');
 const TWEEN = require('tween');
+const howler = require('howler');
 
 require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
@@ -26,6 +27,10 @@ const Mouse = {
 }
 
 const config = {
+  audio: {
+    sounds: false,
+    music: false
+  },
   dom: {
     controlsHeight: 250,
   },
@@ -1169,6 +1174,7 @@ function attackTargets() {
         const shot = {
           delta: 0,
         };
+        game.sound.shot();
         const startPos = unit.position.clone();
         const tween = new TWEEN.Tween(shot)
           .to({
@@ -1194,6 +1200,7 @@ function attackTargets() {
               //explosion.material.uniforms.tExplosion.value = game.explosion;
               game.scene.scene3.add(explosion);
               const seed = Math.random();
+              game.sound.blast();
               const tween = new TWEEN.Tween(explosion)
                 .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
                 .onUpdate(function() {
@@ -1294,7 +1301,60 @@ function initScene() {
   });
 }
 
+function Sound() {
+  let shotPlaying = 0;
+  const maxShots = 10;
+  const shot = new Howl({ 
+    urls: ['models/sounds/bomb.mp3'],
+    onend: () => {
+      shotPlaying -= 1;
+    },
+    sprite: {
+      shot: [0, 500]
+    }
+  });
+  
+  this.shot = function() {
+    if (config.audio.sounds) {
+      if (shotPlaying < 10) {
+        shotPlaying += 1;
+        shot.play('shot');
+      }
+    }
+  }
+
+  let blastPlaying = 0;
+  const maxBlasts = 3;
+  const blast = new Howl({ 
+    urls: ['models/sounds/blast.mp3'],
+    onend: () => {
+      blastPlaying -= 1;
+    },
+    sprite: {
+      blast: [0, 1000]
+    }
+  });
+
+  this.blast = function() {
+    if (config.audio.sounds) {
+      if (blastPlaying < maxBlasts) {
+        blastPlaying += 1;
+        blast.play('blast');
+      }
+    }
+  }
+
+  if (config.audio.music) {
+    const music = new Howl({ 
+      urls: ['models/sounds/Whitehouse_Blues.mp3'],
+      loop: true
+    })
+    music.play();
+  }
+}
+
 function main() {
+  game.sound = new Sound();
   initScene();
   initSelection();
   initUI();

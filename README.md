@@ -33,6 +33,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
  - Add ocean floor at edge of map
+ - 3D positioning of sounds
 
 ## Server needed
  - Multiplayer
