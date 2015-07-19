@@ -32,7 +32,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
   - Add opaque border around selection area
  - Attack another unit
   - Select target unit
-  - Shot animation
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
  - Add ocean floor at edge of map

@@ -6,7 +6,7 @@
 
 const jQuery = require('jquery');
 const $ = jQuery;
-global.jQuery = jQuery;
+window.jQuery = jQuery;
 const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
 const kdtree = require('static-kdtree');
@@ -458,6 +458,8 @@ function createUnit(options) {
 
   const materialClone = material.clone();
   const unit = new THREE.Mesh(geometry, materialClone);
+  unit.model = options;
+
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
   game.scene.scene3.add(boxMesh);
 
@@ -497,7 +499,7 @@ function createUnit(options) {
   unit.type = options.type;
   unit.weapon = {
     range: 100.0,
-    damage: 0.01,
+    damage: 0.1,
     reload: 0.5,
   };
   unit.shots = []
@@ -1056,7 +1058,6 @@ function Explosions() {
   const explosions = [];
 
   this.createExplosion = function(pos) {
-    console.log("creating explosion");
     const newMaterial = material.clone();
     newMaterial.uniforms.tExplosion.value = texture;
     const mesh = new THREE.Mesh(geometry, newMaterial);
@@ -1131,36 +1132,19 @@ function attackTargets() {
   }
 }
 
-function updateExplosions() {
-  const time = getGameTime();
-  game.emitters.forEach((emitter) => {
-    const delta = time - emitter.startTime;
-    emitter.update(delta).render();
-    emitter.startTime = time;
-    console.log("v", emitter.particleSystem.geometry.vertices);
-    /*
-    const material = new THREE.PointCloudMaterial({ size: 100 });
-    const pt = new THREE.PointCloud(emitter.particleSystem.geometry, material); //emitter.particleSystem.material);
-    if (emitter.pt !== undefined) {
-      game.scene.scene3.remove(emitter.pt);
-    }
-    game.scene.scene3.add(pt);
-    emitter.pt = pt;
-    */
-  });
-  game.emitters = game.emitters.filter((emitter) => {
-    return !emitter.dead;
-  });
-}
-
 function removeDead() {
+  const toAdd = [];
   game.units = game.units.filter((unit) => {
     if (unit.dead) {
+      game.scene.scene3.remove(unit.bboxMesh);
       game.scene.scene3.remove(unit.healthBar);
       game.scene.scene3.remove(unit);
+      const newUnit = createUnit(unit.model);
+      toAdd.push(newUnit);
     }
     return !unit.dead;
   });
+  toAdd.forEach((u) => game.units.push(u));
 }
 
 function updateSimulation() {
@@ -1170,7 +1154,6 @@ function updateSimulation() {
   checkCollisions();
   findTargets();
   attackTargets();
-  updateExplosions();
   removeDead();
   game.scene.physicsStats.update();
 }
