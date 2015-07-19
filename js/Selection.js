@@ -57,7 +57,7 @@ export function Selection(options) {
 
   function getScreenBoxes() {
     const screenBoxes = [];
-    for (let unit of options.selectables) {
+    for (let unit of options.units) {
       const geometry = unit.bboxMesh.geometry.clone();
       const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
       geometry.applyMatrix(mat);
@@ -89,61 +89,6 @@ export function Selection(options) {
     }
   }
 
-  function checkIntersectRect(from, to) {
-    const width = to.x - from.x;
-    const height = to.y - from.y;
-    const awidth = Math.abs(width);
-    const aheight = Math.abs(height);
-    if (awidth > 0) {
-      selectionRectangle.scale.x = awidth;
-    }
-    if (aheight > 0) {
-      selectionRectangle.scale.z = aheight;
-    }
-    selectionRectangle.position.copy(selectionRectangle.startDragPos)
-    selectionRectangle.position.x += width / 2;
-    selectionRectangle.position.y = selectionY;
-    selectionRectangle.position.z += height / 2;
-
-    const oldPos = selectionRectangle.startDragPos;
-    oldPos.y = -1000;
-    const newPos = new THREE.Vector3(width, 1000, height);
-    newPos.add(selectionRectangle.startDragPos);
-    newPos.y = 1000;
-    const bboxes = options.getBBoxes();
-    const selectionBox = new THREE.Box3();
-    selectionBox.setFromPoints([selectionRectangle.startDragPos, newPos]);
-    const flatSelectionBox = selectionBox.min.toArray().concat(selectionBox.max.toArray());
-    const selectedIndices = options.boxIntersect(bboxes, [flatSelectionBox]);
-    for (const s of selection.selected) {
-      unmark(s);
-    }
-    selection.selected.length = 0;
-    for (const [i, j] of selectedIndices) {
-      const unit = bboxes[i].unit;
-      mark(unit);
-      selection.selected.push(unit);
-    }
-  }
-
-  function checkIntersect(raycaster, selectables, camera) {
-    raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObjects(selectables);
-
-    if (intersects.length > 0) {
-      if (intersected != intersects[0].object) {
-        if (intersected) unmark(intersected);
-        intersected = intersects[0].object;
-        mark(intersected)
-      }
-    } else {
-      if (intersected) unmark(intersected);
-      intersected = null;
-    }
-    return intersected;
-  }
-
   this.getOnMouseDown = function() {
     return function(eventData) {
       if (eventData.which === leftMouseButton) {
@@ -153,11 +98,6 @@ export function Selection(options) {
         for (const s of selection.selected) {
           unmark(s);
         }
-
-        /*const raySelection = checkIntersect(options.raycaster, options.selectables, options.camera);
-        if (raySelection) {
-          selection.selected = [raySelection];
-        }*/
 
         const eps = 1;
         const x = eventData.clientX;
@@ -172,19 +112,6 @@ export function Selection(options) {
           width: eps,
           height: eps,
         });
-
-        // rectangle select in world coordinates
-        /*
-        options.raycaster.setFromCamera(mouse, options.camera);
-        const intersects = options.raycaster.intersectObject(selectionPlane);
-        if (intersects.length > 0) {
-          selectionRectangle.visible = true;
-          selectionRectangle.position.copy(intersects[0].point);
-          selectionRectangle.position.y = selectionY;
-          selectionRectangle.startDragPos = intersects[0].point;
-          selectionRectangle.scale.set(1, 1, 1);
-        }
-        */
       }
       if (eventData.which === rightMouseButton) {
         const raycaster = options.raycaster;
@@ -244,24 +171,8 @@ export function Selection(options) {
       options.config.debug.mouseX = mouse.x;
       options.config.debug.mouseY = mouse.y;
 
-      // rectangle select in world coordinates
+      // rectangle select in screen coordinates
       rectangleSelect(evt);
-
-      /*
-      if (selectionRectangle.visible) {
-        options.raycaster.setFromCamera(mouse, options.camera);
-        const intersects = options.raycaster.intersectObject(selectionPlane);
-        if (intersects.length > 0) {
-          const from = new THREE.Vector2(
-              selectionRectangle.startDragPos.x,
-              selectionRectangle.startDragPos.z);
-          const to = new THREE.Vector2(
-              intersects[0].point.x,
-              intersects[0].point.z);
-          checkIntersectRect(from, to);
-        }
-      }
-      */
     };
   };
 

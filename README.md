@@ -34,6 +34,8 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - 3D positioning of sounds
  - Unit selection rectangle
   - Update for units that move into selection
+ - Deal with large jumps in game time
+  - High delta makes velocity move units outside map
 
 ## Server needed
  - Multiplayer

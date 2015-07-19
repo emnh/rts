@@ -36,8 +36,8 @@ const config = {
     controlsHeight: 250,
   },
   units: {
-    count: 20,
-    speed: 20,
+    count: 50,
+    speed: 50,
     randomLocation: false,
     airAltitude: 40,
   },
@@ -45,8 +45,8 @@ const config = {
     seaLevel: 0,
     minElevation: 0,
     maxElevation: 48,
-    xFaces: 100,
-    yFaces: 100,
+    xFaces: 200,
+    yFaces: 200,
     width: 4000,
     height: 4000,
   },
@@ -74,7 +74,6 @@ const game = {
     ground: undefined,
   },
   selector: undefined,
-  selectables: [],
   mapBounds: new THREE.Box3(),
   startTime: (new Date().getTime()) / 1000.0,
   units: [],
@@ -112,6 +111,16 @@ function worldToScreen(pos) {
   vector.y = -(vector.y - 1) / 2 * game.scene.height;
 
   return new THREE.Vector2(vector.x, vector.y);
+}
+
+function removeFromScene(mesh) {
+  game.scene.scene3.remove(mesh);
+  //mesh.geometry.dispose();
+  mesh.material.dispose();
+}
+
+function addToScene(mesh) {
+  game.scene.scene3.add(mesh);
 }
 
 function SkyBox() {
@@ -160,7 +169,7 @@ function SkyBox() {
         skyBoxMaterial
       );
 
-  game.scene.scene3.add(mesh);
+  addToScene(mesh);
 
   this.render = function() {
     mesh.position.copy(game.scene.camera.position);
@@ -183,7 +192,7 @@ function initLight() {
   light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
-  game.scene.scene3.add(light);
+  addToScene(light);
 }
 
 function initStats() {
@@ -246,7 +255,7 @@ function initGround() {
   game.scene.ground = new THREE.Mesh(groundGeometry, groundMaterial);
   // ground.rotation.x = Math.PI / -2;
   game.scene.ground.receiveShadow = true;
-  game.scene.scene3.add(game.scene.ground);
+  addToScene(game.scene.ground);
 
   game.mapBounds.min.x = -config.terrain.width / 2;
   game.mapBounds.min.y = 0;
@@ -278,7 +287,7 @@ function Sea() {
 
   seaMesh.position.y = config.terrain.seaLevel;
 
-  game.scene.scene3.add(seaMesh);
+  addToScene(seaMesh);
 
   const startTime = (new Date().getTime()) / 1000.0;
 
@@ -317,7 +326,7 @@ function initCameraControls() {
   game.scene.navigationPlane = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
   game.scene.navigationPlane.rotation.x = Math.PI / -2;
   game.scene.navigationPlane.visible = false;
-  game.scene.scene3.add(game.scene.navigationPlane);
+  addToScene(game.scene.navigationPlane);
 
   game.scene.cameraControls = new MapControls(
       game.scene.camera,
@@ -473,7 +482,7 @@ function createUnit(options) {
   unit.model = options;
 
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
-  game.scene.scene3.add(boxMesh);
+  addToScene(boxMesh);
 
   unit.bboxMesh = boxMesh;
   unit.bbox = bboxHelper.box;
@@ -516,22 +525,23 @@ function createUnit(options) {
   };
   unit.shots = []
   unit.team = Math.floor(Math.random() * 2);
-  unit.attackTarget = undefined;
+  unit.attackTarget = null;
   unit.dead = false;
 
+  /*
   const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
   const rangeMaterial = new THREE.MeshLambertMaterial({
     transparent: true,
     opacity: 0.1
   });
   const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
+  */
   //unit.add(rangeMesh);
-  //game.scene.scene3.add(rangeMesh);
+  //addToScene(rangeMesh);
 
   game.units.push(unit);
-  game.selectables.push(unit);
-  game.scene.scene3.add(unit);
-  game.scene.scene3.add(healthBar);
+  addToScene(unit);
+  addToScene(healthBar);
 
   return unit;
 }
@@ -582,10 +592,10 @@ function loadModels(finishCallback) {
       const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
       const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
       const proto = new THREE.Mesh(geometry, material.clone());
-      game.scene.scene3.add(proto);
+      addToScene(proto);
       const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
       bboxHelper.update();
-      game.scene.scene3.remove(proto);
+      removeFromScene(proto);
       for (const vertex of boxGeometry.vertices) {
         vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
       }
@@ -736,8 +746,8 @@ function initSelection() {
     getBBoxes,
     mouseElement,
     worldToScreen,
+    units: game.units,
     raycaster: game.scene.raycaster,
-    selectables: game.selectables,
     camera: game.scene.camera,
     ground: game.scene.ground,
     scene: game.scene.scene3,
@@ -1114,7 +1124,7 @@ function findTargets() {
   const tree = kdtree(points);
   for (const unit of game.units) {
     let minHealth = Number.POSITIVE_INFINITY;
-    unit.attackTarget = undefined;
+    unit.attackTarget = null;
     tree.rnn(unit.position.toArray(), unit.weapon.range, function(idx) {
       const target = points[idx].unit;
       if (target === unit) {
@@ -1158,23 +1168,53 @@ function Explosions() {
   geometry.computeFaceNormals();
   geometry.computeVertexNormals();
 
-  const explosions = [];
-
   this.createExplosion = function(pos) {
     const newMaterial = material.clone();
     newMaterial.uniforms.tExplosion.value = texture;
     const mesh = new THREE.Mesh(geometry, newMaterial);
     mesh.position.copy(pos);
 
-    explosions.push(mesh);
-
     return mesh;
   }
 }
 
+function getApplyShot(unit, target, shotMesh) {
+  return function() {
+    const oldHealth = target.health;
+    target.health -= unit.weapon.damage;
+    removeFromScene(shotMesh);
+    shotMesh = null;
+    if (target.health <= 0 && oldHealth > 0) {
+      target.dead = true;
+      let explosion = game.explosions.createExplosion(target.position);
+      target = null;
+      explosion.time = 0;
+      explosion.tscale = 0;
+      explosion.opacity = 2;
+      explosion.material.uniforms.time.value = this.time;
+      //explosion.material.uniforms.tExplosion.value = game.explosion;
+      addToScene(explosion);
+      const seed = Math.random();
+      game.sound.blast();
+      const tween = new TWEEN.Tween(explosion)
+        .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
+        .onUpdate(function() {
+          this.material.uniforms.time.value = this.time + seed;
+          this.material.uniforms.opacity.value = this.opacity;
+          let scale = this.tscale;
+          this.scale.set(scale, scale, scale);
+        })
+        .onComplete(function() {
+          removeFromScene(explosion);
+          explosion = null;
+        }).start();
+    }
+  };
+}
+
 function attackTargets() {
   for (const unit of game.units) {
-    if (unit.attackTarget !== undefined) {
+    if (unit.attackTarget !== null) {
       const time = getGameTime();
       const target = unit.attackTarget;
       if ((unit.lastShot === undefined ||
@@ -1183,6 +1223,7 @@ function attackTargets() {
           delta: 0,
         };
         game.sound.shot();
+        const shotMesh = createMissile(game.models.missile);
         const startPos = unit.position.clone();
         const tween = new TWEEN.Tween(shot)
           .to({
@@ -1194,42 +1235,9 @@ function attackTargets() {
             shotMesh.position.y = diff.y;
             shotMesh.position.z = diff.z;
             shotMesh.lookAt(target.position);
-          }).onComplete(function() {
-            const oldHealth = target.health;
-            target.health -= unit.weapon.damage;
-            game.scene.scene3.remove(shotMesh);
-            if (target.health <= 0 && oldHealth > 0) {
-              target.dead = true;
-              const explosion = game.explosions.createExplosion(target.position);
-              explosion.time = 0;
-              explosion.tscale = 0;
-              explosion.opacity = 2;
-              explosion.material.uniforms.time.value = this.time;
-              //explosion.material.uniforms.tExplosion.value = game.explosion;
-              game.scene.scene3.add(explosion);
-              const seed = Math.random();
-              game.sound.blast();
-              const tween = new TWEEN.Tween(explosion)
-                .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
-                .onUpdate(function() {
-                  this.material.uniforms.time.value = this.time + seed;
-                  this.material.uniforms.opacity.value = this.opacity;
-                  let scale = this.tscale;
-                  this.scale.set(scale, scale, scale);
-                })
-                .onComplete(function() {
-                  game.scene.scene3.remove(this);
-                }).start();
-            }
-          });
-        /*
-        const shotGeometry = new THREE.Geometry();
-        shotGeometry.vertices.push(new THREE.Vector3(0, 0, 0));
-        const shotMaterial = new THREE.PointCloudMaterial({ color: 0xFF0000, size: 10.0 });
-        const shotMesh = new THREE.PointCloud(shotGeometry, shotMaterial);
-        */
-        const shotMesh = createMissile(game.models.missile);
-        game.scene.scene3.add(shotMesh);
+          })
+          .onComplete(getApplyShot(unit, target, shotMesh));
+        addToScene(shotMesh);
         unit.lastShot = getGameTime();
         tween.start();
       }
@@ -1241,9 +1249,9 @@ function removeDead() {
   const toAdd = [];
   game.units = game.units.filter((unit) => {
     if (unit.dead) {
-      game.scene.scene3.remove(unit.bboxMesh);
-      game.scene.scene3.remove(unit.healthBar);
-      game.scene.scene3.remove(unit);
+      removeFromScene(unit.bboxMesh);
+      removeFromScene(unit.healthBar);
+      removeFromScene(unit);
       const newUnit = createUnit(unit.model);
       toAdd.push(newUnit);
     }
@@ -1261,6 +1269,7 @@ function updateSimulation() {
   attackTargets();
   removeDead();
   game.scene.physicsStats.update();
+  requestAnimationFrame(updateSimulation);
 }
 
 function initScene() {
@@ -1287,7 +1296,7 @@ function initScene() {
     frustumNear,
     frustumFar
   );
-  game.scene.scene3.add(game.scene.camera);
+  addToScene(game.scene.camera);
 
   initLight();
   initGround();
@@ -1305,7 +1314,8 @@ function initScene() {
   requestAnimationFrame(render);
 
   loadModels(() => {
-    setInterval(updateSimulation, 1000 / 120);
+    //setInterval(updateSimulation, 1000 / 120);
+    requestAnimationFrame(updateSimulation);
   });
 }
 
