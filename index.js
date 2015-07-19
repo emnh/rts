@@ -19,6 +19,7 @@ const Selection = require('./js/Selection.js').Selection;
 const Util = new (require('./js/Util.js').Util)();
 const Models = require('./js/Models.js').Models;
 const UnitType = require('./js/UnitType.js').UnitType;
+const Debug = require('./js/Debug.js').Debug;
 
 const Mouse = {
   LBUTTON: 0,
@@ -734,6 +735,7 @@ function initSelection() {
     boxIntersect,
     getBBoxes,
     mouseElement,
+    worldToScreen,
     raycaster: game.scene.raycaster,
     selectables: game.selectables,
     camera: game.scene.camera,
@@ -954,6 +956,8 @@ function MiniMap() {
     return v;
   }
 
+  let first = true;
+
   this.render = function() {
     if (oldCloud !== undefined) {
       minimapScene.remove(oldCloud);
@@ -973,10 +977,13 @@ function MiniMap() {
     minimapScene.add(pointCloud);
     oldCloud = pointCloud;
 
-    cameraRectGeometry.vertices[0] = translate(getCameraFocus(-1, -1));
-    cameraRectGeometry.vertices[1] = translate(getCameraFocus(-1, 1));
-    cameraRectGeometry.vertices[2] = translate(getCameraFocus(1, -1));
-    cameraRectGeometry.vertices[3] = translate(getCameraFocus(1, 1));
+    // XXX: fails on first render for some reason
+    if (!first) {
+      cameraRectGeometry.vertices[0] = translate(getCameraFocus(-1, -1));
+      cameraRectGeometry.vertices[1] = translate(getCameraFocus(-1, 1));
+      cameraRectGeometry.vertices[2] = translate(getCameraFocus(1, -1));
+      cameraRectGeometry.vertices[3] = translate(getCameraFocus(1, 1));
+    }
     if (oldCameraRectMesh) {
       minimapScene.remove(oldCameraRectMesh);
     }
@@ -985,6 +992,7 @@ function MiniMap() {
     oldCameraRectMesh = wireframe;
 
     minimapRenderer.render(minimapScene, minimapCamera);
+    first = false;
   };
 
   function setPos(evt) {
@@ -1046,7 +1054,7 @@ function render() {
   // funTerrain();
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
-  // drawOutLine();
+  // Debug.drawOutLine(game.units, worldToScreen);
 
   TWEEN.update();
   updateShaders();

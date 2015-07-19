@@ -87,3 +87,8 @@ a {
   height: 20px;
 }
 
+.selectionRect {
+  color: #00FF00;
+  background: rgba(0, 255, 0, 0.5);
+  border: 1px solid #00FF00;
+}

@@ -1,6 +1,8 @@
-export function Debug() {
+const $ = require('jquery');
 
-  function debugLoadMarkers(scene) {
+export const Debug = {
+
+  debugLoadMarkers: function(scene) {
     function loadMarker(color) {
       const geometry = new THREE.BoxGeometry(4, 4, 4);
       const material = new THREE.MeshLambertMaterial({ color: color });
@@ -14,9 +16,9 @@ export function Debug() {
     blueMarkers.push(loadMarker(0x0000FF));
     blueMarkers.push(loadMarker(0x0000FF));
     blueMarkers.push(loadMarker(0x0000FF));
-  }
+  },
 
-  function drawOutLine() {
+  drawOutLine: function(units, worldToScreen) {
     const viewport = $('#viewport');
     for (let unit of units) {
       // need to get corners of bbox

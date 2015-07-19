@@ -26,8 +26,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Move selected unit according to its move speed
   - Target
   - Waypoint queue
- - Select rectangular area of units by screen rectangle, not terrain
-  - Add opaque border around selection area
  - Attack another unit
   - Select target unit
  - Show actions specific to selected object
