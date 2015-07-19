@@ -32,6 +32,8 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Cursor indicator when camera enabled?
  - Add ocean floor at edge of map
  - 3D positioning of sounds
+ - Unit selection rectangle
+  - Update for units that move into selection
 
 ## Server needed
  - Multiplayer
