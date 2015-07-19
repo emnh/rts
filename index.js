@@ -41,7 +41,7 @@ const config = {
     controlsHeight: 250,
   },
   units: {
-    count: 20,
+    count: 50,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
@@ -486,6 +486,19 @@ function createUnit(options) {
   const unit = new THREE.Mesh(geometry, materialClone);
   unit.model = options;
 
+  // game properties
+  unit.health = 1.0 //Math.random();
+  unit.type = options.type;
+  unit.weapon = {
+    range: 100.0,
+    damage: 0.1,
+    reload: 0.5,
+  };
+  unit.shots = []
+  unit.team = Math.floor(Math.random() * 2);
+  unit.attackTarget = null;
+  unit.dead = false;
+
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
   addToScene(boxMesh);
 
@@ -517,23 +530,18 @@ function createUnit(options) {
   const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
   unit.healthBar = healthBar;
 
+  const teamMaterial = new THREE.MeshLambertMaterial({
+    color: TeamColors[unit.team]
+  });
+  const teamGeometry = new THREE.PlaneBufferGeometry(10, 1, 1, 1);
+  // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
+  const teamBar = new THREE.Mesh(teamGeometry, teamMaterial);
+  unit.teamBar = teamBar;
+
   unit.castShadow = true;
   unit.receiveShadow = true;
 
-  // game properties
-  unit.health = 1.0 //Math.random();
-  unit.type = options.type;
-  unit.weapon = {
-    range: 100.0,
-    damage: 0.1,
-    reload: 0.5,
-  };
-  unit.shots = []
-  unit.team = Math.floor(Math.random() * 2);
-  unit.attackTarget = null;
-  unit.dead = false;
-
-  unit.material.emissive.set(TeamColors[unit.team]);
+  //unit.material.emissive.set(TeamColors[unit.team]);
   /*
   const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
   const rangeMaterial = new THREE.MeshLambertMaterial({
@@ -547,8 +555,17 @@ function createUnit(options) {
 
   addToScene(unit);
   addToScene(healthBar);
+  addToScene(teamBar);
 
+  unit.remove = () => { removeUnit(unit); };
   return unit;
+}
+
+function removeUnit(unit) {
+  removeFromScene(unit.bboxMesh);
+  removeFromScene(unit.healthBar);
+  removeFromScene(unit.teamBar);
+  removeFromScene(unit);
 }
 
 function loadModels(finishCallback) {
@@ -562,7 +579,7 @@ function loadModels(finishCallback) {
       material.map = texture;
       for (const unit of units) {
         unit.material = material.clone();
-        unit.material.emissive.set(TeamColors[unit.team]);
+        //unit.material.emissive.set(TeamColors[unit.team]);
       }
     }
   }
@@ -900,11 +917,15 @@ function updateBBoxes() {
   }
 }
 
-function updateHealthBars() {
+function updateBars() {
   for (const unit of game.units) {
     unit.healthBar.position.copy(unit.position);
     unit.healthBar.position.y += getSize(unit.geometry).height * unit.scale.y;
     unit.healthBar.lookAt(game.scene.camera.position);
+    
+    unit.teamBar.position.copy(unit.healthBar.position);
+    unit.teamBar.position.y += 4;
+    unit.teamBar.lookAt(game.scene.camera.position);
   }
 }
 
@@ -1100,7 +1121,7 @@ function render() {
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
-  updateHealthBars();
+  updateBars();
   game.components.forEach((x) => { x.render(); });
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
   game.scene.renderStats.update();
@@ -1278,9 +1299,7 @@ function removeDead() {
   const toAdd = [];
   game.units = game.units.filter((unit) => {
     if (unit.dead) {
-      removeFromScene(unit.bboxMesh);
-      removeFromScene(unit.healthBar);
-      removeFromScene(unit);
+      unit.remove();
       const newUnit = createUnit(unit.model);
       toAdd.push(newUnit);
     }
