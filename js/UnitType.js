@@ -3,4 +3,5 @@ export const UnitType = {
   Ground: 'ground',
   Building: 'building',
   Missile: 'missile',
+  Resource: 'resource',
 };

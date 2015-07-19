@@ -36,7 +36,7 @@ const config = {
     controlsHeight: 250,
   },
   units: {
-    count: 50,
+    count: 20,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,

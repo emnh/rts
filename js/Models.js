@@ -36,14 +36,6 @@ export const Models = [
     rotation: new THREE.Vector3(0, Math.PI / 2, 0),
   },
   {
-    name: 'diamond',
-    path: 'models/3d/diamond.json',
-    scale: 3,
-    texturePath: 'models/images/diamond.jpg',
-    textureRepeat: new THREE.Vector2(0.01, 0.01),
-    opacity: 0.6,
-  },
-  {
     name: 'horse',
     path: 'models/3d/horse.json',
     scale: 1.5,
@@ -85,5 +77,15 @@ export const Models = [
     texturePath: 'models/images/missile.jpg',
     type: UnitType.Missile,
   },
+  {
+    name: 'crystal',
+    path: 'models/3d/crystal.json',
+    scale: 2,
+    texturePath: 'models/images/crystal.jpg',
+    // TODO: UnitType.Resource
+    type: UnitType.Resource,
+    opacity: 1.0,
+  },
+
 ];
 
