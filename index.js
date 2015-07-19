@@ -28,8 +28,22 @@ const Mouse = {
 }
 
 const TeamColors = [
-  new THREE.Color(255, 0, 0), // red
-  new THREE.Color(0, 0,255),  // blue
+  // red
+  new THREE.Color(255, 0, 0),
+  // blue
+  new THREE.Color(0, 0,255),
+  // teal
+  new THREE.Color(0x008080),
+  // purple
+  new THREE.Color(0x800080),
+  // orange
+  new THREE.Color(0xFFA500),
+  // brown
+  new THREE.Color(0xA52A2A),
+  // white
+  new THREE.Color(0xFFFFFF),
+  // yellow
+  new THREE.Color(0xFFFF00),
 ]
 
 const config = {
@@ -214,7 +228,40 @@ function initStats() {
   $('body').append(game.scene.physicsStats.domElement);
 }
 
+function getSampler() {
+  return new Promise((resolve, reject) => {
+    const loader = new THREE.ImageLoader();
+    
+    const sampler = {};
+
+    loader.load('models/maps/landscape.jpg', function(image) {
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+
+      const context = canvas.getContext('2d');
+      context.drawImage(image, -x * size, -y * size);
+      imageData = context.getImageData(0, 0, image.width, image.height);
+      
+      sampler.getHeight = (x, y) => {
+        const i = (x + y * imageData.width) * 4;
+        const r = imageData.data[i];
+        const g = imageData.data[i + 1];
+        const b = imageData.data[i + 2];
+        const a = imageData.data[i + 3];
+        return new THREE.Color(r, g, b, a);
+      };
+
+      resolve(sampler);
+    });
+  });
+}
+
 function initGround() {
+
+  const sampler = getSampler();
+  sampler.next
+
   // Materials
   const groundMaterial = new THREE.MeshLambertMaterial({
     map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg'),
@@ -495,7 +542,7 @@ function createUnit(options) {
     reload: 0.5,
   };
   unit.shots = []
-  unit.team = Math.floor(Math.random() * 2);
+  unit.team = Math.floor(Math.random() * TeamColors.length);
   unit.attackTarget = null;
   unit.dead = false;
 
@@ -526,22 +573,26 @@ function createUnit(options) {
     fragmentShader: $('#health-fragment').text(),
   });
   const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
   const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
   unit.healthBar = healthBar;
 
-  const teamMaterial = new THREE.MeshLambertMaterial({
-    color: TeamColors[unit.team]
+  const teamMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { type: 'f', value: 0.0 },
+      health: { type: 'f', value: 0.0},
+      color: { type: 'c', value: TeamColors[unit.team] },
+    },
+    vertexShader: $('#teambar-vertex').text(),
+    fragmentShader: $('#teambar-fragment').text(),
   });
-  const teamGeometry = new THREE.PlaneBufferGeometry(10, 1, 1, 1);
-  // healthGeometry.applyMatrix(new THREE.Matrix4().makeRotationZ(-Math.PI / 2));
+
+  const teamGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
   const teamBar = new THREE.Mesh(teamGeometry, teamMaterial);
   unit.teamBar = teamBar;
 
   unit.castShadow = true;
   unit.receiveShadow = true;
 
-  //unit.material.emissive.set(TeamColors[unit.team]);
   /*
   const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
   const rangeMaterial = new THREE.MeshLambertMaterial({
