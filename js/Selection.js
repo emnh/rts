@@ -147,7 +147,7 @@ export function Selection(options) {
   this.getOnMouseDown = function() {
     return function(eventData) {
       if (eventData.which === leftMouseButton) {
-        event.preventDefault();
+        eventData.preventDefault();
 
         // clear old selection
         for (const s of selection.selected) {
