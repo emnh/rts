@@ -15,11 +15,9 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
  - Minimap
-   - Make it possible to click on minimap to change screen location
-    - Show (accurate) rectangle on minimap
    - Add terrain
    - Units as colored squares with black border
-   - Link minimap camera to screen camera?
+   - Link minimap camera rotation to screen camera rotation?
  - Disable unit selection when mouse control for camera is enabled
  - Configurable (or at least listable) keyboard controls
  - Export/import terrain as JSON

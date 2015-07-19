@@ -19,6 +19,12 @@ const Util = new (require('./js/Util.js').Util)();
 const Models = require('./js/Models.js').Models;
 const UnitType = require('./js/UnitType.js').UnitType;
 
+const Mouse = {
+  LBUTTON: 0,
+  MBUTTON: 1,
+  RBUTTON: 2
+}
+
 const config = {
   dom: {
     controlsHeight: 250,
@@ -35,8 +41,8 @@ const config = {
     maxElevation: 48,
     xFaces: 100,
     yFaces: 100,
-    width: 1000,
-    height: 1000,
+    width: 4000,
+    height: 4000,
   },
   camera: {
     mouseControl: false,
@@ -887,6 +893,24 @@ function funTerrain() {
   game.scene.ground.geometry.attributes.position.needsUpdate = true;
 }
 
+function getCameraFocus(mouseX, mouseY) {
+  // TODO: optimize to not use raycasting
+  // TODO: move/use this function in MapControls
+  const camera = game.scene.camera;
+  const vector = new THREE.Vector3(mouseX, mouseY, camera.near);
+  const mesh = game.scene.navigationPlane;
+  vector.unproject(camera);
+  const raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
+  const intersects = raycaster.intersectObject(mesh);
+  if (intersects.length > 0) {
+    return intersects[0].point;
+  } else {
+    console.log("ray", mouseX, mouseY, intersects, camera.position);
+    console.warn("nav fail");
+    return new THREE.Vector3(0, 0, 0);
+  }
+}
+
 function MiniMap() {
   const minimapHeight = config.dom.controlsHeight - 2;
   const minimapWidth = minimapHeight;
@@ -896,7 +920,8 @@ function MiniMap() {
   minimapRenderer.setPixelRatio(minimapWidth / minimapHeight);
   minimapRenderer.autoClear = true;
   $minimap.append(minimapRenderer.domElement);
-  $(minimapRenderer.domElement).css({
+  const $renderElement = $(minimapRenderer.domElement);
+  $renderElement.css({
     border: '1px solid white',
   });
   const minimapScene = new THREE.Scene();
@@ -907,10 +932,22 @@ function MiniMap() {
   minimapCamera.updateProjectionMatrix();
   minimapScene.add(minimapCamera);
   const minimapMaterial = new THREE.PointCloudMaterial({ size: 0.1 });
-  const light = new THREE.AmbientLight(0xFFFFFF); // soft white light
+  const light = new THREE.AmbientLight(0xFFFFFF);
   minimapScene.add(light);
 
   let oldCloud;
+  let mouseDown = false;
+  let oldCameraRectMesh;
+
+  const cameraRectGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+  const cameraRectMaterial = new THREE.MeshLambertMaterial();
+  const cameraRectMesh = new THREE.Mesh(cameraRectGeometry, cameraRectMaterial);
+
+  // translate coords to minimap
+  function translate(pos) {
+    const v = new THREE.Vector3(pos.x * 2 / config.terrain.width, 0, pos.z * 2 / config.terrain.height);
+    return v;
+  }
 
   this.render = function() {
     if (oldCloud !== undefined) {
@@ -923,7 +960,7 @@ function MiniMap() {
       if (unit.minimap === undefined) {
         unit.minimap = {};
       }
-      const v = new THREE.Vector3(unit.position.x * 2 / config.terrain.width, 0, unit.position.z * 2 / config.terrain.height);
+      const v = translate(unit.position);
       geom.vertices[i] = v;
       i++;
     }
@@ -931,8 +968,64 @@ function MiniMap() {
     minimapScene.add(pointCloud);
     oldCloud = pointCloud;
 
+    cameraRectGeometry.vertices[0] = translate(getCameraFocus(-1, -1));
+    cameraRectGeometry.vertices[1] = translate(getCameraFocus(-1, 1));
+    cameraRectGeometry.vertices[2] = translate(getCameraFocus(1, -1));
+    cameraRectGeometry.vertices[3] = translate(getCameraFocus(1, 1));
+    if (oldCameraRectMesh) {
+      minimapScene.remove(oldCameraRectMesh);
+    }
+    const wireframe = new THREE.EdgesHelper(cameraRectMesh, 0x00ff00);
+    minimapScene.add(wireframe);
+    oldCameraRectMesh = wireframe;
+
     minimapRenderer.render(minimapScene, minimapCamera);
   };
+
+  function setPos(evt) {
+    const x = evt.offsetX / $renderElement.width() * 2 - 1;
+    const y = -evt.offsetY / $renderElement.height() * 2 + 1;
+
+    // swapping x and z because of camera rotation
+    const mapZ = -x * config.terrain.width / 2;
+    const mapX = -y * config.terrain.height / 2;
+
+    const camera = game.scene.camera;
+
+    const focus = getCameraFocus(0, 0);
+    const offset = camera.position.clone().sub(focus);
+
+    camera.position.x = mapX + offset.x;
+    camera.position.z = mapZ + offset.z;
+  }
+
+  function onMouseClick(evt) {
+    setPos(evt);
+  }
+
+  function onMouseDown(evt) {
+    if (evt.button === Mouse.LBUTTON) {
+      mouseDown = true;
+    }
+  }
+
+  function onMouseUp(evt) {
+    mouseDown = false;
+  }
+  
+  function onMouseMove(evt) {
+    if (mouseDown) {
+      setPos(evt);
+    }
+  }
+
+  $renderElement.click(onMouseClick);
+  $renderElement.mousemove(onMouseMove);
+  $renderElement.mousedown(onMouseDown);
+  $renderElement.mouseup(onMouseUp);
+  $renderElement.mouseenter((evt) => { game.scene.cameraControls.edgeScrollEnabled = false; });
+  $renderElement.mouseleave((evt) => { game.scene.cameraControls.edgeScrollEnabled = true; });
+
 }
 
 function render() {
@@ -1025,12 +1118,9 @@ function findTargets() {
 
 function Explosions() {
   const texture = THREE.ImageUtils.loadTexture('models/images/explosion.png');
-  /*
-  texture.needsUpdate = true;
   texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
   texture.minFilter = THREE.NearestFilter;
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
-  */
 
   const material = new THREE.ShaderMaterial({
     uniforms: { 

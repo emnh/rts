@@ -12,6 +12,7 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 	this.domElement = ( domElement !== undefined ) ? domElement : document;
 	this.render = renderFunction;
 	this.enabled = true;
+  this.edgeScrollEnabled = true;
 	this.target = new THREE.Vector3();
 	this.zoomSpeed = 1.0;
   this.scrollSpeed = 10.0;
@@ -163,17 +164,17 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 
   function scroll() {
     // scroll at edge of element
-    if (lastMouseX < -1.0 + scope.edgeSize || scrollLeft) {
+    if ((lastMouseX < -1.0 + scope.edgeSize && scope.edgeScrollEnabled) || scrollLeft) {
       var delta = new THREE.Vector3(-scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseX > 1.0 - scope.edgeSize || scrollRight) {
+    if ((lastMouseX > 1.0 - scope.edgeSize && scope.edgeScrollEnabled) || scrollRight) {
       var delta = new THREE.Vector3(scope.scrollSpeed, 0, 0);
       delta.applyQuaternion(camera.quaternion);
       camera.position.add(delta);
     }
-    if (lastMouseY < -1.0 + scope.edgeSize || scrollBottom) {
+    if ((lastMouseY < -1.0 + scope.edgeSize && scope.edgeScrollEnabled) || scrollBottom) {
       var delta = new THREE.Vector3(0, -1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
@@ -181,7 +182,7 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
       delta.multiplyScalar(scope.scrollSpeed);
       camera.position.add(delta);
     }
-    if (lastMouseY > 1.0 - scope.edgeSize || scrollTop) {
+    if ((lastMouseY > 1.0 - scope.edgeSize && scope.edgeScrollEnabled) || scrollTop) {
       var delta = new THREE.Vector3(0, 1, 0);
       delta.applyQuaternion(camera.quaternion);
       delta.y = 0;
