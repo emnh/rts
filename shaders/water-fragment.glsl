@@ -6,6 +6,7 @@ uniform vec3 ang;
 uniform vec3 angv;
 uniform vec3 ori;
 uniform vec3 dir;
+uniform vec3 light;
 const vec2 iResolution = vec2(10000, 10000);
 varying vec2 surfacePosition;
 
@@ -181,7 +182,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
   heightMapTracing(ori,dir,p);
   vec3 dist = p - ori;
   vec3 n = getNormal(p, dot(dist,dist) * EPSILON_NRM);
-  vec3 light = normalize(vec3(0.0,1.0,0.8)); 
+  vec3 light = normalize(light); //vec3(0.0,1.0,0.8)); 
            
   // color
   vec3 color = mix(

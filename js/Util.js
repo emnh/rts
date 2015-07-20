@@ -1,22 +1,22 @@
-export function Util() {
-  function mix(a, b, alpha) {
+export const Util = {
+  mix: (a, b, alpha) => {
     return a + (b - a) * alpha;
-  }
+  },
 
-  function isInt(n) {
+  isInt: (n) => {
     return Number(n) === n && n % 1 === 0;
-  }
+  },
 
-  function isFloat(n) {
+  isFloat: (n) => {
     return n === Number(n) && n % 1 !== 0;
-  }
+  },
 
-  function clearLog() {
+  clearLog: () => {
     const $debug = $('.debug');
     $debug.html('');
-  }
+  },
 
-  function log(...args) {
+  log: function(...args) {
     const $debug = $('.debug');
     let s = '';
     for (let arg of args) {
@@ -27,5 +27,5 @@ export function Util() {
     }
     s += '<br/>';
     $debug.append(s);
-  }
+  },
 };

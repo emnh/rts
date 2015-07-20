@@ -16,7 +16,7 @@ const howler = require('howler');
 require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
 const Selection = require('./js/Selection.js').Selection;
-const Util = new (require('./js/Util.js').Util)();
+const Util = require('./js/Util.js').Util;
 const Models = require('./js/Models.js').Models;
 const UnitType = require('./js/UnitType.js').UnitType;
 const Debug = require('./js/Debug.js').Debug;
@@ -198,6 +198,7 @@ function SkyBox() {
 function initLight() {
   // Light
   const light = new THREE.DirectionalLight(0xFFFFFF);
+  game.scene.light = light;
   light.position.set(500, 1000, -400);
   light.target.position.copy(game.scene.scene3.position);
   light.castShadow = true;
@@ -234,22 +235,28 @@ function getSampler() {
     
     const sampler = {};
 
-    loader.load('models/maps/landscape.jpg', function(image) {
+    //loader.load('models/maps/landscape.jpg', function(image) {
+    //loader.load('models/maps/australia.jpg', function(image) {
+    //loader.load('models/images/grass.jpg', function(image) {
+    loader.load('models/maps/man.jpg', function(image) {
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
       canvas.height = image.height;
 
       const context = canvas.getContext('2d');
-      context.drawImage(image, -x * size, -y * size);
-      imageData = context.getImageData(0, 0, image.width, image.height);
+      context.drawImage(image, 0, 0);
+      const imageData = context.getImageData(0, 0, image.width, image.height);
+
+      console.log("iml", image.width, image.height, imageData.data.length);
       
       sampler.getHeight = (x, y) => {
-        const i = (x + y * imageData.width) * 4;
+        x = Math.round(x * image.width) % image.width;
+        y = Math.round(y * image.height) % image.height;
+        const i = (x + y * image.width) * 4;
         const r = imageData.data[i];
         const g = imageData.data[i + 1];
         const b = imageData.data[i + 2];
-        const a = imageData.data[i + 3];
-        return new THREE.Color(r, g, b, a);
+        return new THREE.Color(r, g, b).getHSL().l;
       };
 
       resolve(sampler);
@@ -259,8 +266,7 @@ function getSampler() {
 
 function initGround() {
 
-  const sampler = getSampler();
-  sampler.next
+  const samplerPromise = getSampler();
 
   // Materials
   const groundMaterial = new THREE.MeshLambertMaterial({
@@ -309,6 +315,28 @@ function initGround() {
   game.scene.ground.receiveShadow = true;
   addToScene(game.scene.ground);
 
+  samplerPromise.then((sampler) => {
+    for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
+      const x = groundGeometry.attributes.position.array[i];
+      const z = groundGeometry.attributes.position.array[i + 2];
+      const xt = (x + config.terrain.width / 2) / config.terrain.width;
+      const yt = (z + config.terrain.height / 2) / config.terrain.height;
+      const xi = Math.round(xt * config.terrain.xFaces);
+      const yi = Math.round(yt * config.terrain.yFaces);
+      const y = sampler.getHeight(xt, yt) + config.terrain.minElevation;
+      //const y = config.terrain.minElevation;
+      if (!Util.isInt(y) && !Util.isFloat(y)) {
+        throw 'doesnt work'
+      }
+      groundGeometry.attributes.position.array[i + 1] = y;
+      //console.log("xi, yi", xi, yi);
+      game.heightField[xi][yi] = y;
+    };
+    game.scene.ground.geometry.computeFaceNormals();
+    game.scene.ground.geometry.computeVertexNormals();
+    game.scene.ground.geometry.attributes.position.needsUpdate = true;
+  });
+
   game.mapBounds.min.x = -config.terrain.width / 2;
   game.mapBounds.min.y = 0;
   game.mapBounds.min.z = -config.terrain.height / 2;
@@ -329,6 +357,7 @@ function Sea() {
       ang: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
       ori: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
       dir: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
+      light: { type: 'v3', value: new THREE.Vector2(0, 0, 0) },
     },
     vertexShader: $('#water-vertex').text(),
     fragmentShader: $('#water-fragment').text(),
@@ -351,6 +380,7 @@ function Sea() {
     material.uniforms.iGlobalTime.value = time;
     // material.uniforms.ang.value = new THREE.Vector3(-0.38, 1.02, 0.33);
     material.uniforms.ang.value = new THREE.Vector3(0, Math.PI / 2, 0);
+    material.uniforms.light.value = game.scene.light.position;
     // material.uniforms.ang.value = camera.rotation;
     const angv = game.scene.camera.position.clone();
     // angv.normalize();
@@ -368,8 +398,15 @@ function Sea() {
 function resetCamera() {
   // camera.position.set(107, 114, 82);
   // camera.position.set(320, 340, 245);
-  game.scene.camera.position.set(330, 300, 0);
-  game.scene.camera.lookAt(game.scene.scene3.position);
+  //game.scene.camera.position.set(330, 300, 0);
+  //game.scene.camera.position.set(0, 4500, 0);
+  const x = game.scene.scene3.position.x;
+  const z = game.scene.scene3.position.z;
+  const y = getGroundHeight(x, z);
+  const pos = new THREE.Vector3(x, y, z);
+  //game.scene.camera.lookAt(pos);
+  game.scene.camera.position.set(308, 502, -71);
+  game.scene.camera.rotation.set(-1.71, 0.8, 1.76);
 }
 
 function initCameraControls() {
@@ -624,7 +661,6 @@ function loadModels(finishCallback) {
     return function(texture) {
       options.downloadedTexture = options.textureSize;
       texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
-      texture.minFilter = THREE.NearestFilter;
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
       texture.repeat.set(options.textureRepeat.x, options.textureRepeat.y);
       material.map = texture;
@@ -1023,8 +1059,9 @@ function getCameraFocus(mouseX, mouseY) {
   if (intersects.length > 0) {
     return intersects[0].point;
   } else {
-    console.log("ray", mouseX, mouseY, intersects, camera.position);
-    console.warn("nav fail");
+    // TODO: handle it better
+    //console.log("ray", mouseX, mouseY, intersects, camera.position);
+    //console.warn("nav fail");
     return new THREE.Vector3(0, 0, 0);
   }
 }
@@ -1389,7 +1426,7 @@ function initScene() {
 
   game.scene.scene3 = new THREE.Scene();
 
-  const frustumFar = 100000;
+  const frustumFar = 1000000;
   const frustumNear = 1;
   game.scene.camera = new THREE.PerspectiveCamera(
     35,
