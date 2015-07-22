@@ -92,3 +92,9 @@ a {
   background: rgba(0, 255, 0, 0.5);
   border: 1px solid #00FF00;
 }
+
+canvas#viewer {
+  visibility: hidden;
+  width: 1px;
+  height: 1px;
+}

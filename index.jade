@@ -12,6 +12,8 @@ html
     script(type='text/javascript', src='jscache/simplex-noise.js')
     script(type='text/javascript', src='jscache/dat.gui.min.js')
     script(type='text/javascript', src='jscache/three.min.js')
+    script(type='text/javascript', src='jscache/DDSLoader.js')
+    script(type='text/javascript', src='jscache/viewer.js')
     // <script type="text/javascript" src="jscache/OrbitControls.js"></script>
     // <script type="text/javascript" src="js/MapControls.js"></script>
     script(type='text/javascript', src='bundle.js')
@@ -35,6 +37,7 @@ html
         button.btn.btn-default.btn-lg.disabled(type='button')
           span.glyphicon.glyphicon-flash(aria-hidden='true')
           |  Attack
+    canvas#viewer
 
     script#modelSizes(type='application/json')
       include ./json/modelSizes.json

@@ -7,6 +7,7 @@
 const jQuery = require('jquery');
 const $ = jQuery;
 window.jQuery = jQuery;
+window.$ = jQuery;
 const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
 const kdtree = require('static-kdtree');
@@ -20,6 +21,7 @@ const Util = require('./js/Util.js').Util;
 const Models = require('./js/Models.js').Models;
 const UnitType = require('./js/UnitType.js').UnitType;
 const Debug = require('./js/Debug.js').Debug;
+const ModelLoader = require('./js/ModelLoader.js').ModelLoader;
 
 const Mouse = {
   LBUTTON: 0,
@@ -213,6 +215,9 @@ function initLight() {
   light.shadowMapWidth = light.shadowMapHeight = 2048;
   light.shadowDarkness = 0.7;
   addToScene(light);
+
+  //const ambient = new THREE.AmbientLight(0xFFFFFF);
+  //addToScene(ambient);
 }
 
 function initStats() {
@@ -235,9 +240,6 @@ function getSampler() {
     
     const sampler = {};
 
-    //loader.load('models/maps/landscape.jpg', function(image) {
-    //loader.load('models/maps/australia.jpg', function(image) {
-    //loader.load('models/images/grass.jpg', function(image) {
     loader.load('models/maps/man.jpg', function(image) {
       const canvas = document.createElement('canvas');
       canvas.width = image.width;
@@ -247,8 +249,6 @@ function getSampler() {
       context.drawImage(image, 0, 0);
       const imageData = context.getImageData(0, 0, image.width, image.height);
 
-      console.log("iml", image.width, image.height, imageData.data.length);
-      
       sampler.getHeight = (x, y) => {
         x = Math.round(x * image.width) % image.width;
         y = Math.round(y * image.height) % image.height;
@@ -1451,10 +1451,18 @@ function initScene() {
 
   requestAnimationFrame(render);
 
-  loadModels(() => {
+  /*loadModels(() => {
     //setInterval(updateSimulation, 1000 / 120);
     requestAnimationFrame(updateSimulation);
+  });*/
+
+  updateSimulation();
+
+  const modelLoader = new ModelLoader({
+    camera: game.scene.camera,
+    scene: game.scene.scene3,
   });
+  modelLoader.loadModels();
 }
 
 function Sound() {
