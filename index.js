@@ -329,13 +329,13 @@ function initGround() {
       const xi = Math.round(xt * config.terrain.xFaces);
       const yi = Math.round(yt * config.terrain.yFaces);
       let y = sampler.getHeight(xt, yt) + config.terrain.minElevation;
-      //const y = config.terrain.minElevation;
+      // const y = config.terrain.minElevation;
       if (!Util.isInt(y) && !Util.isFloat(y)) {
         throw 'doesnt work'
       }
-      groundGeometry.attributes.position.array[i + 1] = y;
-      //console.log("xi, yi", xi, yi);
-      game.heightField[xi][yi] = y;
+      // XXX: disabled
+      // groundGeometry.attributes.position.array[i + 1] = y;
+      // game.heightField[xi][yi] = y;
     };
     game.scene.ground.geometry.computeFaceNormals();
     game.scene.ground.geometry.computeVertexNormals();
@@ -403,15 +403,15 @@ function Sea() {
 function resetCamera() {
   // camera.position.set(107, 114, 82);
   // camera.position.set(320, 340, 245);
-  //game.scene.camera.position.set(330, 300, 0);
+  game.scene.camera.position.set(330, 300, 0);
   //game.scene.camera.position.set(0, 4500, 0);
   const x = game.scene.scene3.position.x;
   const z = game.scene.scene3.position.z;
   const y = getGroundHeight(x, z);
   const pos = new THREE.Vector3(x, y, z);
-  //game.scene.camera.lookAt(pos);
-  game.scene.camera.position.set(308, 502, -71);
-  game.scene.camera.rotation.set(-1.71, 0.8, 1.76);
+  game.scene.camera.lookAt(pos);
+  //game.scene.camera.position.set(308, 502, -71);
+  //game.scene.camera.rotation.set(-1.71, 0.8, 1.76);
 }
 
 function initCameraControls() {
@@ -595,8 +595,15 @@ function initialPlaceUnit(unit, size) {
 function createM3Unit(modelOptions, instance) {
   const unit = instance;
   const size = getSize(modelOptions.bboxHelper.box);
-  setUnitProperties(unit, UnitType.Ground);
+  setUnitProperties(unit, modelOptions.type);
   unit.bbox = modelOptions.bboxHelper.box;
+
+  // set team color
+  instance.instance.setTeamColor(unit.team);
+  for (const geomat of instance.geomats) {
+    const [geo, mat] = geomat;
+    mat.uniforms.u_teamColor.value = TeamColors[unit.team];
+  }
   
   const boxMesh = modelOptions.bboxHelper.clone();
   //addToScene(boxMesh);
@@ -1272,6 +1279,9 @@ function render() {
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // Debug.drawOutLine(game.units, worldToScreen);
 
+  if (game.m3loader) {
+    game.m3loader.update();
+  }
   TWEEN.update();
   updateShaders();
   updateUnitInfo();

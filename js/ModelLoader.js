@@ -48,7 +48,13 @@ export function ModelLoader(options) {
     const model = modelOptions.model;
     const onLoad = function(object) {
       const instance = object.instance;
-      instance.setSequence(model.model.sequencesByName['Walk']);
+      const sequenceId = model.model.sequencesByName[modelOptions.sequence];
+      if (sequenceId !== undefined) {
+        instance.setSequence(sequenceId);
+      } else {
+        console.warn("could't find sequence", modelOptions.sequence, model.model.name, model);
+        instance.setSequence(0);
+      }
       const teamId = 0; //instance.teamColor;
       const skeleton = instance.skeleton;
       const hwbones = skeleton.hwbones;
@@ -58,7 +64,7 @@ export function ModelLoader(options) {
       hwbonesTexture.generateMipmaps = false;
       hwbonesTexture.needsUpdate = true;
       hwbonesTexture.minFilter = THREE.NearestFilter;
-      console.log("modelByName", scope.modelByName, model.model.name);
+      //console.log("modelByName", scope.modelByName, model.model.name);
       const modelInfo = scope.modelByName[model.model.name];
       const newGeoMats = [];
       for (const geomat of modelInfo.geomats) {
@@ -94,19 +100,24 @@ export function ModelLoader(options) {
       meshparent.hwbones = hwbones;
       meshparent.instance = instance;
       scope.instanceRegister.push(meshparent);
-      console.log("resolve asyncInstance");
+      //console.log("resolve asyncInstance");
       return meshparent;
     };
 
     const promise = new Promise((resolve, reject) => {
-      viewer.addEventListener('load', (object) => {
-        console.log("load", object === asyncInstance, object, asyncInstance);
-        if (object === asyncInstance) resolve(object);
-      });
+      const listener = (object) => {
+        //console.log("load", object === asyncInstance, object, asyncInstance);
+        if (object === asyncInstance) {
+          // TODO: this seems to not work
+          viewer.removeEventListener('load', listener);
+          resolve(object);
+        }
+      };
+      viewer.addEventListener('load', listener);
       const asyncInstance = viewer.loadInstance(model.source, false);
-      console.log("asyncInstance", asyncInstance);
+      //console.log("asyncInstance", asyncInstance);
       if (asyncInstance.ready) {
-        console.log("resolved immediately");
+        //console.log("resolved immediately");
         resolve(asyncInstance);
       }
     });
@@ -152,7 +163,7 @@ export function ModelLoader(options) {
 
         
     const uvSetCount = model.model.uvSetCount;
-    console.log("batchlength", batches.length);
+    //console.log("batchlength", batches.length);
     const l2 = batches.length;
 
     const geomats = [];
@@ -300,13 +311,13 @@ export function ModelLoader(options) {
           });
           if (pTexturesBySource[layer.source] !== undefined) {
             pTexturesBySource[layer.source].then((tinfo) => {
-              console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
+              //console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
               material.uniforms[layer.uniforms.map] = { type: 't', value: tinfo.texture };
             });
           } else {
             const promise = new Promise((resolve, reject) => {
               loader.load(mpqFile(layer.source), (texture) => {
-                console.log("texture", texture, layer.source, layer.uniforms.map);
+                //console.log("texture", texture, layer.source, layer.uniforms.map);
                 material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
                 resolve({
                   texture: texture,
@@ -397,8 +408,8 @@ export function ModelLoader(options) {
             model.model.sequencesByName[sequence.name] = i;
             i++;
           }
-          instance.setSequence(model.model.sequencesByName['Walk']);
-          instance.setTeamColor(0);
+          //instance.setSequence(model.model.sequencesByName['Walk']);
+          //instance.setTeamColor(0);
         }
       }
 
@@ -432,7 +443,7 @@ export function ModelLoader(options) {
       viewer.addEventListener('load', () => waitForIt(resolve));
     });
 
-    var step = function() {
+    var update = function() {
       viewer.stepUpdate();
       for (const instance of scope.instanceRegister) {
         for (const geomat of instance.geomats) {
@@ -443,9 +454,8 @@ export function ModelLoader(options) {
           mat.uniforms.u_boneMap.value.needsUpdate = true;
         }
       }
-      requestAnimationFrame(step);
     };
-    requestAnimationFrame(step);
+    scope.update = update;
 
     const returnPromise = new Promise((resolve, reject) => {
       allModelsLoaded.then(() => onLoad(resolve));
