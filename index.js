@@ -323,11 +323,13 @@ function initGround() {
       const yt = (z + config.terrain.height / 2) / config.terrain.height;
       const xi = Math.round(xt * config.terrain.xFaces);
       const yi = Math.round(yt * config.terrain.yFaces);
-      const y = sampler.getHeight(xt, yt) + config.terrain.minElevation;
+      let y = sampler.getHeight(xt, yt) + config.terrain.minElevation;
       //const y = config.terrain.minElevation;
       if (!Util.isInt(y) && !Util.isFloat(y)) {
         throw 'doesnt work'
       }
+      // TODO: remove
+      y = 1;
       groundGeometry.attributes.position.array[i + 1] = y;
       //console.log("xi, yi", xi, yi);
       game.heightField[xi][yi] = y;
@@ -1461,6 +1463,7 @@ function initScene() {
   const modelLoader = new ModelLoader({
     camera: game.scene.camera,
     scene: game.scene.scene3,
+    light: game.scene.light,
   });
   modelLoader.loadModels();
 }
