@@ -19,7 +19,7 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
 	this.minDistance = 0;
 	this.maxDistance = Infinity;
 	this.rotateSpeed = 0.3;
-  this.edgeSize = 0.1;
+  this.edgeSize = 0.0;
 
 	// How far you can orbit vertically, upper and lower limits.
 	this.minPolarAngle = 0; // radians
@@ -392,9 +392,11 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
   function setZoom(keyCode, val) {
     if (keyCode == window.KeyEvent.DOM_VK_PAGE_UP) {
       zoomIn = val;
+      return true;
     }
     if (keyCode == window.KeyEvent.DOM_VK_PAGE_DOWN) {
       zoomOut = val;
+      return true;
     }
   }
 
@@ -405,9 +407,12 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
     if (setRotate(evt.keyCode, false)) {
       evt.preventDefault();
     };
-    setZoom(evt.keyCode, false);
+    if (setZoom(evt.keyCode, false)) {
+      evt.preventDefault();
+    };
     if (evt.keyCode === window.KeyEvent.DOM_VK_HOME) {
       resetCamera();
+      evt.preventDefault();
     }
   }
 
@@ -420,8 +425,10 @@ export function MapControls(camera, mesh, renderFunction, domElement, resetCamer
       if (setScroll(evt.keyCode, true)) {
         evt.preventDefault();
       };
+      if (setZoom(evt.keyCode, true)) {
+        evt.preventDefault();
+      };
     }
-    setZoom(evt.keyCode, true);
   }
 
   const body = document.body;
