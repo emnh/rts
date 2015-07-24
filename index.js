@@ -57,14 +57,15 @@ const config = {
     controlsHeight: 250,
   },
   units: {
-    count: 50,
+    count: 0,
+    m3count: 10,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
   },
   terrain: {
     seaLevel: 0,
-    minElevation: 0,
+    minElevation: 10,
     maxElevation: 48,
     xFaces: 200,
     yFaces: 200,
@@ -98,21 +99,23 @@ const game = {
   mapBounds: new THREE.Box3(),
   startTime: (new Date().getTime()) / 1000.0,
   units: [],
+  newUnits: [],
   heightField: [],
   components: [],
   models: {},
   emitters: [],
+  selector: {}
 };
 
 function getGameTime() {
   return (new Date().getTime()) / 1000.0 - game.startTime;
 }
 
-function getSize(geometry) {
+function getSize(box) {
   return {
-    height: geometry.boundingBox.max.x - geometry.boundingBox.min.x,
-    width: geometry.boundingBox.max.y - geometry.boundingBox.min.y,
-    depth: geometry.boundingBox.max.z - geometry.boundingBox.min.z,
+    height: box.max.x - box.min.x,
+    width: box.max.y - box.min.y,
+    depth: box.max.z - box.min.z,
   };
 }
 
@@ -137,7 +140,9 @@ function worldToScreen(pos) {
 function removeFromScene(mesh) {
   game.scene.scene3.remove(mesh);
   //mesh.geometry.dispose();
-  mesh.material.dispose();
+  if (mesh.material) {
+    mesh.material.dispose();
+  }
 }
 
 function addToScene(mesh) {
@@ -328,8 +333,6 @@ function initGround() {
       if (!Util.isInt(y) && !Util.isFloat(y)) {
         throw 'doesnt work'
       }
-      // TODO: remove
-      y = 1;
       groundGeometry.attributes.position.array[i + 1] = y;
       //console.log("xi, yi", xi, yi);
       game.heightField[xi][yi] = y;
@@ -560,6 +563,116 @@ function createMissile(options) {
   return unit;
 }
 
+function setUnitProperties(unit, type) {
+  // game properties
+  unit.health = 1.0
+  unit.type = type;
+  unit.weapon = {
+    range: 100.0,
+    damage: 0.1,
+    reload: 0.5,
+  };
+  unit.shots = []
+  unit.team = Math.floor(Math.random() * TeamColors.length);
+  unit.attackTarget = null;
+  unit.dead = false;
+}
+
+function initialPlaceUnit(unit, size) {
+  if (config.units.randomLocation) {
+    unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
+    unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+  }
+  const height = size.height * unit.scale.y;
+  //const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
+  const groundHeight = getGroundAlignment(unit);
+  unit.position.y = groundHeight + height + 10;
+  unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+  unit.stayUpRight = true;
+  unit.lastMoved = undefined;
+}
+
+function createM3Unit(modelOptions, instance) {
+  const unit = instance;
+  const size = getSize(modelOptions.bboxHelper.box);
+  setUnitProperties(unit, UnitType.Ground);
+  unit.bbox = modelOptions.bboxHelper.box;
+  
+  const boxMesh = modelOptions.bboxHelper.clone();
+  //addToScene(boxMesh);
+  unit.bboxMesh = boxMesh;
+
+  initialPlaceUnit(unit, size);
+  unit.healthBar = createHealthBar();
+  unit.teamBar = createTeamBar(unit);
+
+  addToScene(unit);
+  addToScene(unit.healthBar);
+  addToScene(unit.teamBar);
+
+  unit.createNew = () => {
+    const instancePromise = game.m3loader.addInstance(modelOptions);
+    return new Promise((resolve, reject) => {
+        instancePromise.then((obj3d) => {
+        const unit = createM3Unit(modelOptions, obj3d);
+        resolve(unit);
+      });
+    });
+  };
+
+  unit.remove = () => { removeUnit(unit); };
+
+  return instance;
+}
+
+function createM3Units() {
+  const m3loader = game.m3loader;
+
+  const models = m3loader.getModels();
+  const instancePromises = [];
+  for (const model of models) {
+    for (let i = 0; i < config.units.m3count; i++) {
+      const instancePromise = m3loader.addInstance(model);
+      instancePromise.then((obj3d) => {
+        const unit = createM3Unit(model, obj3d);
+        game.units.push(unit);
+      });
+      instancePromises.push(instancePromise);
+    }
+  }
+
+  return Promise.all(instancePromises);
+}
+
+function createHealthBar() {
+  const healthMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { type: 'f', value: 0.0 },
+      health: { type: 'f', value: 0.0},
+    },
+    vertexShader: $('#health-vertex').text(),
+    fragmentShader: $('#health-fragment').text(),
+  });
+  const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+  const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
+  return healthBar;
+}
+
+function createTeamBar(unit) {
+  const teamMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { type: 'f', value: 0.0 },
+      health: { type: 'f', value: 0.0},
+      color: { type: 'c', value: TeamColors[unit.team] },
+    },
+    vertexShader: $('#teambar-vertex').text(),
+    fragmentShader: $('#teambar-fragment').text(),
+  });
+  const teamGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+  const teamBar = new THREE.Mesh(teamGeometry, teamMaterial);
+  return teamBar;
+}
+
 function createUnit(options) {
   const material = options.material;
   const geometry = options.geometry;
@@ -572,18 +685,7 @@ function createUnit(options) {
   const unit = new THREE.Mesh(geometry, materialClone);
   unit.model = options;
 
-  // game properties
-  unit.health = 1.0 //Math.random();
-  unit.type = options.type;
-  unit.weapon = {
-    range: 100.0,
-    damage: 0.1,
-    reload: 0.5,
-  };
-  unit.shots = []
-  unit.team = Math.floor(Math.random() * TeamColors.length);
-  unit.attackTarget = null;
-  unit.dead = false;
+  setUnitProperties(unit, options.type);
 
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
   addToScene(boxMesh);
@@ -591,61 +693,23 @@ function createUnit(options) {
   unit.bboxMesh = boxMesh;
   unit.bbox = bboxHelper.box;
 
-  //unit.scale.set(scale, scale, scale);
-  if (config.units.randomLocation) {
-    unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
-    unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
-  }
-  const height = size.height * unit.scale.y;
-  const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
-  unit.position.y = groundHeight + height + 10;
-  unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
-  unit.stayUpRight = true;
-  unit.lastMoved = undefined;
-
-  const healthMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { type: 'f', value: 0.0 },
-      health: { type: 'f', value: 0.0},
-    },
-    vertexShader: $('#health-vertex').text(),
-    fragmentShader: $('#health-fragment').text(),
-  });
-  const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
-  unit.healthBar = healthBar;
-
-  const teamMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { type: 'f', value: 0.0 },
-      health: { type: 'f', value: 0.0},
-      color: { type: 'c', value: TeamColors[unit.team] },
-    },
-    vertexShader: $('#teambar-vertex').text(),
-    fragmentShader: $('#teambar-fragment').text(),
-  });
-
-  const teamGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  const teamBar = new THREE.Mesh(teamGeometry, teamMaterial);
-  unit.teamBar = teamBar;
+  initialPlaceUnit(unit, size);
+  unit.healthBar = createHealthBar();
+  unit.teamBar = createTeamBar(unit);
 
   unit.castShadow = true;
   unit.receiveShadow = true;
 
-  /*
-  const rangeGeometry = new THREE.SphereGeometry(unit.weapon.range, 32, 32);
-  const rangeMaterial = new THREE.MeshLambertMaterial({
-    transparent: true,
-    opacity: 0.1
-  });
-  const rangeMesh = new THREE.Mesh(rangeGeometry, rangeMaterial);
-  */
-  //unit.add(rangeMesh);
-  //addToScene(rangeMesh);
-
   addToScene(unit);
-  addToScene(healthBar);
-  addToScene(teamBar);
+  addToScene(unit.healthBar);
+  addToScene(unit.teamBar);
+
+  unit.createNew = () => {
+    return new Promise((resolve, reject) => {
+      const unit = createUnit(options);
+      resolve(unit);
+    });
+  };
 
   unit.remove = () => { removeUnit(unit); };
   return unit;
@@ -697,18 +761,18 @@ function loadModels(finishCallback) {
       geometry.computeFaceNormals();
       geometry.computeVertexNormals();
 
-      const size = getSize(geometry);
 
       const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, transparent: true, opacity: opacity });
 
       // for showing bounding box
-      const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
       const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
       const proto = new THREE.Mesh(geometry, material.clone());
       addToScene(proto);
       const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
       bboxHelper.update();
       removeFromScene(proto);
+      const size = getSize(bboxHelper.box);
+      const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
       for (const vertex of boxGeometry.vertices) {
         vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
       }
@@ -1009,7 +1073,7 @@ function updateBBoxes() {
 function updateBars() {
   for (const unit of game.units) {
     unit.healthBar.position.copy(unit.position);
-    unit.healthBar.position.y += getSize(unit.geometry).height * unit.scale.y;
+    unit.healthBar.position.y += getSize(unit.bbox).height * unit.scale.y;
     unit.healthBar.lookAt(game.scene.camera.position);
     
     unit.teamBar.position.copy(unit.healthBar.position);
@@ -1023,8 +1087,10 @@ function updateShaders() {
   const time = nowTime - game.startTime;
   for (const unit of game.units) {
     const mesh = unit.bboxMesh;
-    if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
-      mesh.material.uniforms.time.value = time;
+    if (mesh !== undefined) {
+      if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
+        mesh.material.uniforms.time.value = time;
+      }
     }
     unit.healthBar.material.uniforms.health.value = unit.health;
   }
@@ -1386,15 +1452,19 @@ function attackTargets() {
 }
 
 function removeDead() {
-  const toAdd = [];
   game.units = game.units.filter((unit) => {
     if (unit.dead) {
       unit.remove();
-      const newUnit = createUnit(unit.model);
-      toAdd.push(newUnit);
+      const newUnitPromise = unit.createNew();
+      newUnitPromise.then((newUnit) => {
+        game.newUnits.push(newUnit);
+      });
     }
     return !unit.dead;
   });
+  const toAdd = game.newUnits;
+  // TODO: what if newUnits.push happens here? can it happen?
+  game.newUnits = [];
   toAdd.forEach((u) => {
     game.units.push(u);
   });
@@ -1453,19 +1523,24 @@ function initScene() {
 
   requestAnimationFrame(render);
 
-  /*loadModels(() => {
+  loadModels(() => {
     //setInterval(updateSimulation, 1000 / 120);
     requestAnimationFrame(updateSimulation);
-  });*/
+  });
 
-  updateSimulation();
+  //updateSimulation();
 
   const modelLoader = new ModelLoader({
     camera: game.scene.camera,
     scene: game.scene.scene3,
     light: game.scene.light,
   });
-  modelLoader.loadModels();
+  const modelPromise = modelLoader.loadModels();
+  modelPromise.then(() => {
+    game.m3loader = modelLoader;
+    console.log("all models up");
+    createM3Units();
+  });
 }
 
 function Sound() {

@@ -339,5 +339,6 @@ void main() {
     }
 
   gl_FragColor = final;
-  // gl_FragColor = texture2D(u_diffuseMap, v_uv[0]);
+  //gl_FragColor.rg = v_uv[0];
+  //gl_FragColor = texture2D(u_diffuseMap, v_uv[0]);
 }

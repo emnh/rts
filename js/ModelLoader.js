@@ -5,36 +5,123 @@ export function ModelLoader(options) {
 
   const scope = this;
   
-  /*var updateHW = function (skeleton, sequence) {
-      var bones = skeleton.nodes;
-      var initialReferences = skeleton.initialReference;
-      var boneLookup = skeleton.boneLookup;
-      var bone;
-      var finalMatrix;
-      var boneMatrices = [];
+  const teamColors = [
+    [255, 3, 3],
+    [0, 66, 255],
+    [28, 230, 185],
+    [84, 0, 129],
+    [255, 252, 1],
+    [254, 138, 14],
+    [32, 192, 0],
+    [229, 91, 176],
+    [149, 150, 151],
+    [126, 191, 241],
+    [16, 98, 70],
+    [78, 42, 4],
+    [40, 40, 40],
+    [0, 0, 0],
+    ];
 
-      if (sequence === -1) {
-          finalMatrix = skeleton.rootNode.worldMatrix;
-      } else {
-          finalMatrix = skeleton.localMatrix;
+  this.modelRegister = [];
+  this.modelByName = {};
+  this.instanceRegister = [];
+
+  function createObject(modelOptions, model, geomats) {
+    const rotation = modelOptions.rotation;
+    const scale = modelOptions.scale;
+    let meshparent = new THREE.Object3D();
+    meshparent.geomats = geomats;
+    meshparent.modelOptions = modelOptions;
+    meshparent.model = model;
+    for (const geomat of geomats) {
+      const [geo, mat] = geomat;
+      let mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.set(rotation.x, rotation.y, rotation.z);
+      mesh.scale.set(scale, scale, scale);
+      meshparent.add(mesh);
+    }
+    return meshparent;
+  }
+
+  this.addInstance = function(modelOptions) {
+    const viewer = scope.viewer;
+    const model = modelOptions.model;
+    const onLoad = function(object) {
+      const instance = object.instance;
+      instance.setSequence(model.model.sequencesByName['Walk']);
+      const teamId = 0; //instance.teamColor;
+      const skeleton = instance.skeleton;
+      const hwbones = skeleton.hwbones;
+      const hwbonesTexture = new THREE.DataTexture(hwbones, hwbones.length / 4, 1, THREE.RGBAFormat, THREE.FloatType);
+      hwbonesTexture.flipY = false;
+      hwbonesTexture.unpackAlignment = 4;
+      hwbonesTexture.generateMipmaps = false;
+      hwbonesTexture.needsUpdate = true;
+      hwbonesTexture.minFilter = THREE.NearestFilter;
+      console.log("modelByName", scope.modelByName, model.model.name);
+      const modelInfo = scope.modelByName[model.model.name];
+      const newGeoMats = [];
+      for (const geomat of modelInfo.geomats) {
+        const [geo, material] = geomat;
+        newGeoMats.push([geo, material.clone()]);
       }
-
-      for (var i = 0, l = boneLookup.length; i < l; i++) {
-          if (sequence !== -1) {
-              bone = boneLookup[i];
-              mat4.multiply(finalMatrix, bones[bone].worldMatrix, initialReferences[bone]);
-          } 
-          boneMatrices[i] = finalMatrix;
+      let i = 0;
+      for (const geomat of newGeoMats) {
+        //const [geo, material] = geomat;
+        const geo = geomat[0];
+        const material = geomat[1];
+        const oldMaterial = modelInfo.geomats[i][1];
+        i++;
+        // set textures. strange workaround of cloning problem
+        for (const pTexture of modelInfo.pTextures) {
+          pTexture.then((tinfo) => {
+            material.uniforms[tinfo.uniform].value = tinfo.texture;
+          });
+        }
+        material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture, needsUpdate: true };
+        material.uniforms.u_matrix_size = { type: 'f', value: 4 / (hwbones.length / 4) };
+        material.uniforms.u_texel_size = { type: 'f', value: 1 / (hwbones.length / 4)};
+        material.uniforms.u_teamColor = {
+                type: 'c',
+                value: new THREE.Color(
+                  teamColors[teamId][0],
+                  teamColors[teamId][1],
+                  teamColors[teamId][2])
+              };
       }
+      const meshparent = createObject(modelOptions, model, newGeoMats);
+      meshparent.position.set(Math.random() * 100, 300, Math.random() * 100);
+      meshparent.hwbones = hwbones;
+      meshparent.instance = instance;
+      scope.instanceRegister.push(meshparent);
+      console.log("resolve asyncInstance");
+      return meshparent;
+    };
 
-      return boneMatrices;
-  }*/
+    const promise = new Promise((resolve, reject) => {
+      viewer.addEventListener('load', (object) => {
+        console.log("load", object === asyncInstance, object, asyncInstance);
+        if (object === asyncInstance) resolve(object);
+      });
+      const asyncInstance = viewer.loadInstance(model.source, false);
+      console.log("asyncInstance", asyncInstance);
+      if (asyncInstance.ready) {
+        console.log("resolved immediately");
+        resolve(asyncInstance);
+      }
+    });
+    return new Promise((resolve, reject) => {
+      promise.then((object) => {
+        const meshparent = onLoad(object);
+        resolve(meshparent);
+      });
+    });
+  }
 
-  this.addModel = function(model, viewer) {
+  this.addModel = function(modelOptions, model, viewer) {
     console.log("model", model);
 
     //const geo = new THREE.BufferGeometry();
-    const geo2 = new THREE.Geometry();
     const vertices = model.model.parser.vertices;
     const floats = new Float32Array(vertices.buffer);
     const bytes = new Uint8Array(vertices.buffer);
@@ -58,103 +145,37 @@ export function ModelLoader(options) {
 
     const elementArray = new Uint16Array(totalElements);
     const edgeArray = new Uint16Array(totalElements * 2);
-
+    // the following fills in elementArray and edgeArray
     for (let i = 0; i < l; i++) {
         let r = (new M3.Region(regions[i], div.triangles, elementArray, edgeArray, offsets[i]));
     }
 
-    const skeleton = model.instances[0].instance.skeleton;
-    
-    var faceIndex = 0;
-    geo2.faceVertexUvs[0] = [];
-    const weights = [];
-    const bones = [];
-    const normals = [];
-    const tangents = [];
-
+        
     const uvSetCount = model.model.uvSetCount;
-    const uvs = [
-      [], [], [], [],
-    ];
     console.log("batchlength", batches.length);
-    // TODO: per region. this will fail when there are more than one
-    const firstBoneLookupIndex = batches[0].region.firstBoneLookupIndex;
-    console.log("firstBone", firstBoneLookupIndex);
-    const hwbones = skeleton.hwbones;
-    console.log("hwbones", hwbones);
-    var boneAtIndex = function(index) {
-      const offset = index * 16;
-      const elements = [];
-      //console.log("index", index, hwbones.length);
-      for (let i = 0; i < 16; i++) {
-        elements[i] = hwbones[offset + i];
-      }
-      //console.log("elements", elements);
-      const mat = new THREE.Matrix4();
-      mat.set.apply(mat, elements);
-      mat.transpose();
-      //console.log("mat", mat);
-      return mat;
-    };
-    const updatePositions = function() {
-      let vertexIndex = 0;
-      const l = batches.length;
-      for (let i = 0; i < l; i++) {
-        const batch = batches[i];
-        const region = batch.region;
-        const offset = region.offset / 2;
-        const bonelookup = region.firstBoneLookupIndex;
-        for (let k = 0; k < region.elements; k++) {
-          const element = offset + k;
-
-          const floatIndex = elementArray[element] * vertexSize / 4;
-          const byteIndex = elementArray[element] * vertexSize;
-          const shortIndex = elementArray[element] * vertexSize / 2;
-
-          const x = floats[floatIndex + 0];
-          const y = floats[floatIndex + 1];
-          const z = floats[floatIndex + 2];
-          const pos = new THREE.Vector3(x, y, z);
-
-          const weight =
-            new THREE.Vector4(
-              bytes[byteIndex + 12],
-              bytes[byteIndex + 13],
-              bytes[byteIndex + 14],
-              bytes[byteIndex + 15]);
-
-          const bone =
-            new THREE.Vector4(
-              bytes[byteIndex + 16],
-              bytes[byteIndex + 17],
-              bytes[byteIndex + 18],
-              bytes[byteIndex + 19]);
-
-          // debug code
-          const weightedBone0 = boneAtIndex(bone.x + firstBoneLookupIndex).multiplyScalar(weight.x / 255);
-          const weightedBone1 = boneAtIndex(bone.y + firstBoneLookupIndex).multiplyScalar(weight.y / 255);
-          const weightedBone2 = boneAtIndex(bone.z + firstBoneLookupIndex).multiplyScalar(weight.z / 255);
-          const weightedBone3 = boneAtIndex(bone.w + firstBoneLookupIndex).multiplyScalar(weight.w / 255);
-          const position = new THREE.Vector4(pos.x, pos.y, pos.z, 1.0);
-          const outposition4 = new THREE.Vector4();
-          outposition4.add(position.clone().applyMatrix4(weightedBone0));
-          outposition4.add(position.clone().applyMatrix4(weightedBone1));
-          outposition4.add(position.clone().applyMatrix4(weightedBone2));
-          outposition4.add(position.clone().applyMatrix4(weightedBone3));
-          const outposition = new THREE.Vector3(outposition4.x, outposition4.y, outposition4.z);
-          //console.log("position", pos);
-          //console.log("outposition", outposition);
-          geo2.vertices[vertexIndex] = outposition;
-          vertexIndex++;
-        }
-      }
-    }
     const l2 = batches.length;
+
+    const geomats = [];
+    const pTextures = [];
+    const pTexturesBySource = {};
+
     for (let i = 0; i < l2; i++) {
+      const geo2 = new THREE.Geometry();
+      const uvs = [
+        [], [], [], [],
+      ];
+      let faceIndex = 0;
+      geo2.faceVertexUvs[0] = [];
+
+      const weights = [];
+      const bones = [];
+      const normals = [];
+      const tangents = [];
+
       const batch = batches[i];
       const region = batch.region;
       const offset = region.offset / 2;
-      const bonelookup = region.firstBoneLookupIndex;
+      const boneLookup = region.firstBoneLookupIndex;
       for (let k = 0; k < region.elements; k++) {
         const element = offset + k;
         // divide by float size
@@ -207,22 +228,6 @@ export function ModelLoader(options) {
             bytes[byteIndex + 27 + uvSetCount * 4]);
         tangents.push(tangent);
 
-        // debug code
-        const weightedBone0 = boneAtIndex(bone.x + firstBoneLookupIndex).multiplyScalar(weight.x / 255);
-        const weightedBone1 = boneAtIndex(bone.y + firstBoneLookupIndex).multiplyScalar(weight.y / 255);
-        const weightedBone2 = boneAtIndex(bone.z + firstBoneLookupIndex).multiplyScalar(weight.z / 255);
-        const weightedBone3 = boneAtIndex(bone.w + firstBoneLookupIndex).multiplyScalar(weight.w / 255);
-        const position = new THREE.Vector4(pos.x, pos.y, pos.z, 1.0);
-        const outposition4 = new THREE.Vector4();
-        outposition4.add(position.clone().applyMatrix4(weightedBone0));
-        outposition4.add(position.clone().applyMatrix4(weightedBone1));
-        outposition4.add(position.clone().applyMatrix4(weightedBone2));
-        outposition4.add(position.clone().applyMatrix4(weightedBone3));
-        const outposition = new THREE.Vector3(outposition4.x, outposition4.y, outposition4.z);
-        //console.log("position", pos);
-        //console.log("outposition", outposition);
-        //geo2.vertices.push(outposition);
-
         if ((faceIndex + 1) % 3 == 0) {
           geo2.faces.push(new THREE.Face3(faceIndex - 2, faceIndex - 1, faceIndex));
           geo2.faceVertexUvs[0].push([
@@ -233,176 +238,124 @@ export function ModelLoader(options) {
         }
         faceIndex++;
       }
-    }
-    /*const hwbonesNew = new Float32Array(skeleton.boneTextureSize);
-    for (let i = 0; i < hwbones.length; i++) {
-      hwbonesNew[i] = hwbones[i];
-    }*/
-    const hwbonesTexture = new THREE.DataTexture(hwbones, hwbones.length / 4, 1, THREE.RGBAFormat, THREE.FloatType);
-    hwbonesTexture.flipY = false;
-    hwbonesTexture.unpackAlignment = 4;
-    hwbonesTexture.generateMipmaps = false;
-    hwbonesTexture.needsUpdate = true;
-    hwbonesTexture.minFilter = THREE.NearestFilter;
+      
+      geo2.computeBoundingSphere();
+      geo2.computeFaceNormals();
+      geo2.computeVertexNormals();
 
-    //geo.addAttribute('position', new THREE.BufferAttribute(positions, 3));
-    //geo2.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
-
-    //geo.computeBoundingSphere();
-    //geo.computeFaceNormals();
-    //geo.computeVertexNormals();
-    geo2.computeBoundingSphere();
-    geo2.computeFaceNormals();
-    geo2.computeVertexNormals();
-
-    const parserMaterial = model.model.parser.materials[0][0];
-    const diffuse = parserMaterial.diffuseLayer.imagePath.toLowerCase();
-    const diffuse_path = mpqFile(diffuse);
-    const specular = parserMaterial.specularLayer.imagePath.toLowerCase();
-    const specular_path = mpqFile(specular);
-    const emissive = parserMaterial.emissiveLayer.imagePath.toLowerCase();
-    const emissive_path = mpqFile(emissive); 
-    const normal = parserMaterial.normalLayer.imagePath.toLowerCase();
-    const normal_path = mpqFile(normal);
-    const loader = new THREE.DDSLoader();
-    /**var material = new THREE.MeshPhongMaterial({
-      color: 0xFFFFFF,
-    });*/
-    console.log("uvSetCount", uvSetCount);
-    console.log("weights", weights);
-    console.log("bones", bones);
-    const uvSets = "EXPLICITUV" + (uvSetCount - 1);
-    const vscommon = SHADERS.vsbonetexture + SHADERS.svscommon + "\n";
-    const vsstandard = vscommon + SHADERS.svsstandard;
-    const pscommon = SHADERS.spscommon + "\n";
-    const psstandard = pscommon + SHADERS.spsstandard;
-    const sourceMaterial = model.model.materials[1][0];
-    const material = new THREE.ShaderMaterial({
-      /*defines: {
-      },*/
-      uniforms: {
-        u_boneMap: { type: 't', value: hwbonesTexture },
-        //u_matrix_size: { type: 'f', value: 4 / hwbones.length },
-        //u_texel_size: { type: 'f', value: 1 / hwbones.length },
-        u_matrix_size: { type: 'f', value: skeleton.matrixFraction },
-        u_texel_size: { type: 'f', value: skeleton.texelFraction },
-        u_firstBoneLookupIndex: { type: 'f', value: firstBoneLookupIndex },
-        u_mvp: { type: 'm4', value: options.camera.projectionMatrix },
-        u_mv: { type: 'm4', value: null },
-        u_eyePos: { type: 'v3', value: options.camera.position },
-        u_lightPos: { type: 'v3', value: options.light.position },
-        // fragment
-        u_specularity: { type: 'f', value: sourceMaterial.specularity },
-        u_specMult: { type: 'f', value: sourceMaterial.specMult },
-        u_emisMult: { type: 'f', value: sourceMaterial.emisMult },
-        u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
-      },
-      attributes: {
-        a_position: { type: 'v3', value: geo2.vertices },
-        a_weights: { type: 'v4', value: weights },
-        a_bones: { type: 'v4', value: bones },
-        a_normal: { type: 'v4', value: normals },
-        a_tangent: { type: 'v4', value: tangents },
-      },
-      //fragmentShader: psstandard,
-      //vertexShader: vsstandard,
-      fragmentShader: $("#m3-fragment").text(),
-      vertexShader: $("#m3-vertex").text()
-    });
-    const setLayerSettings = function(layer, layerSettings) {
-      for (var name in layerSettings) {
-        const fullName = layer.uniforms[name];
-        material.uniforms[fullName] = layerSettings[name];
-        console.log("setuniform", fullName, layerSettings[name]);
-      }
-    }
-    // TODO: select correct layer
-    const layers = model.model.materials[1][0].layers;
-    const layersByType = {}
-    const b2i = (b) => b ? 1 : 0;
-    const pTextures = [];
-    const pTexturesBySource = {};
-    for (const layer of layers) {
-      layersByType[layer.type] = layer;
-      if (layer.active) {
-        setLayerSettings(layer, {
-          enabled: { type: 'i', value: b2i(layer.active) },
-          op: { type: 'f', value: layer.op },
-          channels: { type: 'f', value: layer.colorChannels },
-          teamColorMode: { type: 'f', value: layer.teamColorMode },
-          invert: { type: 'i', value: b2i(layer.invert) },
-          clampResult: { type: 'i', value: b2i(layer.clampResult) },
-          uvCoordinate: { type: 'f', value: layer.uvCoordinate },
-        });
-        if (pTexturesBySource[layer.source] !== undefined) {
-          pTexturesBySource[layer.source].then((texture) => {
-            console.log("2nd texture", layer.source, layer.uniforms.map);
-            material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
-          });
-        } else {
-          const promise = new Promise((resolve, reject) => {
-            loader.load(mpqFile(layer.source), (texture) => {
-              console.log("texture", layer.source, layer.uniforms.map);
-              material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
-              resolve(texture);
-            });
-          });
-          pTextures.push(promise);
-          pTexturesBySource[layer.source] = promise;
+      const parserMaterial = model.model.parser.materials[0][0];
+      const loader = new THREE.DDSLoader();
+      const uvSets = "EXPLICITUV" + (uvSetCount - 1);
+      const vscommon = SHADERS.vsbonetexture + SHADERS.svscommon + "\n";
+      const vsstandard = vscommon + SHADERS.svsstandard;
+      const pscommon = SHADERS.spscommon + "\n";
+      const psstandard = pscommon + SHADERS.spsstandard;
+      const sourceMaterial = model.model.materials[1][0];
+      const material = new THREE.ShaderMaterial({
+        /*defines: {
+        },*/
+        uniforms: {
+          u_firstBoneLookupIndex: { type: 'f', value: boneLookup },
+          u_eyePos: { type: 'v3', value: options.camera.position },
+          u_lightPos: { type: 'v3', value: options.light.position },
+          // fragment
+          u_specularity: { type: 'f', value: sourceMaterial.specularity },
+          u_specMult: { type: 'f', value: sourceMaterial.specMult },
+          u_emisMult: { type: 'f', value: sourceMaterial.emisMult },
+          u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
+        },
+        attributes: {
+          a_position: { type: 'v3', value: geo2.vertices },
+          a_weights: { type: 'v4', value: weights },
+          a_bones: { type: 'v4', value: bones },
+          a_normal: { type: 'v4', value: normals },
+          a_tangent: { type: 'v4', value: tangents },
+        },
+        //fragmentShader: psstandard,
+        //vertexShader: vsstandard,
+        fragmentShader: $("#m3-fragment").text(),
+        vertexShader: $("#m3-vertex").text()
+      });
+      const setLayerSettings = function(layer, layerSettings) {
+        for (var name in layerSettings) {
+          const fullName = layer.uniforms[name];
+          material.uniforms[fullName] = layerSettings[name];
         }
       }
-    }
+      // TODO: select correct layer
+      const layers = model.model.materials[1][0].layers;
+      const layersByType = {}
+      const b2i = (b) => b ? 1 : 0;
+      for (const layer of layers) {
+        layersByType[layer.type] = layer;
+        if (layer.active) {
+          setLayerSettings(layer, {
+            enabled: { type: 'i', value: b2i(layer.active) },
+            op: { type: 'f', value: layer.op },
+            channels: { type: 'f', value: layer.colorChannels },
+            teamColorMode: { type: 'f', value: layer.teamColorMode },
+            invert: { type: 'i', value: b2i(layer.invert) },
+            clampResult: { type: 'i', value: b2i(layer.clampResult) },
+            uvCoordinate: { type: 'f', value: layer.uvCoordinate },
+          });
+          if (pTexturesBySource[layer.source] !== undefined) {
+            pTexturesBySource[layer.source].then((tinfo) => {
+              console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
+              material.uniforms[layer.uniforms.map] = { type: 't', value: tinfo.texture };
+            });
+          } else {
+            const promise = new Promise((resolve, reject) => {
+              loader.load(mpqFile(layer.source), (texture) => {
+                console.log("texture", texture, layer.source, layer.uniforms.map);
+                material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
+                resolve({
+                  texture: texture,
+                  uniform: layer.uniforms.map
+                });
+              });
+            });
+            pTextures.push(promise);
+            pTexturesBySource[layer.source] = promise;
+          }
+        }
+      }
 
-    material.defines[uvSets] = true;
-    for (let uvi = 0; uvi < uvSetCount; uvi++) {
-      console.log('a_uv' + uvi, uvs[uvi]);
-      material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
+      material.defines[uvSets] = true;
+      for (let uvi = 0; uvi < uvSetCount; uvi++) {
+        material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
+      }
+      geomats.push([geo2, material]);
     }
 
     const pTexture = Promise.all(pTextures);
-    //const scale = 0.01;
-    const scale = 1;
-    //const scale = 100;
 
-    pTexture.then(() => {
-      let mesh = new THREE.Mesh(geo2, material);
-      options.scene.add(mesh);
-      mesh.position.set(0, 300, 0);
-      mesh.scale.set(scale, scale, scale);
-      //mesh.lookAt(options.camera.position);
-      const u_mv = options.camera.matrixWorldInverse.clone().multiply(mesh.matrixWorld);
-      material.uniforms.u_mv.value = u_mv;
-      console.log("added", model.model.name);
-      console.log("uniforms", material.uniforms);
+    const pReturn = new Promise((resolve, reject) => {
+      pTexture.then(() => {
 
-      let oldMesh = mesh;
+        const meshparent = createObject(modelOptions, model, geomats);
+        options.scene.add(meshparent);
+        const bboxHelper = new THREE.BoundingBoxHelper(meshparent, 0);
+        bboxHelper.update();
+        modelOptions.bboxHelper = bboxHelper;
 
-      var step = function() {
-        viewer.stepUpdate();
-
-        //updatePositions();
-        //material.attributes.a_position.needsUpdate = true;
-        /*let mesh = new THREE.Mesh(geo2, material);
-        options.scene.remove(oldMesh);
-        options.scene.add(mesh);
-        mesh.position.set(0, 300, 0);
-        mesh.scale.set(scale, scale, scale);
-        oldMesh = mesh;*/
-
-        hwbonesTexture.needsUpdate = true;
-        requestAnimationFrame(step);
-      };
-      requestAnimationFrame(step);
+        options.scene.remove(meshparent);
+        const modelInfo = {
+          modelOptions,
+          model,
+          geomats,
+          pTextures,
+        };
+        scope.modelRegister.push(modelInfo);
+        scope.modelByName[model.model.name] = modelInfo;
+        resolve();
+      });
     });
 
-    const boxg = new THREE.BoxGeometry(scale, scale, scale);
-    const boxm = new THREE.MeshLambertMaterial({ color: 0xFFFFFF });
-    const box = new THREE.Mesh(boxg, boxm);
-    options.scene.add(box);
-    box.position.set(300, 300, 300);
+    return pReturn;
+  }
 
-    //var mesh = new THREE.PointCloud(geo2, new THREE.PointCloudMaterial());
-    
+  this.getModels = function() {
+    return scope.modelOptionsList;
   }
 
   this.loadModels = function() {
@@ -414,47 +367,90 @@ export function ModelLoader(options) {
     //viewer.registerTextureHandler(".dds", DDSTexture);
     viewer.registerModelHandler(".m3", M3.Model, M3.ModelInstance, 1);
     viewer.clear();
+
+    scope.viewer = viewer;
+    scope.modelOptionsList = M3Models.M3Models;
+
+    const modelOptionsByName = {};
     for (const model of M3Models.M3Models) {
+      modelOptionsByName[model.name] = model;
       viewer.load(model.path, mpqFile);
     }
-    var models = viewer.getModels();
-    var modelsByName = {};
-    var waitForIt = function(callback) {
+    const models = viewer.getModels();
+    const waitForIt = function(resolve) {
       var ready = true;
       for (var i = 0; i < models.length; i++) {
         var model = models[i];
         ready = ready && model.ready;
       }
       if (ready) {
-        callback();
-      } else {
-        setTimeout(() => { waitForIt(callback); }, 100);
+        resolve();
       }
     }
-    var onLoad = function() {
+    const onLoad = function(resolve) {
+      // set instance properties
       for (const model of models) {
         for (const instance of model.instances) {
-          instance.setSequence(1);
+          model.model.sequencesByName = {};
+          let i = 0;
+          for (const sequence of model.model.sequences) {
+            model.model.sequencesByName[sequence.name] = i;
+            i++;
+          }
+          instance.setSequence(model.model.sequencesByName['Walk']);
           instance.setTeamColor(0);
         }
       }
 
-      const camera = viewer.getCamera();
-      camera.projection = options.camera.projectionMatrix;
-      camera.view = options.camera.matrixWorldInverse;
-      viewer.updateCamera();
       viewer.stepUpdate();
 
-      for (var i = 0; i < models.length; i++) {
-        var model = models[i];
-        scope.addModel(models[i], viewer);
-        modelsByName[model.model.name] = model;
+      // load my models
+      const modelPromises = [];
+      for (const model of models) {
+        const modelOptions = modelOptionsByName[model.model.name]
+        modelOptions.model = model;
+        const promise = scope.addModel(modelOptions, model, viewer);
+        modelPromises.push(promise);
       }
-    
-      //simpleThree.addModel(modelsByName.Thor);
+      const modelPromise = Promise.all(modelPromises);
+
+      // load my instances
+      modelPromise.then(() => {
+        const instancePromises = [];
+        /*for (const model of models) {
+          const modelOptions = modelOptionsByName[model.model.name]
+          instancePromises.push(
+            scope.addInstance(modelOptions)
+            );
+        }*/
+        const instancePromise = Promise.all(instancePromises);
+        instancePromise.then(resolve);
+      });
     }
 
-    waitForIt(onLoad);
+    const allModelsLoaded = new Promise((resolve, reject) => {
+      viewer.addEventListener('load', () => waitForIt(resolve));
+    });
 
+    var step = function() {
+      viewer.stepUpdate();
+      for (const instance of scope.instanceRegister) {
+        for (const geomat of instance.geomats) {
+          //const [geo, mat] = geomat;
+          const geo = geomat[0];
+          const mat = geomat[1];
+          //console.log("hwbones", instance.hwbones[0], instance.hwbones);
+          mat.uniforms.u_boneMap.value.needsUpdate = true;
+        }
+      }
+      requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+
+    const returnPromise = new Promise((resolve, reject) => {
+      allModelsLoaded.then(() => onLoad(resolve));
+    });
+    
+    return returnPromise;
   }
 }
