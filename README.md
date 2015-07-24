@@ -10,8 +10,10 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 
 ## Code
  - Separate game logic from rendering
+ - Remove old bounding box mesh, use BoundingBoxHelper instead
 
 ## Functionality
+ - Fix minimap rectangle to show real terrain, not plane
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
  - Minimap
