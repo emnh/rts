@@ -11,7 +11,7 @@ html
     script(type='text/javascript', src='jscache/stats.js')
     script(type='text/javascript', src='jscache/simplex-noise.js')
     script(type='text/javascript', src='jscache/dat.gui.min.js')
-    script(type='text/javascript', src='jscache/three.min.js')
+    script(type='text/javascript', src='jscache/three.js')
     script(type='text/javascript', src='jscache/DDSLoader.js')
     script(type='text/javascript', src='jscache/viewer.js')
     // <script type="text/javascript" src="jscache/OrbitControls.js"></script>
@@ -66,3 +66,7 @@ html
       include ./shaders/teambar-vertex.glsl
     script#teambar-fragment(type='application/x-glsl')
       include ./shaders/teambar-fragment.glsl
+    script#m3-vertex(type='application/x-glsl')
+      include ./shaders/m3-vertex.glsl
+    script#m3-fragment(type='application/x-glsl')
+      include ./shaders/m3-fragment.glsl
