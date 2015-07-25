@@ -31,9 +31,9 @@ const Mouse = {
 
 const TeamColors = [
   // red
-  new THREE.Color(255, 0, 0),
+  new THREE.Color(0xFF0000),
   // blue
-  new THREE.Color(0, 0,255),
+  new THREE.Color(0x0000FF),
   // teal
   new THREE.Color(0x008080),
   // purple
@@ -46,7 +46,7 @@ const TeamColors = [
   new THREE.Color(0xFFFFFF),
   // yellow
   new THREE.Color(0xFFFF00),
-]
+];
 
 const config = {
   audio: {
@@ -606,7 +606,7 @@ function createM3Unit(modelOptions, instance) {
   instance.instance.setTeamColor(unit.team);
   for (const geomat of instance.geomats) {
     const [geo, mat] = geomat;
-    mat.uniforms.u_teamColor.value = TeamColors[unit.team];
+    mat.uniforms.u_teamColor.value = TeamColors[unit.team].clone().multiplyScalar(255);
   }
   
   const boxMesh = modelOptions.bboxHelper.clone();
@@ -616,6 +616,9 @@ function createM3Unit(modelOptions, instance) {
   initialPlaceUnit(unit, size);
   unit.healthBar = createHealthBar();
   unit.teamBar = createTeamBar(unit);
+  
+  unit.castShadow = true;
+  unit.receiveShadow = true;
 
   addToScene(unit);
   addToScene(unit.healthBar);

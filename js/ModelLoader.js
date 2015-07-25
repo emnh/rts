@@ -22,6 +22,11 @@ export function ModelLoader(options) {
     [0, 0, 0],
     ];
 
+  const baseShader = new THREE.ShaderMaterial({
+    fragmentShader: $("#m3-fragment").text(),
+    vertexShader: $("#m3-vertex").text()
+  });
+
   this.modelRegister = [];
   this.modelByName = {};
   this.instanceRegister = [];
@@ -380,31 +385,26 @@ export function ModelLoader(options) {
       // TODO: select correct material
       // TODO: batch.material? looks funny with that
       const sourceMaterial = batch.material; // model.model.materials[1][0];
-      const material = new THREE.ShaderMaterial({
-        /*defines: {
-        },*/
-        uniforms: {
-          u_firstBoneLookupIndex: { type: 'f', value: boneLookup },
-          u_eyePos: { type: 'v3', value: options.camera.position },
-          //u_lightPos: { type: 'v3', value: options.light.position },
-          u_lightPos: { type: 'v3', value: new THREE.Vector3(0.0, 0.0, 0.0) },
-          // fragment
-          u_specularity: { type: 'f', value: sourceMaterial.specularity },
-          u_specMult: { type: 'f', value: sourceMaterial.specMult + 10 },
-          u_emisMult: { type: 'f', value: sourceMaterial.emisMult * 0.1 },
-          //u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
-          u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.5, 0.5, 0.5, 0) },
-        },
-        attributes: {
-          a_position: { type: 'v3', value: vertices },
-          a_weights: { type: 'v4', value: weights },
-          a_bones: { type: 'v4', value: bones },
-          a_normal: { type: 'v4', value: normals },
-          a_tangent: { type: 'v4', value: tangents },
-        },
-        fragmentShader: $("#m3-fragment").text(),
-        vertexShader: $("#m3-vertex").text()
-      });
+      const material = baseShader.clone();
+      material.defines = {};
+      material.uniforms = {
+        u_firstBoneLookupIndex: { type: 'f', value: boneLookup },
+        u_eyePos: { type: 'v3', value: options.camera.position },
+        //u_lightPos: { type: 'v3', value: options.light.position },
+        u_lightPos: { type: 'v3', value: new THREE.Vector3(0.0, 0.0, 10000.0) },
+        // fragment
+        u_specularity: { type: 'f', value: sourceMaterial.specularity },
+        u_specMult: { type: 'f', value: sourceMaterial.specMult + 10 },
+        u_emisMult: { type: 'f', value: sourceMaterial.emisMult * 0.0 },
+        u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
+      };
+      material.attributes = {
+        a_position: { type: 'v3', value: vertices },
+        a_weights: { type: 'v4', value: weights },
+        a_bones: { type: 'v4', value: bones },
+        a_normal: { type: 'v4', value: normals },
+        a_tangent: { type: 'v4', value: tangents },
+      };
       const setLayerSettings = function(layer, layerSettings) {
         for (var name in layerSettings) {
           const fullName = layer.uniforms[name];
@@ -412,10 +412,8 @@ export function ModelLoader(options) {
         }
       }
       const layers = sourceMaterial.layers;
-      const layersByType = {}
       const b2i = (b) => b ? 1 : 0;
       for (const layer of layers) {
-        layersByType[layer.type] = layer;
         if (layer.active) {
           setLayerSettings(layer, {
             enabled: { type: 'i', value: b2i(layer.active) },
@@ -445,6 +443,12 @@ export function ModelLoader(options) {
             pTextures.push(promise);
             pTexturesBySource[layer.source] = promise;
           }
+        } else {
+          if (layer.uniforms !== undefined) {
+            setLayerSettings(layer, {
+              enabled: { type: 'i', value: b2i(layer.active) },
+            });
+          }
         }
       }
 
@@ -458,15 +462,12 @@ export function ModelLoader(options) {
         const attribute = material.attributes[attributeName];
         const value = attribute.value;
         let size = 4;
-        let Type = Float32Array;
         if (attribute.type === 'v3') {
-          Type = Float32Array;
           size = 3;
         } else if (attribute.type === 'v2') {
-          Type = Float32Array;
           size = 2;
         }
-        const attributeArray = new Type(value.length * size);
+        const attributeArray = new Float32Array(value.length * size);
         let i = 0;
         for (const val of value) {
           const arval = val.toArray();

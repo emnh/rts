@@ -295,12 +295,13 @@ void main() {
         normal = v_normal;
     }
 
-    //vec3 v_lightDir = vec3(1.0, 1.0, 1.0);
+    vec3 lightDir = v_lightDir; //vec3(1.0, 1.0, 1.0);
 
-    float lambertFactor = max(dot(normal, v_lightDir), 0.0);
+    float lambertFactor = max(dot(normal, lightDir), 0.0);
+    if (lambertFactor > 1.0) {
+      lambertFactor = 1.0; //fract(lambertFactor);
+    }
         
-    //gl_FragColor.r = lambertFactor;
-
     if (lambertFactor > 0.0) {
         if (u_diffuseLayerSettings.enabled) {
             vec4 diffuseColor = computeLayerColor(u_diffuseMap, u_diffuseLayerSettings);
@@ -323,13 +324,13 @@ void main() {
         }
 
         //final.rgb = color * lightMapDiffuse + specularColor.rgb;
-        final.rgb = (color + specularColor.rgb) * lambertFactor;
+        //final.rgb = (color + specularColor.rgb) * lambertFactor;
+        final.rgb += (color + specularColor.rgb) * lambertFactor;
 
         bool addEmissive = false;
         vec3 emissiveColor;
         vec4 tempColor;
 
-        // TODO: disabled because of strange glitch with emissive coloring
         if (u_emissiveLayerSettings.enabled) {
             tempColor = computeLayerColor(u_emissiveMap, u_emissiveLayerSettings);
 
@@ -358,6 +359,8 @@ void main() {
     }
 
   gl_FragColor = final;
+  //gl_FragColor.r = lambertFactor;
+
   /*
   const float power = 4.0;
   const float scale = 0.000001;
@@ -365,7 +368,13 @@ void main() {
   gl_FragColor.g += scale * pow(1.0 / final.g, power);
   gl_FragColor.b += scale * pow(1.0 / final.b, power);
   */
-  //gl_FragColor = texture2D(u_diffuseMap, v_uv[0]);
+  if (hsv2rgb(final.rgb).z < 0.2) {
+    vec4 diffuseColor = computeLayerColor(u_diffuseMap, u_diffuseLayerSettings);
+    color = vec3(0.0);
+    color = combineLayerColor(diffuseColor, color, u_diffuseLayerSettings);
+
+    gl_FragColor.rgb = color; //texture2D(u_diffuseMap, v_uv[0]) * 1.5;
+  }
   //gl_FragColor.rg = v_uv[0];
   //gl_FragColor.b = lambertFactor;
 }
