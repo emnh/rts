@@ -16,7 +16,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - M3 loading
    - Fix bounding box. Need to calculate bones again.
    - Fix walk speed.
-   - Use BufferGeometry.
+   - Use BufferGeometry from the start.
    - Remove instances from viewer when unit dies.
  - Fix minimap rectangle to show real terrain, not plane
  - Constrain camera controls to stay on map

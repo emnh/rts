@@ -78,7 +78,7 @@ export function ModelLoader(options) {
         const material = geomat[1];
         const oldMaterial = modelInfo.geomats[i][1];
         i++;
-        // set textures. strange workaround of cloning problem
+        // set textures. strange workaround for cloning problem
         for (const pTexture of modelInfo.pTextures) {
           pTexture.then((tinfo) => {
             material.uniforms[tinfo.uniform].value = tinfo.texture;
@@ -335,7 +335,43 @@ export function ModelLoader(options) {
       for (let uvi = 0; uvi < uvSetCount; uvi++) {
         material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
       }
-      geomats.push([geo2, material]);
+      
+      const geo = new THREE.BufferGeometry();
+      for (const attributeName in material.attributes) {
+        const attribute = material.attributes[attributeName];
+        const value = attribute.value;
+        let size = 4;
+        // let Type = Uint8Array;
+        let Type = Float32Array;
+        if (attribute.type === 'v3') {
+          Type = Float32Array;
+          size = 3;
+        } else if (attribute.type === 'v2') {
+          // Type = Int16Array;
+          Type = Float32Array;
+          size = 2;
+        }
+        const attributeArray = new Type(value.length * size);
+        console.log("attribute", attributeName, size, value.length);
+        let i = 0;
+        for (const val of value) {
+          const arval = val.toArray();
+          // if (Math.random() < 0.001) console.log("arval", arval);
+          for (let j = 0; j < size; j++) {
+            attributeArray[i + j] = arval[j];
+          }
+          i += size;
+        }
+        if (attributeName === 'a_position') {
+          geo.addAttribute('position', new THREE.BufferAttribute(attributeArray, size));
+        }
+        geo.addAttribute(attributeName, new THREE.BufferAttribute(attributeArray, size));
+        attribute.value = null;
+      }
+      geo.computeBoundingSphere();
+      geo.computeFaceNormals();
+      geo.computeVertexNormals();
+      geomats.push([geo, material]);
     }
 
     const pTexture = Promise.all(pTextures);
