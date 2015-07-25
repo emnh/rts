@@ -512,7 +512,8 @@ function moveAlignedToGround(object) {
     // in that case units turn to original rotation.
     return;
   }
-  const zAxis = new THREE.Vector3(0, 0, config.units.speed * timeDelta);
+  const speed = config.units.speed * object.moveSpeed * timeDelta;
+  const zAxis = new THREE.Vector3(0, 0, speed);
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
@@ -564,10 +565,11 @@ function createMissile(options) {
   return unit;
 }
 
-function setUnitProperties(unit, type) {
+function setUnitProperties(unit, modelOptions) {
   // game properties
   unit.health = 1.0
-  unit.type = type;
+  unit.type = modelOptions.type;
+  unit.moveSpeed = modelOptions.moveSpeed;
   unit.weapon = {
     range: 100.0,
     damage: 0.1,
@@ -596,7 +598,7 @@ function initialPlaceUnit(unit, size) {
 function createM3Unit(modelOptions, instance) {
   const unit = instance;
   const size = getSize(modelOptions.bboxHelper.box);
-  setUnitProperties(unit, modelOptions.type);
+  setUnitProperties(unit, modelOptions);
   unit.bbox = modelOptions.bboxHelper.box;
 
   // set team color
@@ -693,7 +695,7 @@ function createUnit(options) {
   const unit = new THREE.Mesh(geometry, materialClone);
   unit.model = options;
 
-  setUnitProperties(unit, options.type);
+  setUnitProperties(unit, options);
 
   const boxMesh = new THREE.Mesh(boxGeometry, boxMaterial.clone());
   addToScene(boxMesh);
@@ -828,7 +830,8 @@ function loadModels(finishCallback) {
     opacity: 1,
     type: UnitType.Ground,
     downloadedModel: 0,
-    downloadedTexture: 0
+    downloadedTexture: 0,
+    moveSpeed: 1.0,
   };
 
   function setProgress(value) {
