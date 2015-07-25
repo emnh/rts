@@ -86,6 +86,8 @@ export function ModelLoader(options) {
           const [newGeo, newMaterial] = [geo, material.clone()];
           newMaterial.oldMaterial = material;
           newGeoMats.push([newGeo, newMaterial]);
+        } else {
+          console.log("hidden batch", model.model.name);
         }
         batchIndex++;
       }
@@ -152,7 +154,7 @@ export function ModelLoader(options) {
   }
 
   this.addModel = function(modelOptions, model, viewer) {
-    console.log("model", model);
+    console.log("model", model.model.name, model);
 
     //const geo = new THREE.BufferGeometry();
     const vertices = model.model.parser.vertices;
@@ -315,7 +317,6 @@ export function ModelLoader(options) {
       const uvs = [
         [], [], [], [],
       ];
-      let faceIndex = 0;
 
       const vertices = [];
       const weights = [];
@@ -384,7 +385,10 @@ export function ModelLoader(options) {
       const uvSets = "EXPLICITUV" + (uvSetCount - 1);
       // TODO: select correct material
       // TODO: batch.material? looks funny with that
-      const sourceMaterial = batch.material; // model.model.materials[1][0];
+      let sourceMaterial = batch.material; // model.model.materials[1][0];
+      if (modelOptions.materialHack) {
+        sourceMaterial = model.model.materials[1][0];
+      }
       const material = baseShader.clone();
       material.defines = {};
       material.uniforms = {
@@ -394,7 +398,7 @@ export function ModelLoader(options) {
         u_lightPos: { type: 'v3', value: new THREE.Vector3(0.0, 0.0, 10000.0) },
         // fragment
         u_specularity: { type: 'f', value: sourceMaterial.specularity },
-        u_specMult: { type: 'f', value: sourceMaterial.specMult + 10 },
+        u_specMult: { type: 'f', value: sourceMaterial.specMult },
         u_emisMult: { type: 'f', value: sourceMaterial.emisMult * 0.0 },
         u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
       };
@@ -485,6 +489,11 @@ export function ModelLoader(options) {
       geo.computeBoundingSphere();
       geo.computeFaceNormals();
       geo.computeVertexNormals();
+      if (modelOptions.layers !== undefined) {
+        if (modelOptions.layers.filter((l) => l == i).length === 0) {
+          continue;
+        };
+      }
       geomats.push([geo, material]);
     }
     // END BIG VERTEX DECODE LOOP

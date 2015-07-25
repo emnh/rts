@@ -60,7 +60,7 @@ const config = {
     count: 0,
     m3count: 20,
     speed: 50,
-    randomLocation: false,
+    randomLocation: true,
     airAltitude: 40,
     animated: true,
     collisionBounce: 0.2,
