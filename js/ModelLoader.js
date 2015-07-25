@@ -178,13 +178,12 @@ export function ModelLoader(options) {
     const pTexturesBySource = {};
 
     for (let i = 0; i < l2; i++) {
-      const geo2 = new THREE.Geometry();
       const uvs = [
         [], [], [], [],
       ];
       let faceIndex = 0;
-      geo2.faceVertexUvs[0] = [];
 
+      const vertices = [];
       const weights = [];
       const bones = [];
       const normals = [];
@@ -205,7 +204,7 @@ export function ModelLoader(options) {
         const y = floats[floatIndex + 1];
         const z = floats[floatIndex + 2];
         const pos = new THREE.Vector3(x, y, z);
-        geo2.vertices.push(pos);
+        vertices.push(pos);
 
         const weight =
           new THREE.Vector4(
@@ -245,22 +244,8 @@ export function ModelLoader(options) {
             bytes[byteIndex + 26 + uvSetCount * 4],
             bytes[byteIndex + 27 + uvSetCount * 4]);
         tangents.push(tangent);
-
-        if ((faceIndex + 1) % 3 == 0) {
-          geo2.faces.push(new THREE.Face3(faceIndex - 2, faceIndex - 1, faceIndex));
-          geo2.faceVertexUvs[0].push([
-            uvs[0][faceIndex - 2],
-            uvs[0][faceIndex - 1],
-            uvs[0][faceIndex - 0]
-          ]);
-        }
-        faceIndex++;
       }
       
-      geo2.computeBoundingSphere();
-      geo2.computeFaceNormals();
-      geo2.computeVertexNormals();
-
       const loader = new THREE.DDSLoader();
       const uvSets = "EXPLICITUV" + (uvSetCount - 1);
       const vscommon = SHADERS.vsbonetexture + SHADERS.svscommon + "\n";
@@ -286,7 +271,7 @@ export function ModelLoader(options) {
           u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.5, 0.5, 0.5, 0) },
         },
         attributes: {
-          a_position: { type: 'v3', value: geo2.vertices },
+          a_position: { type: 'v3', value: vertices },
           a_weights: { type: 'v4', value: weights },
           a_bones: { type: 'v4', value: bones },
           a_normal: { type: 'v4', value: normals },
