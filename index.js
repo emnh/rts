@@ -58,10 +58,11 @@ const config = {
   },
   units: {
     count: 0,
-    m3count: 10,
+    m3count: 20,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
+    animated: false,
   },
   terrain: {
     seaLevel: 0,
@@ -1093,12 +1094,12 @@ function updateShaders() {
   const nowTime = (new Date().getTime()) / 1000.0;
   const time = nowTime - game.startTime;
   for (const unit of game.units) {
-    const mesh = unit.bboxMesh;
+    /*const mesh = unit.bboxMesh;
     if (mesh !== undefined) {
       if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
         mesh.material.uniforms.time.value = time;
       }
-    }
+    }*/
     unit.healthBar.material.uniforms.health.value = unit.health;
   }
 }
@@ -1279,7 +1280,7 @@ function render() {
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // Debug.drawOutLine(game.units, worldToScreen);
 
-  if (game.m3loader) {
+  if (game.m3loader && config.units.animated) {
     game.m3loader.update();
   }
   TWEEN.update();

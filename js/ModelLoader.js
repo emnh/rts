@@ -47,6 +47,8 @@ export function ModelLoader(options) {
     const viewer = scope.viewer;
     const model = modelOptions.model;
     const onLoad = function(object) {
+      const context = viewer.getContext();
+      object.update(context);
       const instance = object.instance;
       const sequenceId = model.model.sequencesByName[modelOptions.sequence];
       if (sequenceId !== undefined) {
@@ -67,9 +69,14 @@ export function ModelLoader(options) {
       //console.log("modelByName", scope.modelByName, model.model.name);
       const modelInfo = scope.modelByName[model.model.name];
       const newGeoMats = [];
+      let batchIndex = 0;
       for (const geomat of modelInfo.geomats) {
         const [geo, material] = geomat;
-        newGeoMats.push([geo, material.clone()]);
+        const batch = model.model.batches[batchIndex];
+        if (instance.meshVisibilities[batch.regionId]) {
+          newGeoMats.push([geo, material.clone()]);
+        }
+        batchIndex++;
       }
       let i = 0;
       for (const geomat of newGeoMats) {
@@ -254,26 +261,29 @@ export function ModelLoader(options) {
       geo2.computeFaceNormals();
       geo2.computeVertexNormals();
 
-      const parserMaterial = model.model.parser.materials[0][0];
       const loader = new THREE.DDSLoader();
       const uvSets = "EXPLICITUV" + (uvSetCount - 1);
       const vscommon = SHADERS.vsbonetexture + SHADERS.svscommon + "\n";
       const vsstandard = vscommon + SHADERS.svsstandard;
       const pscommon = SHADERS.spscommon + "\n";
       const psstandard = pscommon + SHADERS.spsstandard;
-      const sourceMaterial = model.model.materials[1][0];
+      // TODO: select correct material
+      // TODO: batch.material? looks funny with that
+      const sourceMaterial = batch.material; // model.model.materials[1][0];
       const material = new THREE.ShaderMaterial({
         /*defines: {
         },*/
         uniforms: {
           u_firstBoneLookupIndex: { type: 'f', value: boneLookup },
           u_eyePos: { type: 'v3', value: options.camera.position },
-          u_lightPos: { type: 'v3', value: options.light.position },
+          //u_lightPos: { type: 'v3', value: options.light.position },
+          u_lightPos: { type: 'v3', value: new THREE.Vector3(0.0, 0.0, 0.0) },
           // fragment
           u_specularity: { type: 'f', value: sourceMaterial.specularity },
-          u_specMult: { type: 'f', value: sourceMaterial.specMult },
-          u_emisMult: { type: 'f', value: sourceMaterial.emisMult },
-          u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
+          u_specMult: { type: 'f', value: sourceMaterial.specMult + 10 },
+          u_emisMult: { type: 'f', value: sourceMaterial.emisMult * 0.1 },
+          //u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
+          u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.5, 0.5, 0.5, 0) },
         },
         attributes: {
           a_position: { type: 'v3', value: geo2.vertices },
@@ -293,8 +303,7 @@ export function ModelLoader(options) {
           material.uniforms[fullName] = layerSettings[name];
         }
       }
-      // TODO: select correct layer
-      const layers = model.model.materials[1][0].layers;
+      const layers = sourceMaterial.layers;
       const layersByType = {}
       const b2i = (b) => b ? 1 : 0;
       for (const layer of layers) {
@@ -352,7 +361,6 @@ export function ModelLoader(options) {
           size = 2;
         }
         const attributeArray = new Type(value.length * size);
-        console.log("attribute", attributeName, size, value.length);
         let i = 0;
         for (const val of value) {
           const arval = val.toArray();
