@@ -215,7 +215,94 @@ export function ModelLoader(options) {
     instance.bighwbones = bighwbones;
 
     // end bighwbones
+    
+    // BEGIN UPDATEPOSITIONS
+    // only to get bounding box
+    var boneAtIndex = function(index) {
+      const offset = index * 16;
+      const elements = [];
+      //console.log("index", index, hwbones.length);
+      for (let i = 0; i < 16; i++) {
+        elements[i] = hwbones[offset + i];
+      }
+      //console.log("elements", elements);
+      const mat = new THREE.Matrix4();
+      mat.set.apply(mat, elements);
+      mat.transpose();
+      //console.log("mat", mat);
+      return mat;
+    };
 
+    const updatePositions = function() {
+      const bgeo = new THREE.Geometry();
+      const l = batches.length;
+      for (let i = 0; i < l; i++) {
+        const batch = batches[i];
+        const region = batch.region;
+        const offset = region.offset / 2;
+        const boneLookup = region.firstBoneLookupIndex;
+        for (let k = 0; k < region.elements; k++) {
+          const element = offset + k;
+
+          const floatIndex = elementArray[element] * vertexSize / 4;
+          const byteIndex = elementArray[element] * vertexSize;
+          const shortIndex = elementArray[element] * vertexSize / 2;
+
+          const x = floats[floatIndex + 0];
+          const y = floats[floatIndex + 1];
+          const z = floats[floatIndex + 2];
+          const pos = new THREE.Vector3(x, y, z);
+
+          const weight =
+            new THREE.Vector4(
+              bytes[byteIndex + 12],
+              bytes[byteIndex + 13],
+              bytes[byteIndex + 14],
+              bytes[byteIndex + 15]);
+
+          const bone =
+            new THREE.Vector4(
+              bytes[byteIndex + 16],
+              bytes[byteIndex + 17],
+              bytes[byteIndex + 18],
+              bytes[byteIndex + 19]);
+
+          // debug code
+          const weightedBone0 = boneAtIndex(bone.x + boneLookup).multiplyScalar(weight.x / 255);
+          const weightedBone1 = boneAtIndex(bone.y + boneLookup).multiplyScalar(weight.y / 255);
+          const weightedBone2 = boneAtIndex(bone.z + boneLookup).multiplyScalar(weight.z / 255);
+          const weightedBone3 = boneAtIndex(bone.w + boneLookup).multiplyScalar(weight.w / 255);
+          const position = new THREE.Vector4(pos.x, pos.y, pos.z, 1.0);
+          const outposition4 = new THREE.Vector4();
+          outposition4.add(position.clone().applyMatrix4(weightedBone0));
+          outposition4.add(position.clone().applyMatrix4(weightedBone1));
+          outposition4.add(position.clone().applyMatrix4(weightedBone2));
+          outposition4.add(position.clone().applyMatrix4(weightedBone3));
+          const outposition = new THREE.Vector3(outposition4.x, outposition4.y, outposition4.z);
+          //console.log("position", pos);
+          //console.log("outposition", outposition);
+          bgeo.vertices.push(outposition);
+        }
+      }
+
+      const rotation = modelOptions.rotation;
+      const scale = modelOptions.scale;
+      const mat = new THREE.Matrix4();
+      mat.makeRotationX(rotation.x);
+      bgeo.applyMatrix(mat);
+      mat.makeRotationY(rotation.y);
+      bgeo.applyMatrix(mat);
+      mat.makeRotationZ(rotation.z);
+      bgeo.applyMatrix(mat);
+      mat.makeScale(scale, scale, scale);
+      bgeo.applyMatrix(mat);
+      
+      return bgeo;
+    }
+    const bgeo = updatePositions();
+    // END UPDATEPOSITIONS
+
+    // BEGIN BIG VERTEX DECODE LOOP
     for (let i = 0; i < l2; i++) {
       const uvs = [
         [], [], [], [],
@@ -368,13 +455,11 @@ export function ModelLoader(options) {
         const attribute = material.attributes[attributeName];
         const value = attribute.value;
         let size = 4;
-        // let Type = Uint8Array;
         let Type = Float32Array;
         if (attribute.type === 'v3') {
           Type = Float32Array;
           size = 3;
         } else if (attribute.type === 'v2') {
-          // Type = Int16Array;
           Type = Float32Array;
           size = 2;
         }
@@ -382,7 +467,6 @@ export function ModelLoader(options) {
         let i = 0;
         for (const val of value) {
           const arval = val.toArray();
-          // if (Math.random() < 0.001) console.log("arval", arval);
           for (let j = 0; j < size; j++) {
             attributeArray[i + j] = arval[j];
           }
@@ -399,13 +483,15 @@ export function ModelLoader(options) {
       geo.computeVertexNormals();
       geomats.push([geo, material]);
     }
+    // END BIG VERTEX DECODE LOOP
 
     const pTexture = Promise.all(pTextures);
 
     const pReturn = new Promise((resolve, reject) => {
       pTexture.then(() => {
 
-        const meshparent = createObject(modelOptions, model, geomats);
+        //const meshparent = createObject(modelOptions, model, geomats);
+        const meshparent = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial());
         options.scene.add(meshparent);
         const bboxHelper = new THREE.BoundingBoxHelper(meshparent, 0);
         bboxHelper.update();
