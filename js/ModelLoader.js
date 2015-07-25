@@ -78,7 +78,9 @@ export function ModelLoader(options) {
         const [geo, material] = geomat;
         const batch = model.model.batches[batchIndex];
         if (instance.meshVisibilities[batch.regionId]) {
-          newGeoMats.push([geo, material.clone()]);
+          const [newGeo, newMaterial] = [geo, material.clone()];
+          newMaterial.oldMaterial = material;
+          newGeoMats.push([newGeo, newMaterial]);
         }
         batchIndex++;
       }
@@ -87,12 +89,13 @@ export function ModelLoader(options) {
         //const [geo, material] = geomat;
         const geo = geomat[0];
         const material = geomat[1];
-        const oldMaterial = modelInfo.geomats[i][1];
+        const oldMaterial = material.oldMaterial;
         i++;
         // set textures. strange workaround for cloning problem
         for (const pTexture of modelInfo.pTextures) {
           pTexture.then((tinfo) => {
-            material.uniforms[tinfo.uniform].value = tinfo.texture;
+            //material.uniforms[tinfo.uniform].value = tinfo.texture;
+            material.uniforms[tinfo.uniform] = { type: 't', value: tinfo.texture };
           });
         }
         material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture, needsUpdate: true };
@@ -203,7 +206,7 @@ export function ModelLoader(options) {
 
     const animationLength = model.model.sequences[instance.sequence].animationEnd;
     const frames = Math.round(animationLength / context.frameTime);
-    console.log("frames", frames, model.model.name);
+    // console.log("frames", frames, model.model.name);
     const bighwbones = new Float32Array(frames * hwbonesLength);
 
     for (let i = 0; i < frames; i++) {
