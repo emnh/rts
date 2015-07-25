@@ -14,10 +14,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 
 ## Functionality
  - M3 loading
-   - Fix bounding box. Need to calculate bones again.
-   - Fix walk speed.
-   - Use BufferGeometry from the start.
-   - Remove instances from viewer when unit dies.
+   - Take care of memory leaks.
  - Fix minimap rectangle to show real terrain, not plane
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
@@ -37,7 +34,6 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
   - Select target unit
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
- - Add ocean floor at edge of map
  - 3D positioning of sounds
  - Unit selection rectangle
   - Update for units that move into selection
