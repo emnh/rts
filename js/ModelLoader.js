@@ -47,20 +47,24 @@ export function ModelLoader(options) {
     const viewer = scope.viewer;
     const model = modelOptions.model;
     const onLoad = function(object) {
-      const context = viewer.getContext();
-      object.update(context);
+      //const context = viewer.getContext();
+      //object.update(context);
       const instance = object.instance;
-      const sequenceId = model.model.sequencesByName[modelOptions.sequence];
+      /*const sequenceId = model.model.sequencesByName[modelOptions.sequence];
       if (sequenceId !== undefined) {
         instance.setSequence(sequenceId);
       } else {
         console.warn("could't find sequence", modelOptions.sequence, model.model.name, model);
         instance.setSequence(0);
-      }
+      }*/
       const teamId = 0; //instance.teamColor;
-      const skeleton = instance.skeleton;
-      const hwbones = skeleton.hwbones;
-      const hwbonesTexture = new THREE.DataTexture(hwbones, hwbones.length / 4, 1, THREE.RGBAFormat, THREE.FloatType);
+      const bighwbones = instance.bighwbones;
+      const hwTextureWidth = instance.hwTextureWidth;
+      const hwTextureHeight = instance.hwTextureHeight;
+      const hwbonesTexture = new THREE.DataTexture(bighwbones, hwTextureWidth, hwTextureHeight, THREE.RGBAFormat, THREE.FloatType);
+      // const skeleton = instance.skeleton;
+      // const hwbones = skeleton.hwbones;
+      // const hwbonesTexture = new THREE.DataTexture(hwbones, hwbones.length / 4, 1, THREE.RGBAFormat, THREE.FloatType);
       hwbonesTexture.flipY = false;
       hwbonesTexture.unpackAlignment = 4;
       hwbonesTexture.generateMipmaps = false;
@@ -92,8 +96,10 @@ export function ModelLoader(options) {
           });
         }
         material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture, needsUpdate: true };
-        material.uniforms.u_matrix_size = { type: 'f', value: 4 / (hwbones.length / 4) };
-        material.uniforms.u_texel_size = { type: 'f', value: 1 / (hwbones.length / 4)};
+        material.uniforms.u_matrix_size = { type: 'f', value: 4 / hwTextureWidth };
+        material.uniforms.u_texel_size = { type: 'f', value: 1 / hwTextureWidth };
+        material.uniforms.u_frame_size = { type: 'f', value: 1 / hwTextureHeight };
+        material.uniforms.u_frame = { type: 'f', value: 0 };
         material.uniforms.u_teamColor = {
                 type: 'c',
                 value: new THREE.Color(
@@ -104,7 +110,7 @@ export function ModelLoader(options) {
       }
       const meshparent = createObject(modelOptions, model, newGeoMats);
       meshparent.position.set(Math.random() * 100, 300, Math.random() * 100);
-      meshparent.hwbones = hwbones;
+      meshparent.bighwbones = bighwbones;
       meshparent.instance = instance;
       scope.instanceRegister.push(meshparent);
       //console.log("resolve asyncInstance");
@@ -121,7 +127,8 @@ export function ModelLoader(options) {
         }
       };
       viewer.addEventListener('load', listener);
-      const asyncInstance = viewer.loadInstance(model.source, false);
+      const asyncInstance = model.instances[0];
+      //const asyncInstance = viewer.loadInstance(model.source, false);
       //console.log("asyncInstance", asyncInstance);
       if (asyncInstance.ready) {
         //console.log("resolved immediately");
@@ -176,6 +183,38 @@ export function ModelLoader(options) {
     const geomats = [];
     const pTextures = [];
     const pTexturesBySource = {};
+
+    // make a big hwbones texture for the whole animation
+    const context = viewer.getContext();
+    // in milliseconds
+    const asyncinstance = model.instances[0];
+    const instance = asyncinstance.instance;
+    const skeleton = instance.skeleton;
+    const hwbones = skeleton.hwbones;
+    const hwbonesLength = hwbones.length;
+
+    const sequenceId = model.model.sequencesByName[modelOptions.sequence];
+    if (sequenceId !== undefined) {
+      instance.setSequence(sequenceId);
+    } else {
+      console.warn("could't find sequence", modelOptions.sequence, model.model.name, model);
+      instance.setSequence(0);
+    }
+
+    const animationLength = model.model.sequences[instance.sequence].animationEnd;
+    const frames = Math.round(animationLength / context.frameTime);
+    console.log("frames", frames, model.model.name);
+    const bighwbones = new Float32Array(frames * hwbonesLength);
+
+    for (let i = 0; i < frames; i++) {
+      asyncinstance.update(context);
+      bighwbones.set(hwbones, i * hwbonesLength);
+    }
+    instance.hwTextureWidth = hwbonesLength / 4;
+    instance.hwTextureHeight = frames;
+    instance.bighwbones = bighwbones;
+
+    // end bighwbones
 
     for (let i = 0; i < l2; i++) {
       const uvs = [
@@ -248,10 +287,6 @@ export function ModelLoader(options) {
       
       const loader = new THREE.DDSLoader();
       const uvSets = "EXPLICITUV" + (uvSetCount - 1);
-      const vscommon = SHADERS.vsbonetexture + SHADERS.svscommon + "\n";
-      const vsstandard = vscommon + SHADERS.svsstandard;
-      const pscommon = SHADERS.spscommon + "\n";
-      const psstandard = pscommon + SHADERS.spsstandard;
       // TODO: select correct material
       // TODO: batch.material? looks funny with that
       const sourceMaterial = batch.material; // model.model.materials[1][0];
@@ -277,8 +312,6 @@ export function ModelLoader(options) {
           a_normal: { type: 'v4', value: normals },
           a_tangent: { type: 'v4', value: tangents },
         },
-        //fragmentShader: psstandard,
-        //vertexShader: vsstandard,
         fragmentShader: $("#m3-fragment").text(),
         vertexShader: $("#m3-vertex").text()
       });
@@ -472,15 +505,21 @@ export function ModelLoader(options) {
       viewer.addEventListener('load', () => waitForIt(resolve));
     });
 
+    let oldTime = (new Date()).getTime() / 1000;
     var update = function() {
-      viewer.stepUpdate();
+      // viewer.stepUpdate();
+      const nowTime = (new Date()).getTime() / 1000;
+      const elapsed = nowTime - oldTime;
+      const FPS = 60;
+      oldTime = nowTime;
       for (const instance of scope.instanceRegister) {
         for (const geomat of instance.geomats) {
           //const [geo, mat] = geomat;
           const geo = geomat[0];
           const mat = geomat[1];
           //console.log("hwbones", instance.hwbones[0], instance.hwbones);
-          mat.uniforms.u_boneMap.value.needsUpdate = true;
+          // mat.uniforms.u_boneMap.value.needsUpdate = true;
+          mat.uniforms.u_frame.value += elapsed * FPS;
         }
       }
     };

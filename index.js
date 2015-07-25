@@ -62,7 +62,7 @@ const config = {
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
-    animated: false,
+    animated: true,
   },
   terrain: {
     seaLevel: 0,
