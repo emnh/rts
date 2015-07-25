@@ -63,6 +63,7 @@ const config = {
     randomLocation: false,
     airAltitude: 40,
     animated: true,
+    collisionBounce: 0.2,
   },
   terrain: {
     seaLevel: 0,
@@ -630,7 +631,7 @@ function createM3Unit(modelOptions, instance) {
     });
   };
 
-  unit.remove = () => { removeUnit(unit); };
+  unit.removeUnit = () => { removeUnit(unit); };
 
   return instance;
 }
@@ -721,7 +722,7 @@ function createUnit(options) {
     });
   };
 
-  unit.remove = () => { removeUnit(unit); };
+  unit.removeUnit = () => { removeUnit(unit); };
   return unit;
 }
 
@@ -928,7 +929,9 @@ function getBBoxes() {
 
 function mark(unit) {
   // TODO: use a Symbol for currentHex
-  const geometry = new THREE.CircleGeometry(unit.geometry.boundingSphere.radius, 32);
+  const size = getSize(unit.bbox);
+  const radius = Math.max(size.height, Math.max(size.width, size.depth));
+  const geometry = new THREE.CircleGeometry(radius, 32);
   geometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
   const material = new THREE.MeshLambertMaterial({
     color: 0x00FF00,
@@ -1025,11 +1028,11 @@ function updateUnitInfo() {
     const x = formatFloat(unit.position.x);
     const y = formatFloat(unit.position.y);
     const z = formatFloat(unit.position.z);
-    const min = unit.geometry.boundingBox.min;
+    const min = unit.bbox.min;
     const minx = formatFloat(min.x);
     const miny = formatFloat(min.y);
     const minz = formatFloat(min.z);
-    const max = unit.geometry.boundingBox.max;
+    const max = unit.bbox.max;
     const maxx = formatFloat(max.x);
     const maxy = formatFloat(max.y);
     const maxz = formatFloat(max.z);
@@ -1316,7 +1319,7 @@ function checkCollisions() {
       d.z = Math.random();
     }
     d.normalize();
-    d.multiplyScalar(1.0);
+    d.multiplyScalar(config.units.collisionBounce);
     const p1new = p1.clone().sub(d);
     const p2new = p2.clone().add(d);
     if (p1new.x >= game.mapBounds.min.x &&
@@ -1468,7 +1471,7 @@ function attackTargets() {
 function removeDead() {
   game.units = game.units.filter((unit) => {
     if (unit.dead) {
-      unit.remove();
+      unit.removeUnit();
       const newUnitPromise = unit.createNew();
       newUnitPromise.then((newUnit) => {
         game.newUnits.push(newUnit);
