@@ -8,7 +8,7 @@ body {
 	padding: 0;
 	font-family: Verdana;
 	font-size: 10pt;
-	overflow: hidden;
+  overflow: hidden;
 }
 
 #heading {
@@ -98,4 +98,7 @@ canvas#viewer {
   visibility: hidden;
   width: 1px;
   height: 1px;
+}
+
+#m3progress {
 }

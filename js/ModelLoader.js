@@ -135,7 +135,7 @@ export function ModelLoader(options) {
     });
   }
 
-  this.addModel = function(modelOptions, model, viewer) {
+  this.addModel = function(modelOptions, model, viewer, progress) {
     console.log("model", model.model.name, model);
 
     //const geo = new THREE.BufferGeometry();
@@ -424,19 +424,19 @@ export function ModelLoader(options) {
           });
           if (pTexturesBySource[layer.source] !== undefined) {
             pTexturesBySource[layer.source].then((tinfo) => {
-              //console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
-              material.uniforms[layer.uniforms.map] = { type: 't', value: tinfo.texture };
-            });
+                //console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
+                material.uniforms[layer.uniforms.map] = { type: 't', value: tinfo.texture };
+              });
           } else {
             const promise = new Promise((resolve, reject) => {
               loader.load(mpqFile(layer.source), (texture) => {
-                //console.log("texture", texture, layer.source, layer.uniforms.map);
-                material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
-                resolve({
-                  texture: texture,
-                  uniform: layer.uniforms.map
-                });
-              });
+                  //console.log("texture", texture, layer.source, layer.uniforms.map);
+                  material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
+                  resolve({
+                    texture: texture,
+                    uniform: layer.uniforms.map
+                  });
+                }, progress);
             });
             pTextures.push(promise);
             pTexturesBySource[layer.source] = promise;
@@ -524,7 +524,7 @@ export function ModelLoader(options) {
     return scope.modelOptionsList;
   }
 
-  this.loadModels = function() {
+  this.loadModels = function(progress) {
     const canvas = $("canvas#viewer");
     const viewer = ModelViewer(canvas[0], mpqFile);
     viewer.registerTextureHandler(".blp", BLPTexture);
@@ -536,6 +536,8 @@ export function ModelLoader(options) {
 
     scope.viewer = viewer;
     scope.modelOptionsList = M3Models.M3Models;
+
+    viewer.addEventListener('progress', progress);
 
     const modelOptionsByName = {};
     for (const model of M3Models.M3Models) {
@@ -571,7 +573,7 @@ export function ModelLoader(options) {
       for (const model of models) {
         const modelOptions = modelOptionsByName[model.model.name]
         modelOptions.model = model;
-        const promise = scope.addModel(modelOptions, model, viewer);
+        const promise = scope.addModel(modelOptions, model, viewer, progress);
         modelPromises.push(promise);
       }
       const modelPromise = Promise.all(modelPromises);

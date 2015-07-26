@@ -854,7 +854,7 @@ function loadModels(finishCallback) {
     $progress.css({
       width: val + "%",
     });
-    $progressText.html(val + "% Complete");
+    $progressText.html(val + "% JSON Units");
   }
 
   function setModelProgress() {
@@ -890,7 +890,7 @@ function loadModels(finishCallback) {
   const $modelSizes = $("#modelSizes");
   const modelSizes = JSON.parse($modelSizes.html());
 
-  const $progress = $(".unitinfo .progress-bar");
+  const $progress = $("#units .progress-bar");
   const $progressText = $progress; //.find("span");
 
   const optionList = [];
@@ -1528,6 +1528,60 @@ function updateSimulation() {
   requestAnimationFrame(updateSimulation);
 }
 
+function initM3Models() {
+  const modelLoader = new ModelLoader({
+    camera: game.scene.camera,
+    scene: game.scene.scene3,
+    light: game.scene.light,
+  });
+  const $modal = $('#m3progress');
+  const $modalBody = $modal.find('.modal-body');
+  const sources = {};
+  $modal.modal();
+  
+  const progress = (evt) => {
+    // function handles progress events of two types:
+    // from Viewer.addEventListener('load') and from THREE.CompressedTextureLoader
+    const source = evt.target.source || evt.target.responseURL;
+    if (sources[source] === undefined) {
+      const $progress = $('#m3unit.progress').clone();
+      $progress.attr('id', '');
+      $progress.removeClass('invisible');
+      $modalBody.append($progress);
+      sources[source] = {
+        $progress,
+      };
+    }
+    const $progressParent = sources[source].$progress;
+    const $progress = sources[source].$progress.find('.progress-bar');
+    const $progressText = $progress;
+    function setProgress(value, text) {
+      const val = Math.round(value * 100);
+      if (val === 100) {
+        $progressParent.remove();
+      } else {
+        $progress.attr("aria-valuenow", val);
+        $progress.css({
+          width: val + "%",
+        });
+        $progressText.html(val + "% " + text);
+      }
+    }
+    const filename = source.replace(/^.*[\\\/]/, '');
+    setProgress(evt.loaded / evt.total, filename);
+  };
+
+  const modelPromise = modelLoader.loadModels(progress);
+  modelPromise.then(() => {
+    game.m3loader = modelLoader;
+    $modalBody.append("<p>All M3 models loaded!</p>");
+    if ($('#units.progress .progress-bar').attr('aria-valuenow') === '100') {
+      $modal.modal('hide');
+    }
+    createM3Units();
+  });
+}
+
 function initScene() {
   $('.controls').height(config.dom.controlsHeight);
 
@@ -1575,18 +1629,6 @@ function initScene() {
   });
 
   //updateSimulation();
-
-  const modelLoader = new ModelLoader({
-    camera: game.scene.camera,
-    scene: game.scene.scene3,
-    light: game.scene.light,
-  });
-  const modelPromise = modelLoader.loadModels();
-  modelPromise.then(() => {
-    game.m3loader = modelLoader;
-    console.log("all models up");
-    createM3Units();
-  });
 }
 
 function Sound() {
@@ -1645,6 +1687,7 @@ function main() {
   game.sound = new Sound();
   initScene();
   initSelection();
+  initM3Models();
   initUI();
 }
 
