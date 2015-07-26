@@ -56,6 +56,9 @@ const config = {
   dom: {
     controlsHeight: 250,
   },
+  effects: {
+    explosionPool: 20,
+  },
   units: {
     count: 0,
     m3count: 20,
@@ -938,9 +941,8 @@ function getBBoxes() {
 }
 
 function mark(unit) {
-  // TODO: use a Symbol for currentHex
   const size = getSize(unit.bbox);
-  const radius = Math.max(size.height, Math.max(size.width, size.depth));
+  const radius = Math.max(size.height, Math.max(size.width, size.depth)) / 2;
   const geometry = new THREE.CircleGeometry(radius, 32);
   geometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
   const material = new THREE.MeshLambertMaterial({
@@ -1401,13 +1403,27 @@ function Explosions() {
   geometry.computeFaceNormals();
   geometry.computeVertexNormals();
 
-  this.createExplosion = function(pos) {
-    const newMaterial = material.clone();
-    newMaterial.uniforms.tExplosion.value = texture;
-    const mesh = new THREE.Mesh(geometry, newMaterial);
-    mesh.position.copy(pos);
+  this.pool = [];
 
+  this.createExplosion = function() {
+    let mesh;
+    if (this.pool.length > 0) {
+      mesh = this.pool.pop();
+    } else {
+      const newMaterial = material.clone();
+      newMaterial.uniforms.tExplosion.value = texture;
+      mesh = new THREE.Mesh(geometry, newMaterial);
+    }
     return mesh;
+  }
+
+  this.returnExplosion = function(explosion) {
+    this.pool.push(explosion);
+  }
+  
+  for (let i = 0; i < config.effects.explosionPool; i++) {
+    const mesh = this.createExplosion();
+    this.returnExplosion(mesh);
   }
 }
 
@@ -1419,8 +1435,10 @@ function getApplyShot(unit, target, shotMesh) {
     shotMesh = null;
     if (target.health <= 0 && oldHealth > 0) {
       target.dead = true;
-      let explosion = game.explosions.createExplosion(target.position);
+      const pos = target.position.clone();
       target = null;
+      let explosion = game.explosions.createExplosion();
+      explosion.position.copy(pos);
       explosion.time = 0;
       explosion.tscale = 0;
       explosion.opacity = 2;
@@ -1438,7 +1456,8 @@ function getApplyShot(unit, target, shotMesh) {
           this.scale.set(scale, scale, scale);
         })
         .onComplete(function() {
-          removeFromScene(explosion);
+          game.explosions.returnExplosion(explosion);
+          //removeFromScene(explosion);
           explosion = null;
         }).start();
     }
