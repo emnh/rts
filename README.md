@@ -13,6 +13,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
  - Remove old bounding box mesh, use BoundingBoxHelper instead
 
 ## Functionality
+ - Fix minimap rectangle in Chrome
  - M3 loading
    - Take care of memory leaks.
  - Fix minimap rectangle to show real terrain, not plane
