@@ -60,7 +60,7 @@ const config = {
     count: 0,
     m3count: 20,
     speed: 50,
-    randomLocation: true,
+    randomLocation: false,
     airAltitude: 40,
     animated: true,
     collisionBounce: 0.2,
@@ -108,6 +108,9 @@ const game = {
   emitters: [],
   selector: {}
 };
+
+// for debugging in JS console
+window.game = game;
 
 function getGameTime() {
   return (new Date().getTime()) / 1000.0 - game.startTime;
@@ -505,7 +508,11 @@ function moveAlignedToGround(object) {
     return;
   }
   const oldTime = object.lastMoved;
-  const timeDelta = nowTime - oldTime;
+  let timeDelta = nowTime - oldTime;
+  // prevent big jumps in time. happens when user switches window and comes back.
+  if (timeDelta > 1) {
+    timeDelta = 1;
+  }
   object.lastMoved = nowTime;
   const eps = 1e-7;
   if (timeDelta < eps) {
@@ -590,7 +597,7 @@ function initialPlaceUnit(unit, size) {
   const height = size.height * unit.scale.y;
   //const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
   const groundHeight = getGroundAlignment(unit);
-  unit.position.y = groundHeight + height + 10;
+  unit.position.y = groundHeight; // + height;
   unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
   unit.stayUpRight = true;
   unit.lastMoved = undefined;

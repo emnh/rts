@@ -52,30 +52,17 @@ export function ModelLoader(options) {
     const viewer = scope.viewer;
     const model = modelOptions.model;
     const onLoad = function(object) {
-      //const context = viewer.getContext();
-      //object.update(context);
       const instance = object.instance;
-      /*const sequenceId = model.model.sequencesByName[modelOptions.sequence];
-      if (sequenceId !== undefined) {
-        instance.setSequence(sequenceId);
-      } else {
-        console.warn("could't find sequence", modelOptions.sequence, model.model.name, model);
-        instance.setSequence(0);
-      }*/
-      const teamId = 0; //instance.teamColor;
+      const teamId = 0;
       const bighwbones = instance.bighwbones;
       const hwTextureWidth = instance.hwTextureWidth;
       const hwTextureHeight = instance.hwTextureHeight;
       const hwbonesTexture = new THREE.DataTexture(bighwbones, hwTextureWidth, hwTextureHeight, THREE.RGBAFormat, THREE.FloatType);
-      // const skeleton = instance.skeleton;
-      // const hwbones = skeleton.hwbones;
-      // const hwbonesTexture = new THREE.DataTexture(hwbones, hwbones.length / 4, 1, THREE.RGBAFormat, THREE.FloatType);
       hwbonesTexture.flipY = false;
       hwbonesTexture.unpackAlignment = 4;
       hwbonesTexture.generateMipmaps = false;
       hwbonesTexture.needsUpdate = true;
       hwbonesTexture.minFilter = THREE.NearestFilter;
-      //console.log("modelByName", scope.modelByName, model.model.name);
       const modelInfo = scope.modelByName[model.model.name];
       const newGeoMats = [];
       let batchIndex = 0;
@@ -213,7 +200,7 @@ export function ModelLoader(options) {
 
     const animationLength = model.model.sequences[instance.sequence].animationEnd;
     const frames = Math.round(animationLength / context.frameTime);
-    // console.log("frames", frames, model.model.name);
+    //console.log("frames", frames, model.model.name);
     const bighwbones = new Float32Array(frames * hwbonesLength);
 
     for (let i = 0; i < frames; i++) {
@@ -560,17 +547,13 @@ export function ModelLoader(options) {
       }
     }
     const onLoad = function(resolve) {
-      // set instance properties
+      // set sequencesByName
       for (const model of models) {
-        for (const instance of model.instances) {
-          model.model.sequencesByName = {};
-          let i = 0;
-          for (const sequence of model.model.sequences) {
-            model.model.sequencesByName[sequence.name] = i;
-            i++;
-          }
-          //instance.setSequence(model.model.sequencesByName['Walk']);
-          //instance.setTeamColor(0);
+        model.model.sequencesByName = {};
+        let i = 0;
+        for (const sequence of model.model.sequences) {
+          model.model.sequencesByName[sequence.name] = i;
+          i++;
         }
       }
 
@@ -610,15 +593,16 @@ export function ModelLoader(options) {
       const nowTime = (new Date()).getTime() / 1000;
       const elapsed = nowTime - oldTime;
       const FPS = 60;
+      const elapsedFrames = elapsed * FPS;
       oldTime = nowTime;
-      for (const instance of scope.instanceRegister) {
-        for (const geomat of instance.geomats) {
-          //const [geo, mat] = geomat;
+      scope.instanceRegister = scope.instanceRegister.filter((unit) => !unit.dead);
+      for (let i = 0; i < scope.instanceRegister.length; i++) {
+        const instance = scope.instanceRegister[i];
+        for (let j = 0; j < instance.geomats.length; j++) {
+          const geomat = instance.geomats[j];
           const geo = geomat[0];
           const mat = geomat[1];
-          //console.log("hwbones", instance.hwbones[0], instance.hwbones);
-          // mat.uniforms.u_boneMap.value.needsUpdate = true;
-          mat.uniforms.u_frame.value += elapsed * FPS;
+          mat.uniforms.u_frame.value += elapsedFrames;
         }
       }
     };
