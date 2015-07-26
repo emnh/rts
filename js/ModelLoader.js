@@ -57,12 +57,7 @@ export function ModelLoader(options) {
       const bighwbones = instance.bighwbones;
       const hwTextureWidth = instance.hwTextureWidth;
       const hwTextureHeight = instance.hwTextureHeight;
-      const hwbonesTexture = new THREE.DataTexture(bighwbones, hwTextureWidth, hwTextureHeight, THREE.RGBAFormat, THREE.FloatType);
-      hwbonesTexture.flipY = false;
-      hwbonesTexture.unpackAlignment = 4;
-      hwbonesTexture.generateMipmaps = false;
-      hwbonesTexture.needsUpdate = true;
-      hwbonesTexture.minFilter = THREE.NearestFilter;
+      const hwbonesTexture = instance.hwbonesTexture;
       const modelInfo = scope.modelByName[model.model.name];
       const newGeoMats = [];
       let batchIndex = 0;
@@ -92,7 +87,7 @@ export function ModelLoader(options) {
             material.uniforms[tinfo.uniform] = { type: 't', value: tinfo.texture };
           });
         }
-        material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture, needsUpdate: true };
+        material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture };
         material.uniforms.u_matrix_size = { type: 'f', value: 4 / hwTextureWidth };
         material.uniforms.u_texel_size = { type: 'f', value: 1 / hwTextureWidth };
         material.uniforms.u_frame_size = { type: 'f', value: 1 / hwTextureHeight };
@@ -210,7 +205,19 @@ export function ModelLoader(options) {
     instance.hwTextureWidth = hwbonesLength / 4;
     instance.hwTextureHeight = frames;
     instance.bighwbones = bighwbones;
-
+    const hwbonesTexture = 
+      new THREE.DataTexture(
+        bighwbones, 
+        instance.hwTextureWidth,
+        instance.hwTextureHeight,
+        THREE.RGBAFormat,
+        THREE.FloatType);
+    instance.hwbonesTexture = hwbonesTexture
+    hwbonesTexture.flipY = false;
+    hwbonesTexture.unpackAlignment = 4;
+    hwbonesTexture.generateMipmaps = false;
+    hwbonesTexture.needsUpdate = true;
+    hwbonesTexture.minFilter = THREE.NearestFilter;
     // end bighwbones
     
     // BEGIN UPDATEPOSITIONS
