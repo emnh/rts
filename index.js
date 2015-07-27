@@ -427,7 +427,7 @@ function initCameraControls() {
   const plane = new THREE.PlaneGeometry(10000, 10000, 1, 1);
   game.scene.navigationPlane = new THREE.Mesh(plane, new THREE.MeshLambertMaterial());
   game.scene.navigationPlane.rotation.x = Math.PI / -2;
-  game.scene.navigationPlane.visible = false;
+  game.scene.navigationPlane.material.visible = false;
   addToScene(game.scene.navigationPlane);
 
   game.scene.cameraControls = new MapControls(
@@ -1188,10 +1188,6 @@ function MiniMap() {
   let mouseDown = false;
   let oldCameraRectMesh;
 
-  const cameraRectGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
-  const cameraRectMaterial = new THREE.MeshLambertMaterial();
-  const cameraRectMesh = new THREE.Mesh(cameraRectGeometry, cameraRectMaterial);
-
   // translate coords to minimap
   function translate(pos) {
     const v = new THREE.Vector3(pos.x * 2 / config.terrain.width, 0, pos.z * 2 / config.terrain.height);
@@ -1199,6 +1195,8 @@ function MiniMap() {
   }
 
   let first = true;
+
+  let renderCount = 0;
 
   this.render = function() {
     if (oldCloud !== undefined) {
@@ -1219,22 +1217,38 @@ function MiniMap() {
     minimapScene.add(pointCloud);
     oldCloud = pointCloud;
 
+    const cameraRectGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
+    const cameraRectMaterial = new THREE.MeshLambertMaterial({
+      wireframe: false,
+      color: 0x00FF00,
+      transparent: true,
+      opacity: 0.5,
+    });
+
     // XXX: fails on first render for some reason
     if (!first) {
       cameraRectGeometry.vertices[0] = translate(getCameraFocus(-1, -1));
       cameraRectGeometry.vertices[1] = translate(getCameraFocus(-1, 1));
       cameraRectGeometry.vertices[2] = translate(getCameraFocus(1, -1));
       cameraRectGeometry.vertices[3] = translate(getCameraFocus(1, 1));
+      cameraRectGeometry.verticesNeedUpdate = true;
+      if (renderCount % 120 === 0) {
+        console.log(0, cameraRectGeometry.vertices[0]);
+        console.log(1, cameraRectGeometry.vertices[1]);
+        console.log(2, cameraRectGeometry.vertices[2]);
+        console.log(3, cameraRectGeometry.vertices[3]);
+      }
     }
+    const cameraRectMesh = new THREE.Mesh(cameraRectGeometry, cameraRectMaterial);
     if (oldCameraRectMesh) {
       minimapScene.remove(oldCameraRectMesh);
     }
-    const wireframe = new THREE.EdgesHelper(cameraRectMesh, 0x00ff00);
-    minimapScene.add(wireframe);
-    oldCameraRectMesh = wireframe;
+    minimapScene.add(cameraRectMesh);
+    oldCameraRectMesh = cameraRectMesh;
 
     minimapRenderer.render(minimapScene, minimapCamera);
     first = false;
+    renderCount++;
   };
 
   function setPos(evt) {

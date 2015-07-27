@@ -7638,7 +7638,7 @@ THREE.EventDispatcher.prototype = {
 
 	var intersectObject = function ( object, raycaster, intersects, recursive ) {
 
-		// if ( object.visible === false ) return;
+		if ( object.visible === false ) return;
 
 		object.raycast( raycaster, intersects );
 
@@ -10697,7 +10697,7 @@ THREE.BufferGeometry.prototype = {
 
 	setFromObject: function ( object ) {
 
-		//console.log( 'THREE.BufferGeometry.setFromObject(). Converting', object, this );
+		// console.log( 'THREE.BufferGeometry.setFromObject(). Converting', object, this );
 
 		var geometry = object.geometry;
 
