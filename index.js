@@ -299,7 +299,15 @@ function initGround() {
   for (let i = 0; i <= config.terrain.xFaces; i++) {
     game.heightField[i] = [];
   }
-  for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
+  const stride = 3;
+  let positionsLength;
+  if (THREE.REVISION === '71') {
+    positionsLength = groundGeometry.attributes.position.length;
+  } else {
+    positionsLength = groundGeometry.attributes.position.count * stride;
+  }
+  // TODO: for three r72dev use setX setY setZ on the attribute
+  for (let i = 0; i < positionsLength; i += stride) {
     const x = groundGeometry.attributes.position.array[i];
     const z = groundGeometry.attributes.position.array[i + 2];
     let y = 0;
@@ -329,7 +337,7 @@ function initGround() {
   addToScene(game.scene.ground);
 
   samplerPromise.then((sampler) => {
-    for (let i = 0; i < groundGeometry.attributes.position.length; i += 3) {
+    for (let i = 0; i < positionsLength; i += 3) {
       const x = groundGeometry.attributes.position.array[i];
       const z = groundGeometry.attributes.position.array[i + 2];
       const xt = (x + config.terrain.width / 2) / config.terrain.width;
@@ -644,7 +652,13 @@ function createM3Unit(modelOptions, instance) {
     });
   };
 
-  unit.removeUnit = () => { removeUnit(unit); };
+  unit.removeUnit = () => {
+    for (const geomat of unit.geomats) {
+      const [geo, mat] = geomat;
+      mat.dispose();
+    }
+    removeUnit(unit);
+  };
 
   return instance;
 }
@@ -740,6 +754,10 @@ function createUnit(options) {
 }
 
 function removeUnit(unit) {
+  unit.healthBar.geometry.dispose();
+  unit.teamBar.geometry.dispose();
+  unit.healthBar.material.dispose();
+  unit.teamBar.material.dispose();
   removeFromScene(unit.bboxMesh);
   removeFromScene(unit.healthBar);
   removeFromScene(unit.teamBar);
@@ -956,6 +974,8 @@ function mark(unit) {
 
 function unmark(unit) {
   if (unit.selectedMesh) {
+    unit.selectedMesh.geometry.dispose();
+    unit.selectedMesh.material.dispose();
     unit.remove(unit.selectedMesh);
     unit.selectedMesh = undefined;
   };
@@ -1188,6 +1208,13 @@ function MiniMap() {
   let mouseDown = false;
   let oldCameraRectMesh;
 
+  const cameraRectMaterial = new THREE.MeshLambertMaterial({
+      wireframe: false,
+      color: 0x00FF00,
+      transparent: true,
+      opacity: 0.5,
+    });
+
   // translate coords to minimap
   function translate(pos) {
     const v = new THREE.Vector3(pos.x * 2 / config.terrain.width, 0, pos.z * 2 / config.terrain.height);
@@ -1218,13 +1245,7 @@ function MiniMap() {
     oldCloud = pointCloud;
 
     const cameraRectGeometry = new THREE.PlaneGeometry(1, 1, 1, 1);
-    const cameraRectMaterial = new THREE.MeshLambertMaterial({
-      wireframe: false,
-      color: 0x00FF00,
-      transparent: true,
-      opacity: 0.5,
-    });
-
+    
     // XXX: fails on first render for some reason
     if (!first) {
       cameraRectGeometry.vertices[0] = translate(getCameraFocus(-1, -1));
@@ -1235,6 +1256,7 @@ function MiniMap() {
     }
     const cameraRectMesh = new THREE.Mesh(cameraRectGeometry, cameraRectMaterial);
     if (oldCameraRectMesh) {
+      oldCameraRectMesh.geometry.dispose();
       minimapScene.remove(oldCameraRectMesh);
     }
     minimapScene.add(cameraRectMesh);
@@ -1595,8 +1617,13 @@ function initScene() {
 
   game.scene.renderer = new THREE.WebGLRenderer({ antialias: true });
   game.scene.renderer.setSize(game.scene.width, game.scene.height);
-  game.scene.renderer.shadowMapEnabled = true;
-  game.scene.renderer.shadowMapSoft = true;
+  if (THREE.REVISION === '71') {
+    game.scene.renderer.shadowMapEnabled = true;
+    game.scene.renderer.shadowMapSoft = true;
+  } else {
+    game.scene.renderer.shadowMap.enabled = true;
+    game.scene.renderer.shadowMap.soft = true;
+  }
   $('#viewport').append(game.scene.renderer.domElement);
   $('#viewport').height(game.scene.height);
 

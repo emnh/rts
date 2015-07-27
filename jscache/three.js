@@ -8561,6 +8561,7 @@ THREE.BufferAttribute.prototype = {
 
 	get length () {
 
+    console.trace();
 		console.warn( 'THREE.BufferAttribute: .length has been deprecated. Please use .count.' );
 		return this.array.length;
 
@@ -9054,6 +9055,7 @@ THREE.InterleavedBufferAttribute.prototype = {
 
 	get length() {
 
+    console.trace();
 		console.warn( 'THREE.BufferAttribute: .length has been deprecated. Please use .count.' );
 		return this.array.length;
 
