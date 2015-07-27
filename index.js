@@ -1154,8 +1154,8 @@ function getCameraFocus(mouseX, mouseY) {
     return intersects[0].point;
   } else {
     // TODO: handle it better
-    //console.log("ray", mouseX, mouseY, intersects, camera.position);
-    //console.warn("nav fail");
+    // console.log("ray", mouseX, mouseY, intersects, camera.position);
+    // console.warn("nav fail");
     return new THREE.Vector3(0, 0, 0);
   }
 }
@@ -1232,12 +1232,6 @@ function MiniMap() {
       cameraRectGeometry.vertices[2] = translate(getCameraFocus(1, -1));
       cameraRectGeometry.vertices[3] = translate(getCameraFocus(1, 1));
       cameraRectGeometry.verticesNeedUpdate = true;
-      if (renderCount % 120 === 0) {
-        console.log(0, cameraRectGeometry.vertices[0]);
-        console.log(1, cameraRectGeometry.vertices[1]);
-        console.log(2, cameraRectGeometry.vertices[2]);
-        console.log(3, cameraRectGeometry.vertices[3]);
-      }
     }
     const cameraRectMesh = new THREE.Mesh(cameraRectGeometry, cameraRectMaterial);
     if (oldCameraRectMesh) {
