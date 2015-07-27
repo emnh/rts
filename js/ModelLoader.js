@@ -69,7 +69,7 @@ export function ModelLoader(options) {
           newMaterial.oldMaterial = material;
           newGeoMats.push([newGeo, newMaterial]);
         } else {
-          console.log("hidden batch", model.model.name);
+          // console.log("hidden batch", model.model.name);
         }
         batchIndex++;
       }
@@ -105,13 +105,13 @@ export function ModelLoader(options) {
       meshparent.bighwbones = bighwbones;
       meshparent.instance = instance;
       scope.instanceRegister.push(meshparent);
-      //console.log("resolve asyncInstance");
+      // console.log("resolve asyncInstance");
       return meshparent;
     };
 
     const promise = new Promise((resolve, reject) => {
       const listener = (object) => {
-        //console.log("load", object === asyncInstance, object, asyncInstance);
+        // console.log("load", object === asyncInstance, object, asyncInstance);
         if (object === asyncInstance) {
           // TODO: this seems to not work
           viewer.removeEventListener('load', listener);
@@ -120,10 +120,10 @@ export function ModelLoader(options) {
       };
       viewer.addEventListener('load', listener);
       const asyncInstance = model.instances[0];
-      //const asyncInstance = viewer.loadInstance(model.source, false);
-      //console.log("asyncInstance", asyncInstance);
+      // const asyncInstance = viewer.loadInstance(model.source, false);
+      // console.log("asyncInstance", asyncInstance);
       if (asyncInstance.ready) {
-        //console.log("resolved immediately");
+        // console.log("resolved immediately");
         resolve(asyncInstance);
       }
     });
@@ -169,7 +169,7 @@ export function ModelLoader(options) {
 
         
     const uvSetCount = model.model.uvSetCount;
-    //console.log("batchlength", batches.length);
+    // console.log("batchlength", batches.length);
     const l2 = batches.length;
 
     const geomats = [];
@@ -195,7 +195,7 @@ export function ModelLoader(options) {
 
     const animationLength = model.model.sequences[instance.sequence].animationEnd;
     const frames = Math.round(animationLength / context.frameTime);
-    //console.log("frames", frames, model.model.name);
+    // console.log("frames", frames, model.model.name);
     const bighwbones = new Float32Array(frames * hwbonesLength);
 
     for (let i = 0; i < frames; i++) {
@@ -225,15 +225,15 @@ export function ModelLoader(options) {
     var boneAtIndex = function(index) {
       const offset = index * 16;
       const elements = [];
-      //console.log("index", index, hwbones.length);
+      // console.log("index", index, hwbones.length);
       for (let i = 0; i < 16; i++) {
         elements[i] = hwbones[offset + i];
       }
-      //console.log("elements", elements);
+      // console.log("elements", elements);
       const mat = new THREE.Matrix4();
       mat.set.apply(mat, elements);
       mat.transpose();
-      //console.log("mat", mat);
+      // console.log("mat", mat);
       return mat;
     };
 
@@ -283,8 +283,8 @@ export function ModelLoader(options) {
           outposition4.add(position.clone().applyMatrix4(weightedBone2));
           outposition4.add(position.clone().applyMatrix4(weightedBone3));
           const outposition = new THREE.Vector3(outposition4.x, outposition4.y, outposition4.z);
-          //console.log("position", pos);
-          //console.log("outposition", outposition);
+          // console.log("position", pos);
+          // console.log("outposition", outposition);
           bgeo.vertices.push(outposition);
         }
       }
@@ -424,13 +424,13 @@ export function ModelLoader(options) {
           });
           if (pTexturesBySource[layer.source] !== undefined) {
             pTexturesBySource[layer.source].then((tinfo) => {
-                //console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
+                // console.log("2nd texture", tinfo.texture, layer.source, layer.uniforms.map);
                 material.uniforms[layer.uniforms.map] = { type: 't', value: tinfo.texture };
               });
           } else {
             const promise = new Promise((resolve, reject) => {
               loader.load(mpqFile(layer.source), (texture) => {
-                  //console.log("texture", texture, layer.source, layer.uniforms.map);
+                  // console.log("texture", texture, layer.source, layer.uniforms.map);
                   material.uniforms[layer.uniforms.map] = { type: 't', value: texture };
                   resolve({
                     texture: texture,
