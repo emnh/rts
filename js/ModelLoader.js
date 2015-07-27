@@ -41,6 +41,7 @@ export function ModelLoader(options) {
     for (const geomat of geomats) {
       const [geo, mat] = geomat;
       let mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = modelOptions.id;
       mesh.rotation.set(rotation.x, rotation.y, rotation.z);
       mesh.scale.set(scale, scale, scale);
       meshparent.add(mesh);
@@ -365,6 +366,13 @@ export function ModelLoader(options) {
           const uvPos = new THREE.Vector2(uvx, uvy);
           uvs[uvi].push(uvPos);
         }
+        // set unused uvis as well, to avoid switching GL programs
+        for (let uvi = uvSetCount; uvi < 4; uvi++) {
+          const uvx = shorts[shortIndex + 24 / 2 + 0 + 0/2];
+          const uvy = shorts[shortIndex + 24 / 2 + 1 + 0/2];
+          const uvPos = new THREE.Vector2(uvx, uvy);
+          uvs[uvi].push(uvPos);
+        }
 
         const tangent =
           new THREE.Vector4(
@@ -450,7 +458,7 @@ export function ModelLoader(options) {
         }
       }
 
-      material.defines[uvSets] = true;
+      //material.defines[uvSets] = true;
       for (let uvi = 0; uvi < uvSetCount; uvi++) {
         material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
       }
@@ -540,7 +548,10 @@ export function ModelLoader(options) {
     viewer.addEventListener('progress', progress);
 
     const modelOptionsByName = {};
+    let i = 0;
     for (const model of M3Models.M3Models) {
+      model.id = i;
+      i++;
       modelOptionsByName[model.name] = model;
       viewer.load(model.path, mpqFile);
     }

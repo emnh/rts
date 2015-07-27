@@ -53,19 +53,9 @@ uniform float u_firstBoneLookupIndex;
 attribute vec3 a_position;
 attribute vec4 a_normal;
 attribute vec2 a_uv0;
-
-#ifdef EXPLICITUV1
-attribute vec2 a_uv1;
-#endif
-#ifdef EXPLICITUV2
-attribute vec2 a_uv1;
-attribute vec2 a_uv2;
-#endif
-#ifdef EXPLICITUV3
 attribute vec2 a_uv1;
 attribute vec2 a_uv2;
 attribute vec2 a_uv3;
-#endif
 
 attribute vec4 a_tangent;
 attribute vec4 a_bones;
@@ -142,18 +132,9 @@ void main() {
     v_uv[2] = vec2(0);
     v_uv[3] = vec2(0);
 
-    #ifdef EXPLICITUV1
-    v_uv[1] = a_uv1 / 2048.0;
-    #endif
-    #ifdef EXPLICITUV2
-    v_uv[1] = a_uv1 / 2048.0;
-    v_uv[2] = a_uv2 / 2048.0;
-    #endif
-    #ifdef EXPLICITUV3
     v_uv[1] = a_uv1 / 2048.0;
     v_uv[2] = a_uv2 / 2048.0;
     v_uv[3] = a_uv3 / 2048.0;
-    #endif
 
     gl_Position = u_mvp * vec4(position, 1);
     //gl_Position = u_mvp * vec4(a_position, 1);

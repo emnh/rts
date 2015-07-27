@@ -20,7 +20,7 @@ export const Util = {
     const $debug = $('.debug');
     let s = '';
     for (let arg of args) {
-      if (isFloat(arg)) {
+      if (Util.isFloat(arg)) {
         arg = formatFloat(arg);
       }
       s += arg + ' ';

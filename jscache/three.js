@@ -19732,6 +19732,9 @@ THREE.WebGLRenderer = function ( parameters ) {
 	this.autoScaleCubemaps = true;
 
 	// internal properties
+  
+  this.changeProgramCount = 0;
+  this.changeMaterialCount = 0;
 
 	var _this = this,
 
@@ -21818,6 +21821,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		if ( program.id !== _currentProgram ) {
 
+      _this.changeProgramCount++;
 			_gl.useProgram( program.program );
 			_currentProgram = program.id;
 
@@ -21935,6 +21939,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 		}
 
 		if ( refreshMaterial ) {
+
+      _this.changeMaterialCount++;
 
 			// refresh uniforms common to several materials
 

@@ -58,6 +58,7 @@ const config = {
   },
   effects: {
     explosionPool: 20,
+    missilePool: 200,
   },
   units: {
     count: 0,
@@ -109,7 +110,13 @@ const game = {
   components: [],
   models: {},
   emitters: [],
-  selector: {}
+  selector: {},
+  renderOrders: {
+    teamBar: -1,
+    healthBar: -2,
+    explosion: -3,
+    missile: -4,
+  }
 };
 
 // for debugging in JS console
@@ -576,12 +583,38 @@ function moveAlignedToGround(object) {
   */
 }
 
-function createMissile(options) {
-  const material = options.material;
-  const geometry = options.geometry;
-  const materialClone = material.clone();
-  const unit = new THREE.Mesh(geometry, materialClone);
-  return unit;
+function Missiles() {
+
+  const material = game.models.missile.material;
+  const geometry = game.models.missile.geometry;
+
+  this.pool = [];
+  
+  this.createMissile = function() {
+    // there are no per missile uniforms, so no need to clone the material
+    let mesh;
+    if (this.pool.length > 0) {
+      mesh = this.pool.pop();
+    } else {
+      const materialClone = material;
+      mesh = new THREE.Mesh(geometry, materialClone);
+      mesh.renderOrder = game.renderOrders.missile;
+    }
+    mesh.visible = true;
+    return mesh;
+  }
+
+  this.returnMissile = function(mesh) {
+    mesh.visible = false;
+    this.pool.push(mesh);
+  }
+
+  var newpool = [];
+  for (let i = 0; i < config.effects.missilePool; i++) {
+    const mesh = this.createMissile();
+    newpool.push(mesh);
+  }
+  this.pool = newpool;
 }
 
 function setUnitProperties(unit, modelOptions) {
@@ -632,11 +665,16 @@ function createM3Unit(modelOptions, instance) {
   unit.bboxMesh = boxMesh;
 
   initialPlaceUnit(unit, size);
-  unit.healthBar = createHealthBar();
-  unit.teamBar = createTeamBar(unit);
+  unit.healthBar = game.healthBars.createHealthBar();
+  unit.teamBar = game.teamBars.createTeamBar(unit);
   
   unit.castShadow = true;
   unit.receiveShadow = true;
+
+  unit.renderOrder = modelOptions.id;
+  for (const child of unit.children) {
+    child.renderOrder = modelOptions.id;
+  }
 
   addToScene(unit);
   addToScene(unit.healthBar);
@@ -682,7 +720,7 @@ function createM3Units() {
   return Promise.all(instancePromises);
 }
 
-function createHealthBar() {
+function HealthBars() {
   const healthMaterial = new THREE.ShaderMaterial({
     uniforms: {
       time: { type: 'f', value: 0.0 },
@@ -692,23 +730,32 @@ function createHealthBar() {
     fragmentShader: $('#health-fragment').text(),
   });
   const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  const healthBar = new THREE.Mesh(healthGeometry, healthMaterial);
-  return healthBar;
+  
+  this.createHealthBar = function() {
+    const healthBar = new THREE.Mesh(healthGeometry, healthMaterial.clone());
+    healthBar.renderOrder = game.renderOrders.healthBar;
+    return healthBar;
+  }
 }
 
-function createTeamBar(unit) {
+function TeamBars() {
   const teamMaterial = new THREE.ShaderMaterial({
     uniforms: {
       time: { type: 'f', value: 0.0 },
       health: { type: 'f', value: 0.0},
-      color: { type: 'c', value: TeamColors[unit.team] },
+      color: { type: 'c', value: null },
     },
     vertexShader: $('#teambar-vertex').text(),
     fragmentShader: $('#teambar-fragment').text(),
   });
   const teamGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  const teamBar = new THREE.Mesh(teamGeometry, teamMaterial);
-  return teamBar;
+
+  this.createTeamBar = function(unit) {
+    const teamBar = new THREE.Mesh(teamGeometry, teamMaterial.clone());
+    teamBar.material.uniforms.color.value = TeamColors[unit.team];
+    teamBar.renderOrder = game.renderOrders.teamBar;
+    return teamBar;
+  }
 }
 
 function createUnit(options) {
@@ -732,8 +779,8 @@ function createUnit(options) {
   unit.bbox = bboxHelper.box;
 
   initialPlaceUnit(unit, size);
-  unit.healthBar = createHealthBar();
-  unit.teamBar = createTeamBar(unit);
+  unit.healthBar = game.healthBars.createHealthBar();
+  unit.teamBar = game.teamBars.createTeamBar(unit);
 
   unit.castShadow = true;
   unit.receiveShadow = true;
@@ -754,10 +801,10 @@ function createUnit(options) {
 }
 
 function removeUnit(unit) {
-  unit.healthBar.geometry.dispose();
+  /*unit.healthBar.geometry.dispose();
   unit.teamBar.geometry.dispose();
   unit.healthBar.material.dispose();
-  unit.teamBar.material.dispose();
+  unit.teamBar.material.dispose();*/
   removeFromScene(unit.bboxMesh);
   removeFromScene(unit.healthBar);
   removeFromScene(unit.teamBar);
@@ -1313,6 +1360,8 @@ function MiniMap() {
 
 }
 
+var oldChangeProgramCount = 0;
+var oldChangeMaterialCount = 0;
 function render() {
   /*
   // 1st person perspective of a unit
@@ -1339,6 +1388,11 @@ function render() {
   updateBars();
   game.components.forEach((x) => { x.render(); });
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
+  Util.clearLog();
+  Util.log("change program", game.scene.renderer.changeProgramCount - oldChangeProgramCount);
+  Util.log("change material", game.scene.renderer.changeMaterialCount - oldChangeMaterialCount);
+  oldChangeProgramCount = game.scene.renderer.changeProgramCount;
+  oldChangeMaterialCount = game.scene.renderer.changeMaterialCount;
   game.scene.renderStats.update();
   requestAnimationFrame(render);
 }
@@ -1443,6 +1497,7 @@ function Explosions() {
       const newMaterial = material.clone();
       newMaterial.uniforms.tExplosion.value = texture;
       mesh = new THREE.Mesh(geometry, newMaterial);
+      mesh.renderOrder = game.renderOrders.explosion;
     }
     return mesh;
   }
@@ -1451,17 +1506,20 @@ function Explosions() {
     this.pool.push(explosion);
   }
   
+  var newpool = [];
   for (let i = 0; i < config.effects.explosionPool; i++) {
     const mesh = this.createExplosion();
-    this.returnExplosion(mesh);
+    newpool.push(mesh);
   }
+  this.pool = newpool;
 }
 
 function getApplyShot(unit, target, shotMesh) {
   return function() {
     const oldHealth = target.health;
     target.health -= unit.weapon.damage;
-    removeFromScene(shotMesh);
+    game.missiles.returnMissile(shotMesh);
+    //removeFromScene(shotMesh);
     shotMesh = null;
     if (target.health <= 0 && oldHealth > 0) {
       target.dead = true;
@@ -1505,7 +1563,7 @@ function attackTargets() {
           delta: 0,
         };
         game.sound.shot();
-        const shotMesh = createMissile(game.models.missile);
+        const shotMesh = game.missiles.createMissile();
         const startPos = unit.position.clone();
         const tween = new TWEEN.Tween(shot)
           .to({
@@ -1655,11 +1713,14 @@ function initScene() {
   game.dom.$unitinfo = $('.unitinfo .content');
 
   game.explosions = new Explosions();
+  game.healthBars = new HealthBars();
+  game.teamBars = new TeamBars();
 
   requestAnimationFrame(render);
 
   loadModels(() => {
     //setInterval(updateSimulation, 1000 / 120);
+    game.missiles = new Missiles();
     requestAnimationFrame(updateSimulation);
   });
 
