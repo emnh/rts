@@ -20621,7 +20621,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 		var extension;
 
-		if ( geometry instanceof THREE.InstancedBufferGeometry ) {
+		//if ( geometry instanceof THREE.InstancedBufferGeometry ) {
 
 			extension = extensions.get( 'ANGLE_instanced_arrays' );
 
@@ -20632,7 +20632,7 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 			}
 
-		}
+		//}
 
 		state.initAttributes();
 
@@ -20707,7 +20707,12 @@ THREE.WebGLRenderer = function ( parameters ) {
 
 							}
 
-						}
+						} else {
+              if (extension != null) {
+                //console.log("div0", programAttribute);
+                extension.vertexAttribDivisorANGLE(programAttribute, 0);
+              }
+            }
 
 					}
 
@@ -20806,6 +20811,8 @@ THREE.WebGLRenderer = function ( parameters ) {
 					extension.drawElementsInstancedANGLE( mode, index.array.length, type, 0, geometry.maxInstancedCount ); // Draw the instanced meshes
 
 				} else {
+
+          //console.log("geometry", geometry instanceof THREE.InstancedBufferGeometry, geometry.maxInstancedCount);
 
 					_gl.drawElements( mode, index.array.length, type, 0 );
 

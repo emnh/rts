@@ -2,8 +2,8 @@
 precision mediump float;
 #endif
 
-uniform vec3 u_teamColor;
 
+varying vec3 v_teamColor;
 varying vec3 v_normal;
 varying vec2 v_uv[4];
 varying vec3 v_lightDir;
@@ -135,9 +135,9 @@ vec3 combineLayerColor(vec4 color, vec3 result, LayerSettings layerSettings) {
     } else if (layerSettings.op == LAYEROP_LERP) {
         result = mix(result, color.rgb, color.a);
     } else if (layerSettings.op == LAYEROP_TEAMCOLOR_EMISSIVE_ADD) {
-        result += color.a * (u_teamColor / 255.0);
+        result += color.a * (v_teamColor / 255.0);
     } else if (layerSettings.op == LAYEROP_TEAMCOLOR_DIFFUSE_ADD) {
-        result += color.a * (u_teamColor / 255.0);
+        result += color.a * (v_teamColor / 255.0);
     }
 
     return result;
@@ -189,9 +189,9 @@ vec4 computeLayerColor(sampler2D layer, LayerSettings layerSettings) {
     }
     */
     if (layerSettings.teamColorMode == TEAMCOLOR_DIFFUSE) {
-        result = vec4(mix(u_teamColor / 255.0, result.rgb, texel.a), 1);
+        result = vec4(mix(v_teamColor / 255.0, result.rgb, texel.a), 1);
     } else if (layerSettings.teamColorMode == TEAMCOLOR_EMISSIVE) {
-        result = vec4(mix(u_teamColor / 255.0, result.rgb, texel.a), 1);
+        result = vec4(mix(v_teamColor / 255.0, result.rgb, texel.a), 1);
     }
 
     if (layerSettings.invert) {

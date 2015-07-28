@@ -11,6 +11,7 @@ Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/
 ## Code
  - Separate game logic from rendering
  - Remove old bounding box mesh, use BoundingBoxHelper instead
+ - Fix box mesh to contain unit exactly
 
 ## Functionality
  - Fix minimap rectangle in Chrome

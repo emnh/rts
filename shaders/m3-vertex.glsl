@@ -2,7 +2,15 @@ uniform sampler2D u_boneMap;
 uniform float u_matrix_size;
 uniform float u_texel_size;
 uniform float u_frame_size;
-uniform float u_frame;
+//uniform float u_frame;
+
+attribute vec4 a_mv0;
+attribute vec4 a_mv1;
+attribute vec4 a_mv2;
+attribute vec4 a_mv3;
+//attribute mat4 a_mv;
+attribute vec3 a_teamColor;
+attribute float a_frame;
 
 highp mat4 transpose(in highp mat4 inMatrix) {
   highp vec4 i0 = inMatrix[0];
@@ -21,7 +29,7 @@ highp mat4 transpose(in highp mat4 inMatrix) {
 
 mat4 boneAtIndex(float index) {
     float offset = index * u_matrix_size;
-    float frame = fract(u_frame * u_frame_size);
+    float frame = fract(a_frame * u_frame_size);
     mat4 ret = mat4(
         texture2D(u_boneMap, vec2(offset, frame)),
         texture2D(u_boneMap, vec2(offset + u_texel_size, frame)),
@@ -44,13 +52,15 @@ vec4 decodeVector(vec4 v) {
     return ((v / 255.0) * 2.0) - 1.0;
 }
 
-#define u_mvp projectionMatrix * modelViewMatrix
-#define u_mv modelViewMatrix
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+#define u_mv mat4(a_mv0, a_mv1, a_mv2, a_mv3)
+#define u_mvp projectionMatrix * u_mv
 uniform vec3 u_eyePos;
 uniform vec3 u_lightPos;
 uniform float u_firstBoneLookupIndex;
 
-attribute vec3 a_position;
+attribute vec3 position;
 attribute vec4 a_normal;
 attribute vec2 a_uv0;
 attribute vec2 a_uv1;
@@ -66,6 +76,7 @@ varying vec2 v_uv[4];
 varying vec3 v_lightDir;
 varying vec3 v_eyeVec;
 varying vec3 v_halfVec;
+varying vec3 v_teamColor;
 
 void transform(vec3 inposition, vec3 innormal, vec3 intangent, vec4 bones, vec4 weights, out vec3 outposition, out vec3 outnormal, out vec3 outtangent) {
     vec4 position = vec4(inposition, 1);
@@ -103,13 +114,13 @@ void transform(vec3 inposition, vec3 innormal, vec3 intangent, vec4 bones, vec4 
 void main() {
     vec4 decodedNormal = decodeVector(a_normal);
     vec4 decodedTangent = decodeVector(a_tangent);
-    vec3 position, normal, tangent;
+    vec3 cposition, normal, tangent;
 
-    transform(a_position, vec3(decodedNormal), vec3(decodedTangent), a_bones + u_firstBoneLookupIndex, a_weights / 255.0, position, normal, tangent);
+    transform(position, vec3(decodedNormal), vec3(decodedTangent), a_bones + u_firstBoneLookupIndex, a_weights / 255.0, cposition, normal, tangent);
 
     mat3 mv = mat3(u_mv);
 
-    vec3 position_mv = (u_mv * vec4(position, 1)).xyz;
+    vec3 position_mv = (u_mv * vec4(cposition, 1)).xyz;
 
     vec3 n = normalize(mv * normal);
     vec3 t = normalize(mv * tangent);
@@ -136,6 +147,8 @@ void main() {
     v_uv[2] = a_uv2 / 2048.0;
     v_uv[3] = a_uv3 / 2048.0;
 
-    gl_Position = u_mvp * vec4(position, 1);
+    v_teamColor = a_teamColor;
+
+    gl_Position = projectionMatrix * u_mv * vec4(cposition, 1);
     //gl_Position = u_mvp * vec4(a_position, 1);
 }

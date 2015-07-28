@@ -236,8 +236,8 @@ function initLight() {
   light.shadowDarkness = 0.7;
   addToScene(light);
 
-  //const ambient = new THREE.AmbientLight(0xFFFFFF);
-  //addToScene(ambient);
+  // const ambient = new THREE.AmbientLight(0xFFFFFF);
+  // addToScene(ambient);
 }
 
 function initStats() {
@@ -657,11 +657,27 @@ function createM3Unit(modelOptions, instance) {
   instance.instance.setTeamColor(unit.team);
   for (const geomat of instance.geomats) {
     const [geo, mat] = geomat;
-    mat.uniforms.u_teamColor.value = TeamColors[unit.team].clone().multiplyScalar(255);
+    const a_teamColor = geo.getAttribute('a_teamColor');
+    const c = TeamColors[unit.team].clone().multiplyScalar(255);
+    a_teamColor.setXYZ(unit.instanceId, c.r, c.g, c.b);
+    a_teamColor.needsUpdate = true;
   }
   
-  const boxMesh = modelOptions.bboxHelper.clone();
+  const boxMesh = new THREE.Mesh(
+      new THREE.BoxGeometry(size.height, size.width, size.depth),
+      new THREE.MeshLambertMaterial( { color: 0xFFFFFF, transparent: true, opacity: 0.5 }));
+  const mat2 = (new THREE.Matrix4()).makeRotationX(modelOptions.rotation.x);
+  boxMesh.geometry.applyMatrix(mat2);
+  const mat3 = (new THREE.Matrix4()).makeRotationZ(modelOptions.rotation.z);
+  boxMesh.geometry.applyMatrix(mat3);
+  const mat = (new THREE.Matrix4()).makeTranslation(
+      (unit.bbox.min.x + unit.bbox.max.x) / 2,
+      (unit.bbox.min.y + unit.bbox.max.y) / 2,
+      (unit.bbox.min.z + unit.bbox.max.z) / 2);
+  boxMesh.geometry.applyMatrix(mat);
+  //const boxMesh2 = modelOptions.bboxHelper.clone();
   //addToScene(boxMesh);
+  // TODO: fix boxMesh
   unit.bboxMesh = boxMesh;
 
   initialPlaceUnit(unit, size);
@@ -805,6 +821,8 @@ function removeUnit(unit) {
   unit.teamBar.geometry.dispose();
   unit.healthBar.material.dispose();
   unit.teamBar.material.dispose();*/
+  unit.bboxMesh.geometry.dispose();
+  unit.bboxMesh.material.dispose();
   removeFromScene(unit.bboxMesh);
   removeFromScene(unit.healthBar);
   removeFromScene(unit.teamBar);
@@ -1158,8 +1176,8 @@ function updateCameraInfo() {
 function updateBBoxes() {
   for (const unit of game.units) {
     unit.bboxMesh.position.copy(unit.position);
-    unit.bboxMesh.scale.copy(unit.scale);
-    unit.bboxMesh.rotation.copy(unit.rotation);
+    //unit.bboxMesh.scale.copy(unit.scale);
+    //unit.bboxMesh.rotation.copy(unit.rotation);
   }
 }
 
@@ -1376,6 +1394,12 @@ function render() {
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // Debug.drawOutLine(game.units, worldToScreen);
+  
+  /*for (const child of game.scene.scene3.children) {
+    if (!(child instanceof THREE.InstancedBufferGeometry)) {
+      game.scene.scene3.remove(child);
+    }
+  }*/
 
   if (game.m3loader && config.units.animated) {
     game.m3loader.update();
@@ -1621,6 +1645,7 @@ function initM3Models() {
     camera: game.scene.camera,
     scene: game.scene.scene3,
     light: game.scene.light,
+    getCameraFocus,
   });
   const $modal = $('#m3progress');
   const $modalBody = $modal.find('.modal-body');

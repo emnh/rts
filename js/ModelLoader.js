@@ -22,7 +22,7 @@ export function ModelLoader(options) {
     [0, 0, 0],
     ];
 
-  const baseShader = new THREE.ShaderMaterial({
+  const baseShader = new THREE.RawShaderMaterial({
     fragmentShader: $("#m3-fragment").text(),
     vertexShader: $("#m3-vertex").text()
   });
@@ -44,7 +44,10 @@ export function ModelLoader(options) {
       mesh.renderOrder = modelOptions.id;
       mesh.rotation.set(rotation.x, rotation.y, rotation.z);
       mesh.scale.set(scale, scale, scale);
-      meshparent.add(mesh);
+      mesh.updateMatrix();
+      mesh.updateMatrixWorld();
+      geomat.localMesh = mesh;
+      //meshparent.add(mesh);
     }
     return meshparent;
   }
@@ -55,58 +58,11 @@ export function ModelLoader(options) {
     const onLoad = function(object) {
       const instance = object.instance;
       const teamId = 0;
-      const bighwbones = instance.bighwbones;
-      const hwTextureWidth = instance.hwTextureWidth;
-      const hwTextureHeight = instance.hwTextureHeight;
-      const hwbonesTexture = instance.hwbonesTexture;
       const modelInfo = scope.modelByName[model.model.name];
-      const newGeoMats = [];
-      let batchIndex = 0;
-      for (const geomat of modelInfo.geomats) {
-        const [geo, material] = geomat;
-        const batch = model.model.batches[batchIndex];
-        if (instance.meshVisibilities[batch.regionId]) {
-          const [newGeo, newMaterial] = [geo, material.clone()];
-          newMaterial.oldMaterial = material;
-          newGeoMats.push([newGeo, newMaterial]);
-        } else {
-          // console.log("hidden batch", model.model.name);
-        }
-        batchIndex++;
-      }
-      let i = 0;
-      for (const geomat of newGeoMats) {
-        //const [geo, material] = geomat;
-        const geo = geomat[0];
-        const material = geomat[1];
-        const oldMaterial = material.oldMaterial;
-        i++;
-        // set textures. strange workaround for cloning problem
-        for (const pTexture of modelInfo.pTextures) {
-          pTexture.then((tinfo) => {
-            //material.uniforms[tinfo.uniform].value = tinfo.texture;
-            material.uniforms[tinfo.uniform] = { type: 't', value: tinfo.texture };
-          });
-        }
-        material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture };
-        material.uniforms.u_matrix_size = { type: 'f', value: 4 / hwTextureWidth };
-        material.uniforms.u_texel_size = { type: 'f', value: 1 / hwTextureWidth };
-        material.uniforms.u_frame_size = { type: 'f', value: 1 / hwTextureHeight };
-        material.uniforms.u_frame = { type: 'f', value: 0 };
-        material.uniforms.u_teamColor = {
-                type: 'c',
-                value: new THREE.Color(
-                  teamColors[teamId][0],
-                  teamColors[teamId][1],
-                  teamColors[teamId][2])
-              };
-      }
-      const meshparent = createObject(modelOptions, model, newGeoMats);
-      meshparent.position.set(Math.random() * 100, 300, Math.random() * 100);
-      meshparent.bighwbones = bighwbones;
+      const meshparent = createObject(modelOptions, model, modelInfo.geomats);
       meshparent.instance = instance;
+      meshparent.instanceId = modelOptions.freeInstances.pop();
       scope.instanceRegister.push(meshparent);
-      // console.log("resolve asyncInstance");
       return meshparent;
     };
 
@@ -205,6 +161,8 @@ export function ModelLoader(options) {
     }
     instance.hwTextureWidth = hwbonesLength / 4;
     instance.hwTextureHeight = frames;
+    const hwTextureWidth = instance.hwTextureWidth;
+    const hwTextureHeight = instance.hwTextureHeight;
     instance.bighwbones = bighwbones;
     const hwbonesTexture = 
       new THREE.DataTexture(
@@ -306,6 +264,12 @@ export function ModelLoader(options) {
     }
     const bgeo = updatePositions();
     // END UPDATEPOSITIONS
+      
+    const maxInstances = 30;
+    modelOptions.freeInstances = [];
+    for (let i = 0; i < maxInstances; i++) {
+      modelOptions.freeInstances.push(i);
+    }
 
     // BEGIN BIG VERTEX DECODE LOOP
     for (let i = 0; i < l2; i++) {
@@ -320,6 +284,10 @@ export function ModelLoader(options) {
       const tangents = [];
 
       const batch = batches[i];
+      if (!instance.meshVisibilities[batch.regionId]) {
+        console.log("invisible batch");
+        continue;
+      }
       const region = batch.region;
       const offset = region.offset / 2;
       const boneLookup = region.firstBoneLookupIndex;
@@ -403,9 +371,15 @@ export function ModelLoader(options) {
         u_specMult: { type: 'f', value: sourceMaterial.specMult },
         u_emisMult: { type: 'f', value: sourceMaterial.emisMult * 0.0 },
         u_lightAmbient: { type: 'v4', value: new THREE.Vector4(0.02, 0.02, 0.02, 0) },
+        modelViewMatrix: { type: 'm4', value: new THREE.Matrix4() },
+        projectionMatrix2: { type: 'm4', value: new THREE.Matrix4() },
       };
+      material.uniforms.u_boneMap = { type: 't', value: hwbonesTexture };
+      material.uniforms.u_matrix_size = { type: 'f', value: 4 / hwTextureWidth };
+      material.uniforms.u_texel_size = { type: 'f', value: 1 / hwTextureWidth };
+      material.uniforms.u_frame_size = { type: 'f', value: 1 / hwTextureHeight };
       material.attributes = {
-        a_position: { type: 'v3', value: vertices },
+        position: { type: 'v3', value: vertices },
         a_weights: { type: 'v4', value: weights },
         a_bones: { type: 'v4', value: bones },
         a_normal: { type: 'v4', value: normals },
@@ -463,7 +437,9 @@ export function ModelLoader(options) {
         material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
       }
       
-      const geo = new THREE.BufferGeometry();
+      const geo = new THREE.InstancedBufferGeometry();
+
+      let attributeCount = 0;
       for (const attributeName in material.attributes) {
         const attribute = material.attributes[attributeName];
         const value = attribute.value;
@@ -482,15 +458,44 @@ export function ModelLoader(options) {
           }
           i += size;
         }
-        if (attributeName === 'a_position') {
-          geo.addAttribute('position', new THREE.BufferAttribute(attributeArray, size));
-        }
         geo.addAttribute(attributeName, new THREE.BufferAttribute(attributeArray, size));
-        attribute.value = null;
+        //attribute.value = null;
+        //material.attributes[attributeName] = attributeCount++;
       }
-      geo.computeBoundingSphere();
-      geo.computeFaceNormals();
-      geo.computeVertexNormals();
+      material.attributes.a_mv0 = attributeCount++;
+      material.attributes.a_mv1 = attributeCount++;
+      material.attributes.a_mv2 = attributeCount++;
+      material.attributes.a_mv3 = attributeCount++;
+      material.attributes.a_teamColor = attributeCount++;
+      material.attributes.a_frame = attributeCount++;
+
+      //const ipositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 16), 16, 1, false);
+      //geo.addAttribute('a_iposition', ipositionAttribute);
+      const meshPerAttribute = 1;
+      geo.addAttribute(
+            'a_mv0',
+            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
+          );
+      geo.addAttribute(
+            'a_mv1',
+            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
+          );
+      geo.addAttribute(
+            'a_mv2',
+            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
+          );
+      geo.addAttribute(
+            'a_mv3',
+            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
+          );
+      const teamColorsAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 3), 3, meshPerAttribute, true);
+      geo.addAttribute('a_teamColor', teamColorsAttribute);
+      const frameAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, meshPerAttribute, true);
+      geo.addAttribute('a_frame', frameAttribute);
+
+      //geo.computeBoundingSphere();
+      //geo.computeFaceNormals();
+      //geo.computeVertexNormals();
       if (modelOptions.layers !== undefined) {
         if (modelOptions.layers.filter((l) => l == i).length === 0) {
           continue;
@@ -511,8 +516,8 @@ export function ModelLoader(options) {
         const bboxHelper = new THREE.BoundingBoxHelper(meshparent, 0);
         bboxHelper.update();
         modelOptions.bboxHelper = bboxHelper;
-
         options.scene.remove(meshparent);
+
         const modelInfo = {
           modelOptions,
           model,
@@ -521,6 +526,14 @@ export function ModelLoader(options) {
         };
         scope.modelRegister.push(modelInfo);
         scope.modelByName[model.model.name] = modelInfo;
+
+        for (const geomat of geomats) {
+          const [geo, mat] = geomat;
+          const sceneMesh = new THREE.Mesh(geo, mat);
+          geomat.sceneMesh = sceneMesh;
+          options.scene.add(sceneMesh);
+        }
+
         resolve();
       });
     });
@@ -530,6 +543,22 @@ export function ModelLoader(options) {
 
   this.getModels = function() {
     return scope.modelOptionsList;
+  }
+
+  function updateAttributeMatrix(geo, matrix, instance) {
+      const a_mv = [];
+      a_mv.push(geo.getAttribute('a_mv0'));
+      a_mv.push(geo.getAttribute('a_mv1'));
+      a_mv.push(geo.getAttribute('a_mv2'));
+      a_mv.push(geo.getAttribute('a_mv3'));
+      for (let k = 0; k < a_mv.length; k++) {
+        a_mv[k].setXYZW(instance.instanceId,
+            matrix.elements[k * 4 + 0], 
+            matrix.elements[k * 4 + 1], 
+            matrix.elements[k * 4 + 2], 
+            matrix.elements[k * 4 + 3]); 
+        a_mv[k].needsUpdate = true;
+      }
   }
 
   this.loadModels = function(progress) {
@@ -615,14 +644,41 @@ export function ModelLoader(options) {
       const FPS = 60;
       const elapsedFrames = elapsed * FPS;
       oldTime = nowTime;
-      scope.instanceRegister = scope.instanceRegister.filter((unit) => !unit.dead);
+      scope.instanceRegister = scope.instanceRegister.filter((unit) => {
+        if (unit.dead) {
+          for (const geomat of unit.geomats) {
+            const [geo, mat] = geomat;
+            const a_mv_matrix = (new THREE.Matrix4()).makeTranslation(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+            updateAttributeMatrix(geo, a_mv_matrix, unit);
+          }
+          unit.modelOptions.freeInstances.push(unit.instanceId);
+        }
+        return !unit.dead;
+      });
+      const focus = options.getCameraFocus(0, 0);
       for (let i = 0; i < scope.instanceRegister.length; i++) {
         const instance = scope.instanceRegister[i];
         for (let j = 0; j < instance.geomats.length; j++) {
           const geomat = instance.geomats[j];
           const geo = geomat[0];
           const mat = geomat[1];
-          mat.uniforms.u_frame.value += elapsedFrames;
+          const mesh = geomat.localMesh;
+
+          geomat.sceneMesh.position.copy(focus);
+
+          const a_mv_matrix = new THREE.Matrix4();
+          a_mv_matrix.multiply(options.camera.matrixWorldInverse);
+          instance.updateMatrixWorld();
+          a_mv_matrix.multiply(instance.matrixWorld);
+          a_mv_matrix.multiply(mesh.matrix);
+          updateAttributeMatrix(geo, a_mv_matrix, instance);
+
+          const a_frame = geo.getAttribute('a_frame');
+          a_frame.setX(instance.instanceId, a_frame.getX(instance.instanceId) + elapsedFrames);
+          a_frame.needsUpdate = true;
+          geo.needsUpdate = true;
+
+          // TODO: update eyePos
         }
       }
     };
