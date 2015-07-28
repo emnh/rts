@@ -767,53 +767,39 @@ function HealthBars() {
     uniforms: {
       time: { type: 'f', value: 0.0 },
     },
-    attributes: {
-      position: 0,
-      uv: 1,
-      a_mv0: 2,
-      a_mv1: 3,
-      a_mv2: 4,
-      a_mv3: 5,
-      a_health: 6,
-    },
+    attributes: [
+      'position',
+      'a_health',
+    ],
+    transparent: true,
     vertexShader: $('#health-vertex').text(),
     fragmentShader: $('#health-fragment').text(),
   });
   const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
-  const geo = new THREE.InstancedBufferGeometry();
+  const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
-  geo.addAttribute('position', healthGeometry.getAttribute('position'));
+  geo.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
   geo.applyMatrix((new THREE.Matrix4()).makeRotationY(-Math.PI / 2));
-  geo.addAttribute('uv', new THREE.BufferAttribute(healthGeometry.getAttribute('uv').array, 2));
-  /*geo.computeBoundingSphere();
-  geo.computeVertexNormals();
-  geo.computeFaceNormals();*/
 
-  const healthAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, 1, true);
+  const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
   geo.addAttribute('a_health', healthAttribute);
 
-  Util.createAttributeMatrix(geo, maxInstances);
-  
-  const mesh = new THREE.Mesh(geo, healthMaterial);
-  //const mesh = new THREE.PointCloud(geo, healthMaterial);
-
+  const mesh = new THREE.PointCloud(geo, healthMaterial);
   addToScene(mesh);
 
-  this.updateHealthBar = function(unit) {
-    unit.healthBar.object3D.position.copy(unit.position);
-    unit.healthBar.object3D.position.y += getSize(unit.bbox).height * unit.scale.y + 10;
-    //unit.healthBar.object3D.lookAt(game.scene.camera.position);
-    unit.healthBar.object3D.updateMatrix();
-    unit.healthBar.object3D.updateMatrixWorld();
-    
-    const matrix = game.scene.camera.matrixWorldInverse.clone();
-    matrix.multiply(unit.healthBar.object3D.matrixWorld);
-    Util.updateAttributeMatrix(geo, matrix, unit.unitId);
+  this.updateHealthBars = function(units) {
+    for (const unit of units) {
+      const position = unit.position.clone();
+      position.y += getSize(unit.bbox).height * unit.scale.y;
+      geo.attributes.position.setXYZ(unit.unitId, position.x, position.y, position.z);
+      geo.attributes.position.needsUpdate = true;
+      geo.verticesNeedUpdate = true;
 
-    healthAttribute.setX(unit.unitId, unit.health);
-    healthAttribute.needsUpdate = true;
-    
-    geo.needsUpdate = true;
+      healthAttribute.setX(unit.unitId, unit.health);
+      healthAttribute.needsUpdate = true;
+      
+      geo.needsUpdate = true;
+    }
   }
   
   this.createHealthBar = function(unit) {
@@ -1250,9 +1236,9 @@ function updateBBoxes() {
 }
 
 function updateBars() {
+  game.healthBars.updateHealthBars(game.units);
+
   for (const unit of game.units) {
-    game.healthBars.updateHealthBar(unit);
-    
     unit.teamBar.position.copy(unit.healthBar.object3D.position);
     unit.teamBar.position.y += 4;
     unit.teamBar.lookAt(game.scene.camera.position);
