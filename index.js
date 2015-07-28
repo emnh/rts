@@ -61,6 +61,7 @@ const config = {
     missilePool: 200,
   },
   units: {
+    maxUnits: 20 * 20,
     count: 0,
     m3count: 20,
     speed: 50,
@@ -647,8 +648,28 @@ function initialPlaceUnit(unit, size) {
   unit.lastMoved = undefined;
 }
 
+function UnitPool() {
+  this.instanceIds = [];
+
+  for (let i = 0; i < config.units.maxUnits; i++) {
+    this.instanceIds.push(i);
+  }
+
+  this.createUnit = function(unit) {
+    if (this.instanceIds.length === 0) {
+      throw new Error('max units reached');
+    }
+    unit.unitId = this.instanceIds.pop();
+  }
+
+  this.returnUnit = function(unit) {
+    this.instanceIds.push(unit.unitId);
+  }
+}
+
 function createM3Unit(modelOptions, instance) {
   const unit = instance;
+  game.unitPool.createUnit(unit);
   const size = getSize(modelOptions.bboxHelper.box);
   setUnitProperties(unit, modelOptions);
   unit.bbox = modelOptions.bboxHelper.box;
@@ -693,7 +714,7 @@ function createM3Unit(modelOptions, instance) {
   }
 
   addToScene(unit);
-  addToScene(unit.healthBar);
+  //addToScene(unit.healthBar);
   addToScene(unit.teamBar);
 
   unit.createNew = () => {
@@ -711,6 +732,7 @@ function createM3Unit(modelOptions, instance) {
       const [geo, mat] = geomat;
       mat.dispose();
     }
+    game.unitPool.returnUnit(unit);
     removeUnit(unit);
   };
 
@@ -737,19 +759,65 @@ function createM3Units() {
 }
 
 function HealthBars() {
-  const healthMaterial = new THREE.ShaderMaterial({
+  function HealthBar() {
+    this.object3D = new THREE.Object3D();
+  }
+
+  const healthMaterial = new THREE.RawShaderMaterial({
     uniforms: {
       time: { type: 'f', value: 0.0 },
-      health: { type: 'f', value: 0.0},
+    },
+    attributes: {
+      position: 0,
+      uv: 1,
+      a_mv0: 2,
+      a_mv1: 3,
+      a_mv2: 4,
+      a_mv3: 5,
+      a_health: 6,
     },
     vertexShader: $('#health-vertex').text(),
     fragmentShader: $('#health-fragment').text(),
   });
   const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+  const geo = new THREE.InstancedBufferGeometry();
+  const maxInstances = config.units.maxUnits;
+  geo.addAttribute('position', healthGeometry.getAttribute('position'));
+  geo.applyMatrix((new THREE.Matrix4()).makeRotationY(-Math.PI / 2));
+  geo.addAttribute('uv', new THREE.BufferAttribute(healthGeometry.getAttribute('uv').array, 2));
+  /*geo.computeBoundingSphere();
+  geo.computeVertexNormals();
+  geo.computeFaceNormals();*/
+
+  const healthAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, 1, true);
+  geo.addAttribute('a_health', healthAttribute);
+
+  Util.createAttributeMatrix(geo, maxInstances);
   
-  this.createHealthBar = function() {
-    const healthBar = new THREE.Mesh(healthGeometry, healthMaterial.clone());
-    healthBar.renderOrder = game.renderOrders.healthBar;
+  const mesh = new THREE.Mesh(geo, healthMaterial);
+  //const mesh = new THREE.PointCloud(geo, healthMaterial);
+
+  addToScene(mesh);
+
+  this.updateHealthBar = function(unit) {
+    unit.healthBar.object3D.position.copy(unit.position);
+    unit.healthBar.object3D.position.y += getSize(unit.bbox).height * unit.scale.y + 10;
+    //unit.healthBar.object3D.lookAt(game.scene.camera.position);
+    unit.healthBar.object3D.updateMatrix();
+    unit.healthBar.object3D.updateMatrixWorld();
+    
+    const matrix = game.scene.camera.matrixWorldInverse.clone();
+    matrix.multiply(unit.healthBar.object3D.matrixWorld);
+    Util.updateAttributeMatrix(geo, matrix, unit.unitId);
+
+    healthAttribute.setX(unit.unitId, unit.health);
+    healthAttribute.needsUpdate = true;
+    
+    geo.needsUpdate = true;
+  }
+  
+  this.createHealthBar = function(unit) {
+    const healthBar = new HealthBar();
     return healthBar;
   }
 }
@@ -795,14 +863,14 @@ function createUnit(options) {
   unit.bbox = bboxHelper.box;
 
   initialPlaceUnit(unit, size);
-  unit.healthBar = game.healthBars.createHealthBar();
+  //unit.healthBar = game.healthBars.createHealthBar();
   unit.teamBar = game.teamBars.createTeamBar(unit);
 
   unit.castShadow = true;
   unit.receiveShadow = true;
 
   addToScene(unit);
-  addToScene(unit.healthBar);
+  //addToScene(unit.healthBar);
   addToScene(unit.teamBar);
 
   unit.createNew = () => {
@@ -824,7 +892,7 @@ function removeUnit(unit) {
   unit.bboxMesh.geometry.dispose();
   unit.bboxMesh.material.dispose();
   removeFromScene(unit.bboxMesh);
-  removeFromScene(unit.healthBar);
+  //removeFromScene(unit.healthBar);
   removeFromScene(unit.teamBar);
   removeFromScene(unit);
 }
@@ -1183,27 +1251,11 @@ function updateBBoxes() {
 
 function updateBars() {
   for (const unit of game.units) {
-    unit.healthBar.position.copy(unit.position);
-    unit.healthBar.position.y += getSize(unit.bbox).height * unit.scale.y;
-    unit.healthBar.lookAt(game.scene.camera.position);
+    game.healthBars.updateHealthBar(unit);
     
-    unit.teamBar.position.copy(unit.healthBar.position);
+    unit.teamBar.position.copy(unit.healthBar.object3D.position);
     unit.teamBar.position.y += 4;
     unit.teamBar.lookAt(game.scene.camera.position);
-  }
-}
-
-function updateShaders() {
-  const nowTime = (new Date().getTime()) / 1000.0;
-  const time = nowTime - game.startTime;
-  for (const unit of game.units) {
-    /*const mesh = unit.bboxMesh;
-    if (mesh !== undefined) {
-      if (mesh.material.uniforms !== undefined && mesh.material.uniforms.time !== undefined) {
-        mesh.material.uniforms.time.value = time;
-      }
-    }*/
-    unit.healthBar.material.uniforms.health.value = unit.health;
   }
 }
 
@@ -1405,7 +1457,6 @@ function render() {
     game.m3loader.update();
   }
   TWEEN.update();
-  updateShaders();
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
@@ -1646,6 +1697,7 @@ function initM3Models() {
     scene: game.scene.scene3,
     light: game.scene.light,
     getCameraFocus,
+    maxInstancesPerModel: config.units.m3count * 2,
   });
   const $modal = $('#m3progress');
   const $modalBody = $modal.find('.modal-body');
@@ -1737,6 +1789,7 @@ function initScene() {
 
   game.dom.$unitinfo = $('.unitinfo .content');
 
+  game.unitPool = new UnitPool();
   game.explosions = new Explosions();
   game.healthBars = new HealthBars();
   game.teamBars = new TeamBars();

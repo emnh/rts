@@ -7,8 +7,8 @@ precision mediump float;
 // GLSL health bars for RTS
 
 uniform float time;
-uniform float health;
 varying vec2 surfacePosition;
+varying float v_health;
 
 void main( void ) {
 
@@ -22,15 +22,15 @@ void main( void ) {
       mod(x, 0.2) > 0.025 &&
       y > 0.3 &&
       y < 0.7 &&
-      x < health) {
+      x < v_health) {
   
-    if (health > 0.75) {
+    if (v_health > 0.75) {
       // green
       gl_FragColor.rgb = vec3(0.0, 1.0, 0.0);
-    } else if (health > 0.5) {
+    } else if (v_health > 0.5) {
       // yellow
       gl_FragColor.rgb = vec3(1.0, 1.0, 0.0);
-    } else if (health > 0.25) { 
+    } else if (v_health > 0.25) { 
       // orange
       gl_FragColor.rgb = vec3(1.0, 0.5, 0.0);
     } else {

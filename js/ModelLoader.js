@@ -1,4 +1,5 @@
 const M3Models = require('./M3Models.js');
+const Util = require('./Util.js').Util;
 const mpqFile = M3Models.mpqFile;
 
 export function ModelLoader(options) {
@@ -265,7 +266,7 @@ export function ModelLoader(options) {
     const bgeo = updatePositions();
     // END UPDATEPOSITIONS
       
-    const maxInstances = 30;
+    const maxInstances = options.maxInstancesPerModel;
     modelOptions.freeInstances = [];
     for (let i = 0; i < maxInstances; i++) {
       modelOptions.freeInstances.push(i);
@@ -471,26 +472,10 @@ export function ModelLoader(options) {
 
       //const ipositionAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 16), 16, 1, false);
       //geo.addAttribute('a_iposition', ipositionAttribute);
-      const meshPerAttribute = 1;
-      geo.addAttribute(
-            'a_mv0',
-            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
-          );
-      geo.addAttribute(
-            'a_mv1',
-            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
-          );
-      geo.addAttribute(
-            'a_mv2',
-            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
-          );
-      geo.addAttribute(
-            'a_mv3',
-            new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 4), 4, meshPerAttribute, true)
-          );
-      const teamColorsAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 3), 3, meshPerAttribute, true);
+      Util.createAttributeMatrix(geo, maxInstances);
+      const teamColorsAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances * 3), 3, 1, true);
       geo.addAttribute('a_teamColor', teamColorsAttribute);
-      const frameAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, meshPerAttribute, true);
+      const frameAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, 1, true);
       geo.addAttribute('a_frame', frameAttribute);
 
       //geo.computeBoundingSphere();
@@ -545,22 +530,7 @@ export function ModelLoader(options) {
     return scope.modelOptionsList;
   }
 
-  function updateAttributeMatrix(geo, matrix, instance) {
-      const a_mv = [];
-      a_mv.push(geo.getAttribute('a_mv0'));
-      a_mv.push(geo.getAttribute('a_mv1'));
-      a_mv.push(geo.getAttribute('a_mv2'));
-      a_mv.push(geo.getAttribute('a_mv3'));
-      for (let k = 0; k < a_mv.length; k++) {
-        a_mv[k].setXYZW(instance.instanceId,
-            matrix.elements[k * 4 + 0], 
-            matrix.elements[k * 4 + 1], 
-            matrix.elements[k * 4 + 2], 
-            matrix.elements[k * 4 + 3]); 
-        a_mv[k].needsUpdate = true;
-      }
-  }
-
+  
   this.loadModels = function(progress) {
     const canvas = $("canvas#viewer");
     const viewer = ModelViewer(canvas[0], mpqFile);
@@ -649,7 +619,7 @@ export function ModelLoader(options) {
           for (const geomat of unit.geomats) {
             const [geo, mat] = geomat;
             const a_mv_matrix = (new THREE.Matrix4()).makeTranslation(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-            updateAttributeMatrix(geo, a_mv_matrix, unit);
+            Util.updateAttributeMatrix(geo, a_mv_matrix, unit.instanceId);
           }
           unit.modelOptions.freeInstances.push(unit.instanceId);
         }
@@ -671,7 +641,7 @@ export function ModelLoader(options) {
           instance.updateMatrixWorld();
           a_mv_matrix.multiply(instance.matrixWorld);
           a_mv_matrix.multiply(mesh.matrix);
-          updateAttributeMatrix(geo, a_mv_matrix, instance);
+          Util.updateAttributeMatrix(geo, a_mv_matrix, instance.instanceId);
 
           const a_frame = geo.getAttribute('a_frame');
           a_frame.setX(instance.instanceId, a_frame.getX(instance.instanceId) + elapsedFrames);
