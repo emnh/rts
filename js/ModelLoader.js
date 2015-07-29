@@ -646,7 +646,7 @@ export function ModelLoader(options) {
           const a_frame = geo.getAttribute('a_frame');
           a_frame.setX(instance.instanceId, a_frame.getX(instance.instanceId) + elapsedFrames);
           a_frame.needsUpdate = true;
-          geo.needsUpdate = true;
+          //geo.needsUpdate = true;
 
           // TODO: update eyePos
         }

@@ -1,8 +1,9 @@
+precision highp float;
+
 uniform mat4 projectionMatrix;
 uniform mat4 modelViewMatrix;
 
 attribute vec3 position;
-attribute vec2 uv;
 
 attribute float a_health;
 varying float v_health;

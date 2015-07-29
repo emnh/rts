@@ -696,9 +696,9 @@ function createM3Unit(modelOptions, instance) {
       (unit.bbox.min.y + unit.bbox.max.y) / 2,
       (unit.bbox.min.z + unit.bbox.max.z) / 2);
   boxMesh.geometry.applyMatrix(mat);
-  //const boxMesh2 = modelOptions.bboxHelper.clone();
-  //addToScene(boxMesh);
-  // TODO: fix boxMesh
+  // const boxMesh2 = modelOptions.bboxHelper.clone();
+  // addToScene(boxMesh);
+  // TODO: fix boxMesh alignment to unit
   unit.bboxMesh = boxMesh;
 
   initialPlaceUnit(unit, size);
@@ -714,8 +714,8 @@ function createM3Unit(modelOptions, instance) {
   }
 
   addToScene(unit);
-  //addToScene(unit.healthBar);
-  addToScene(unit.teamBar);
+  // addToScene(unit.healthBar);
+  // addToScene(unit.teamBar);
 
   unit.createNew = () => {
     const instancePromise = game.m3loader.addInstance(modelOptions);
@@ -760,12 +760,10 @@ function createM3Units() {
 
 function HealthBars() {
   function HealthBar() {
-    this.object3D = new THREE.Object3D();
   }
 
   const healthMaterial = new THREE.RawShaderMaterial({
     uniforms: {
-      time: { type: 'f', value: 0.0 },
     },
     attributes: [
       'position',
@@ -775,11 +773,9 @@ function HealthBars() {
     vertexShader: $('#health-vertex').text(),
     fragmentShader: $('#health-fragment').text(),
   });
-  const healthGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
   const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
   geo.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
-  geo.applyMatrix((new THREE.Matrix4()).makeRotationY(-Math.PI / 2));
 
   const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
   geo.addAttribute('a_health', healthAttribute);
@@ -787,9 +783,14 @@ function HealthBars() {
   const mesh = new THREE.PointCloud(geo, healthMaterial);
   addToScene(mesh);
 
+  // TODO: remove health bar of dead units.
+  // doesn't see the problem now, because new units are created.
   this.updateHealthBars = function(units) {
+    const focus = getCameraFocus(0, 0);
+    // necessary for bars to be visible
+    mesh.position.copy(focus);
     for (const unit of units) {
-      const position = unit.position.clone();
+      const position = unit.position.clone().sub(focus);
       position.y += getSize(unit.bbox).height * unit.scale.y;
       geo.attributes.position.setXYZ(unit.unitId, position.x, position.y, position.z);
       geo.attributes.position.needsUpdate = true;
@@ -809,21 +810,51 @@ function HealthBars() {
 }
 
 function TeamBars() {
-  const teamMaterial = new THREE.ShaderMaterial({
+  function TeamBar() {
+  }
+
+  const teamMaterial = new THREE.RawShaderMaterial({
     uniforms: {
-      time: { type: 'f', value: 0.0 },
-      health: { type: 'f', value: 0.0},
-      color: { type: 'c', value: null },
     },
+    attributes: [
+      'position',
+      'a_color',
+    ],
+    transparent: true,
     vertexShader: $('#teambar-vertex').text(),
     fragmentShader: $('#teambar-fragment').text(),
   });
-  const teamGeometry = new THREE.PlaneBufferGeometry(10, 2, 1, 1);
+  const geo = new THREE.BufferGeometry();
+  const maxInstances = config.units.maxUnits;
+  geo.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
+
+  const colorAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3);
+  geo.addAttribute('a_color', colorAttribute);
+
+  const mesh = new THREE.PointCloud(geo, teamMaterial);
+  addToScene(mesh);
+
+  this.updateTeamBars = function(units) {
+    const focus = getCameraFocus(0, 0);
+    // necessary for bars to be visible
+    mesh.position.copy(focus);
+    for (const unit of units) {
+      const position = unit.position.clone().sub(focus);
+      position.y += getSize(unit.bbox).height * unit.scale.y + 4;
+      geo.attributes.position.setXYZ(unit.unitId, position.x, position.y, position.z);
+      geo.attributes.position.needsUpdate = true;
+      geo.verticesNeedUpdate = true;
+
+      const color = TeamColors[unit.team];
+      colorAttribute.setXYZ(unit.unitId, color.r, color.g, color.b);
+      colorAttribute.needsUpdate = true;
+      
+      geo.needsUpdate = true;
+    }
+  }
 
   this.createTeamBar = function(unit) {
-    const teamBar = new THREE.Mesh(teamGeometry, teamMaterial.clone());
-    teamBar.material.uniforms.color.value = TeamColors[unit.team];
-    teamBar.renderOrder = game.renderOrders.teamBar;
+    const teamBar = new TeamBar();
     return teamBar;
   }
 }
@@ -1237,12 +1268,7 @@ function updateBBoxes() {
 
 function updateBars() {
   game.healthBars.updateHealthBars(game.units);
-
-  for (const unit of game.units) {
-    unit.teamBar.position.copy(unit.healthBar.object3D.position);
-    unit.teamBar.position.y += 4;
-    unit.teamBar.lookAt(game.scene.camera.position);
-  }
+  game.teamBars.updateTeamBars(game.units);
 }
 
 function funTerrain() {
