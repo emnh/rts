@@ -64,4 +64,12 @@ export const Util = {
       }
   },
 
+  download: function(name, data) {
+    const uri = 'data:Application/octet-stream,' + encodeURIComponent(data);
+    const link = document.createElement("a");
+    link.download = name;
+    link.href = uri;
+    link.click();
+  },
+
 };
