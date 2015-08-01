@@ -58,7 +58,7 @@ const config = {
   },
   effects: {
     explosionPool: 20,
-    missilePool: 200,
+    missilePool: 2000,
   },
   units: {
     maxUnits: 20 * 20,
@@ -589,30 +589,79 @@ function Missiles() {
   const material = game.models.missile.material;
   const geometry = game.models.missile.geometry;
 
+  const igeo = new THREE.InstancedBufferGeometry();
+
+  igeo.addAttribute('position', geometry.getAttribute('position'));
+  igeo.addAttribute('uv', geometry.getAttribute('uv'));
+
+  const maxInstances = config.effects.missilePool;
+  Util.createAttributeMatrix(igeo, maxInstances);
+
+  const vertexShader = $('#generic-vertex').text();
+  const fragmentShader = $('#generic-fragment').text();
+
+  const newMaterial = new THREE.RawShaderMaterial({
+    defines: {
+    },
+    uniforms: {
+      map: { type: 't', value: material.map },
+    },
+    attributes: [
+      'position',
+      'uv',
+    ],
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+  });
+
+  Util.createAttributeMatrix(igeo, maxInstances);
+
+  const imesh = new THREE.Mesh(igeo, newMaterial);
+  addToScene(imesh);
+
   this.pool = [];
+  this.active = {};
+
+  this.updateMissiles = function() {
+    const focus = getCameraFocus(0, 0);
+    imesh.position.copy(focus);
+    for (const missileId in this.active) {
+      if (this.active.hasOwnProperty(missileId)) {
+        const missile = this.active[missileId];
+        const matrix = new THREE.Matrix4();
+        matrix.multiply(game.scene.camera.matrixWorldInverse);
+        missile.updateMatrixWorld();
+        matrix.multiply(missile.matrixWorld);
+        Util.updateAttributeMatrix(igeo, matrix, missile.missileId);
+      }
+    }
+  }
   
   this.createMissile = function() {
-    // there are no per missile uniforms, so no need to clone the material
     let mesh;
     if (this.pool.length > 0) {
       mesh = this.pool.pop();
+      this.active[mesh.missileId] = mesh;
     } else {
-      const materialClone = material;
-      mesh = new THREE.Mesh(geometry, materialClone);
-      mesh.renderOrder = game.renderOrders.missile;
+      // TODO: scale missile pool
+      throw new Error('missile pool too small');
     }
-    mesh.visible = true;
     return mesh;
   }
 
   this.returnMissile = function(mesh) {
-    mesh.visible = false;
+    delete this.active[mesh.missileId];
+    mesh.position.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+    mesh.updateMatrix();
+    Util.updateAttributeMatrix(igeo, mesh.matrix, mesh.missileId);
     this.pool.push(mesh);
   }
 
   var newpool = [];
-  for (let i = 0; i < config.effects.missilePool; i++) {
-    const mesh = this.createMissile();
+  for (let i = 0; i < maxInstances; i++) {
+    const mesh = new THREE.Object3D();
+    mesh.renderOrder = game.renderOrders.missile;
+    mesh.missileId = i;
     newpool.push(mesh);
   }
   this.pool = newpool;
@@ -714,8 +763,6 @@ function createM3Unit(modelOptions, instance) {
   }
 
   addToScene(unit);
-  // addToScene(unit.healthBar);
-  // addToScene(unit.teamBar);
 
   unit.createNew = () => {
     const instancePromise = game.m3loader.addInstance(modelOptions);
@@ -887,8 +934,6 @@ function createUnit(options) {
   unit.receiveShadow = true;
 
   addToScene(unit);
-  //addToScene(unit.healthBar);
-  addToScene(unit.teamBar);
 
   unit.createNew = () => {
     return new Promise((resolve, reject) => {
@@ -1473,6 +1518,9 @@ function render() {
   updateCameraInfo();
   updateBBoxes();
   updateBars();
+  if (game.missiles) {
+    game.missiles.updateMissiles();
+  }
   game.components.forEach((x) => { x.render(); });
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
   Util.clearLog();
@@ -1664,7 +1712,7 @@ function attackTargets() {
             shotMesh.lookAt(target.position);
           })
           .onComplete(getApplyShot(unit, target, shotMesh));
-        addToScene(shotMesh);
+        //addToScene(shotMesh);
         unit.lastShot = getGameTime();
         tween.start();
       }
