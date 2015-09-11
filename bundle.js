@@ -1204,11 +1204,11 @@ function loadModels(finishCallback) {
 
   function setProgress(value) {
     var val = Math.round(value * 100);
-    $progress.attr("aria-valuenow", val);
+    $progress.attr('aria-valuenow', val);
     $progress.css({
-      width: val + "%"
+      width: val + '%'
     });
-    $progressText.html(val + "% JSON Units");
+    $progressText.html(val + '% JSON Units');
   }
 
   function setModelProgress() {
@@ -1263,10 +1263,10 @@ function loadModels(finishCallback) {
     };
   }
 
-  var $modelSizes = $("#modelSizes");
+  var $modelSizes = $('#modelSizes');
   var modelSizes = JSON.parse($modelSizes.html());
 
-  var $progress = $("#units .progress-bar");
+  var $progress = $('#units .progress-bar');
   var $progressText = $progress; //.find("span");
 
   var optionList = [];
@@ -1769,8 +1769,8 @@ function render() {
   });
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
   Util.clearLog();
-  Util.log("change program", game.scene.renderer.changeProgramCount - oldChangeProgramCount);
-  Util.log("change material", game.scene.renderer.changeMaterialCount - oldChangeMaterialCount);
+  Util.log('change program', game.scene.renderer.changeProgramCount - oldChangeProgramCount);
+  Util.log('change material', game.scene.renderer.changeMaterialCount - oldChangeMaterialCount);
   oldChangeProgramCount = game.scene.renderer.changeProgramCount;
   oldChangeMaterialCount = game.scene.renderer.changeMaterialCount;
   game.scene.renderStats.update();
@@ -1888,15 +1888,15 @@ function Explosions() {
   var material = new THREE.ShaderMaterial({
     uniforms: {
       tExplosion: {
-        type: "t",
+        type: 't',
         value: texture
       },
       time: {
-        type: "f",
+        type: 'f',
         value: 0.0
       },
       opacity: {
-        type: "f",
+        type: 'f',
         value: 0.0
       }
     },
@@ -2116,11 +2116,11 @@ function initM3Models() {
       if (val === 100) {
         $progressParent.remove();
       } else {
-        $progress.attr("aria-valuenow", val);
+        $progress.attr('aria-valuenow', val);
         $progress.css({
-          width: val + "%"
+          width: val + '%'
         });
-        $progressText.html(val + "% " + text);
+        $progressText.html(val + '% ' + text);
       }
     }
     var filename = source.replace(/^.*[\\\/]/, '');
@@ -2130,7 +2130,7 @@ function initM3Models() {
   var modelPromise = modelLoader.loadModels(progress);
   modelPromise.then(function () {
     game.m3loader = modelLoader;
-    $modalBody.append("<p>All M3 models loaded!</p>");
+    $modalBody.append('<p>All M3 models loaded!</p>');
     if ($('#units.progress .progress-bar').attr('aria-valuenow') === '100') {
       $modal.modal('hide');
     }
@@ -2796,7 +2796,7 @@ function MapControls(camera, mesh, renderFunction, domElement, resetCamera) {
     scope.update();
   }
 
-  function onMouseUp() /* event */{
+  function onMouseUp() {
 
     if (scope.enabled === false) {
       return true;
@@ -2930,6 +2930,7 @@ function MapControls(camera, mesh, renderFunction, domElement, resetCamera) {
 }
 
 ;
+/* event */
 
 },{}],5:[function(require,module,exports){
 'use strict';
@@ -2952,8 +2953,8 @@ function ModelLoader(options) {
   var teamColors = [[255, 3, 3], [0, 66, 255], [28, 230, 185], [84, 0, 129], [255, 252, 1], [254, 138, 14], [32, 192, 0], [229, 91, 176], [149, 150, 151], [126, 191, 241], [16, 98, 70], [78, 42, 4], [40, 40, 40], [0, 0, 0]];
 
   var baseShader = new THREE.RawShaderMaterial({
-    fragmentShader: $("#m3-fragment").text(),
-    vertexShader: $("#m3-vertex").text()
+    fragmentShader: $('#m3-fragment').text(),
+    vertexShader: $('#m3-vertex').text()
   });
 
   this.modelRegister = [];
@@ -3048,7 +3049,7 @@ function ModelLoader(options) {
   };
 
   this.addModel = function (modelOptions, model, viewer, progress) {
-    console.log("model", model.model.name, model);
+    console.log('model', model.model.name, model);
 
     //const geo = new THREE.BufferGeometry();
     var vertices = model.model.parser.vertices;
@@ -3100,7 +3101,7 @@ function ModelLoader(options) {
     if (sequenceId !== undefined) {
       instance.setSequence(sequenceId);
     } else {
-      console.warn("could't find sequence", modelOptions.sequence, model.model.name, model);
+      console.warn('could\'t find sequence', modelOptions.sequence, model.model.name, model);
       instance.setSequence(0);
     }
 
@@ -3209,8 +3210,6 @@ function ModelLoader(options) {
       modelOptions.freeInstances.push(i);
     }
 
-    // BEGIN BIG VERTEX DECODE LOOP
-
     var _loop = function (i) {
       var uvs = [[], [], [], []];
 
@@ -3222,7 +3221,7 @@ function ModelLoader(options) {
 
       var batch = batches[i];
       if (!instance.meshVisibilities[batch.regionId]) {
-        console.log("invisible batch");
+        console.log('invisible batch');
         return 'continue';
       }
       var region = batch.region;
@@ -3269,7 +3268,7 @@ function ModelLoader(options) {
       }
 
       var loader = new THREE.DDSLoader();
-      var uvSets = "EXPLICITUV" + (uvSetCount - 1);
+      var uvSets = 'EXPLICITUV' + (uvSetCount - 1);
       // TODO: select correct material
       // TODO: batch.material? looks funny with that
       var sourceMaterial = batch.material; // model.model.materials[1][0];
@@ -3361,8 +3360,6 @@ function ModelLoader(options) {
         for (_iterator2 = layers[Symbol.iterator](); !(_iteratorNormalCompletion2 = (_step2 = _iterator2.next()).done); _iteratorNormalCompletion2 = true) {
           _loop2();
         }
-
-        //material.defines[uvSets] = true;
       } catch (err) {
         _didIteratorError2 = true;
         _iteratorError2 = err;
@@ -3378,6 +3375,7 @@ function ModelLoader(options) {
         }
       }
 
+      //material.defines[uvSets] = true;
       for (var uvi = 0; uvi < uvSetCount; uvi++) {
         material.attributes['a_uv' + uvi] = { type: 'v2', value: uvs[uvi] };
       }
@@ -3457,6 +3455,7 @@ function ModelLoader(options) {
       geomats.push([geo, material]);
     };
 
+    // BEGIN BIG VERTEX DECODE LOOP
     for (var i = 0; i < l2; i++) {
       var _iteratorNormalCompletion2;
 
@@ -3546,13 +3545,13 @@ function ModelLoader(options) {
   };
 
   this.loadModels = function (progress) {
-    var canvas = $("canvas#viewer");
+    var canvas = $('canvas#viewer');
     var viewer = ModelViewer(canvas[0], mpqFile);
-    viewer.registerTextureHandler(".blp", BLPTexture);
-    viewer.registerTextureHandler(".tga", TGATexture);
-    viewer.registerModelHandler(".mdx", Mdx.Model, Mdx.ModelInstance, 1);
+    viewer.registerTextureHandler('.blp', BLPTexture);
+    viewer.registerTextureHandler('.tga', TGATexture);
+    viewer.registerModelHandler('.mdx', Mdx.Model, Mdx.ModelInstance, 1);
     //viewer.registerTextureHandler(".dds", DDSTexture);
-    viewer.registerModelHandler(".m3", M3.Model, M3.ModelInstance, 1);
+    viewer.registerModelHandler('.m3', M3.Model, M3.ModelInstance, 1);
     viewer.clear();
 
     scope.viewer = viewer;
@@ -3920,7 +3919,7 @@ function Selection(options) {
 
   var $selectionDiv = $('<div/>').css({
     visibility: 'hidden'
-  }).addClass("selectionRect").appendTo('#viewport').mouseup(function (evt) {
+  }).addClass('selectionRect').appendTo('#viewport').mouseup(function (evt) {
     // needed because mouseup may be received on it instead
     $selectionDiv.css({
       visibility: 'hidden'
@@ -4297,7 +4296,7 @@ var Util = {
 
   download: function download(name, data) {
     var uri = 'data:Application/octet-stream,' + encodeURIComponent(data);
-    var link = document.createElement("a");
+    var link = document.createElement('a');
     link.download = name;
     link.href = uri;
     link.click();
@@ -4313,7 +4312,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.mpqFile = mpqFile;
-var UnitType = require('../UnitType.js').UnitType;
+var UnitType = require("../UnitType.js").UnitType;
 
 var baseRotation = new THREE.Vector3(-Math.PI / 2, 0, -Math.PI / 2);
 var baseScale = 0.2;
@@ -4396,20 +4395,6 @@ var M3Models = [{
 }];
 
 exports.M3Models = M3Models;
-
-//  {
-//    name: "CommandCenter",
-//    path: "assets/buildings/terran/commandcenter/commandcenter.m3",
-//    type: UnitType.Ground,
-//    scale: baseScale * 0.8,
-//    sequence: "Morph A",
-//    materialHack: true,
-//  },
-//  {
-//    name: "SiegeTankMorph",
-//    path: "assets/units/terran/siegetankmorph/siegetankmorph.m3",
-//    sequence: "Morph End",
-//  },
 var _iteratorNormalCompletion = true;
 var _didIteratorError = false;
 var _iteratorError = undefined;
@@ -4439,8 +4424,8 @@ try {
   }
 }
 
-//var CORSPROXY = "http://crossorigin.me/";
-const CORSPROXY = "http://crossorigin.herokuapp.com/";
+var CORSPROXY = "http://crossorigin.herokuapp.com/";
+//const CORSPROXY = "http://crossorigin.me/";
 //const CORSPROXY = "http://alexis.lart.no:5179/";
 
 function mpqFile(path) {
@@ -4455,6 +4440,20 @@ function mpqFile(path) {
 }
 
 ;
+
+//  {
+//    name: "CommandCenter",
+//    path: "assets/buildings/terran/commandcenter/commandcenter.m3",
+//    type: UnitType.Ground,
+//    scale: baseScale * 0.8,
+//    sequence: "Morph A",
+//    materialHack: true,
+//  },
+//  {
+//    name: "SiegeTankMorph",
+//    path: "assets/units/terran/siegetankmorph/siegetankmorph.m3",
+//    sequence: "Morph End",
+//  },
 
 },{"../UnitType.js":8}],11:[function(require,module,exports){
 // This file is autogenerated via the `commonjs` Grunt task. You can require() this file in a CommonJS environment.
@@ -8943,35 +8942,31 @@ var rootParent = {}
  * Browsers that support typed arrays are IE 10+, Firefox 4+, Chrome 7+, Safari 5.1+,
  * Opera 11.6+, iOS 4.2+.
  *
- * Due to various browser bugs, sometimes the Object implementation will be used even
- * when the browser supports typed arrays.
- *
  * Note:
  *
- *   - Firefox 4-29 lacks support for adding new properties to `Uint8Array` instances,
- *     See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
+ * - Implementation must support adding new properties to `Uint8Array` instances.
+ *   Firefox 4-29 lacked support, fixed in Firefox 30+.
+ *   See: https://bugzilla.mozilla.org/show_bug.cgi?id=695438.
  *
- *   - Safari 5-7 lacks support for changing the `Object.prototype.constructor` property
- *     on objects.
+ *  - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
  *
- *   - Chrome 9-10 is missing the `TypedArray.prototype.subarray` function.
+ *  - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
+ *    incorrect length in some situations.
  *
- *   - IE10 has a broken `TypedArray.prototype.subarray` function which returns arrays of
- *     incorrect length in some situations.
-
- * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
- * get the Object implementation, which is slower but behaves correctly.
+ * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they will
+ * get the Object implementation, which is slower but will work correctly.
  */
 Buffer.TYPED_ARRAY_SUPPORT = (function () {
-  function Bar () {}
+  function Foo () {}
   try {
-    var arr = new Uint8Array(1)
+    var buf = new ArrayBuffer(0)
+    var arr = new Uint8Array(buf)
     arr.foo = function () { return 42 }
-    arr.constructor = Bar
+    arr.constructor = Foo
     return arr.foo() === 42 && // typed array instances can be augmented
-        arr.constructor === Bar && // constructor can be set
+        arr.constructor === Foo && // constructor can be set
         typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
-        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+        new Uint8Array(1).subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
   } catch (e) {
     return false
   }
@@ -9049,13 +9044,8 @@ function fromObject (that, object) {
     throw new TypeError('must start with number, buffer, array or string')
   }
 
-  if (typeof ArrayBuffer !== 'undefined') {
-    if (object.buffer instanceof ArrayBuffer) {
-      return fromTypedArray(that, object)
-    }
-    if (object instanceof ArrayBuffer) {
-      return fromArrayBuffer(that, object)
-    }
+  if (typeof ArrayBuffer !== 'undefined' && object.buffer instanceof ArrayBuffer) {
+    return fromTypedArray(that, object)
   }
 
   if (object.length) return fromArrayLike(that, object)
@@ -9088,18 +9078,6 @@ function fromTypedArray (that, array) {
   // of the old Buffer constructor.
   for (var i = 0; i < length; i += 1) {
     that[i] = array[i] & 255
-  }
-  return that
-}
-
-function fromArrayBuffer (that, array) {
-  if (Buffer.TYPED_ARRAY_SUPPORT) {
-    // Return an augmented `Uint8Array` instance, for best performance
-    array.byteLength
-    that = Buffer._augment(new Uint8Array(array))
-  } else {
-    // Fallback: Return an object instance of the Buffer class
-    that = fromTypedArray(that, new Uint8Array(array))
   }
   return that
 }
@@ -9221,6 +9199,8 @@ Buffer.concat = function concat (list, length) {
 
   if (list.length === 0) {
     return new Buffer(0)
+  } else if (list.length === 1) {
+    return list[0]
   }
 
   var i
@@ -9395,13 +9375,13 @@ Buffer.prototype.indexOf = function indexOf (val, byteOffset) {
   throw new TypeError('val must be string, number or Buffer')
 }
 
-// `get` is deprecated
+// `get` will be removed in Node 0.13+
 Buffer.prototype.get = function get (offset) {
   console.log('.get() is deprecated. Access using array indexes instead.')
   return this.readUInt8(offset)
 }
 
-// `set` is deprecated
+// `set` will be removed in Node 0.13+
 Buffer.prototype.set = function set (v, offset) {
   console.log('.set() is deprecated. Access using array indexes instead.')
   return this.writeUInt8(v, offset)
@@ -9542,99 +9522,20 @@ function base64Slice (buf, start, end) {
 }
 
 function utf8Slice (buf, start, end) {
-  end = Math.min(buf.length, end)
-  var res = []
-
-  var i = start
-  while (i < end) {
-    var firstByte = buf[i]
-    var codePoint = null
-    var bytesPerSequence = (firstByte > 0xEF) ? 4
-      : (firstByte > 0xDF) ? 3
-      : (firstByte > 0xBF) ? 2
-      : 1
-
-    if (i + bytesPerSequence <= end) {
-      var secondByte, thirdByte, fourthByte, tempCodePoint
-
-      switch (bytesPerSequence) {
-        case 1:
-          if (firstByte < 0x80) {
-            codePoint = firstByte
-          }
-          break
-        case 2:
-          secondByte = buf[i + 1]
-          if ((secondByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0x1F) << 0x6 | (secondByte & 0x3F)
-            if (tempCodePoint > 0x7F) {
-              codePoint = tempCodePoint
-            }
-          }
-          break
-        case 3:
-          secondByte = buf[i + 1]
-          thirdByte = buf[i + 2]
-          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0xF) << 0xC | (secondByte & 0x3F) << 0x6 | (thirdByte & 0x3F)
-            if (tempCodePoint > 0x7FF && (tempCodePoint < 0xD800 || tempCodePoint > 0xDFFF)) {
-              codePoint = tempCodePoint
-            }
-          }
-          break
-        case 4:
-          secondByte = buf[i + 1]
-          thirdByte = buf[i + 2]
-          fourthByte = buf[i + 3]
-          if ((secondByte & 0xC0) === 0x80 && (thirdByte & 0xC0) === 0x80 && (fourthByte & 0xC0) === 0x80) {
-            tempCodePoint = (firstByte & 0xF) << 0x12 | (secondByte & 0x3F) << 0xC | (thirdByte & 0x3F) << 0x6 | (fourthByte & 0x3F)
-            if (tempCodePoint > 0xFFFF && tempCodePoint < 0x110000) {
-              codePoint = tempCodePoint
-            }
-          }
-      }
-    }
-
-    if (codePoint === null) {
-      // we did not generate a valid codePoint so insert a
-      // replacement char (U+FFFD) and advance only 1 byte
-      codePoint = 0xFFFD
-      bytesPerSequence = 1
-    } else if (codePoint > 0xFFFF) {
-      // encode to utf16 (surrogate pair dance)
-      codePoint -= 0x10000
-      res.push(codePoint >>> 10 & 0x3FF | 0xD800)
-      codePoint = 0xDC00 | codePoint & 0x3FF
-    }
-
-    res.push(codePoint)
-    i += bytesPerSequence
-  }
-
-  return decodeCodePointsArray(res)
-}
-
-// Based on http://stackoverflow.com/a/22747272/680742, the browser with
-// the lowest limit is Chrome, with 0x10000 args.
-// We go 1 magnitude less, for safety
-var MAX_ARGUMENTS_LENGTH = 0x1000
-
-function decodeCodePointsArray (codePoints) {
-  var len = codePoints.length
-  if (len <= MAX_ARGUMENTS_LENGTH) {
-    return String.fromCharCode.apply(String, codePoints) // avoid extra slice()
-  }
-
-  // Decode in chunks to avoid "call stack size exceeded".
   var res = ''
-  var i = 0
-  while (i < len) {
-    res += String.fromCharCode.apply(
-      String,
-      codePoints.slice(i, i += MAX_ARGUMENTS_LENGTH)
-    )
+  var tmp = ''
+  end = Math.min(buf.length, end)
+
+  for (var i = start; i < end; i++) {
+    if (buf[i] <= 0x7F) {
+      res += decodeUtf8Char(tmp) + String.fromCharCode(buf[i])
+      tmp = ''
+    } else {
+      tmp += '%' + buf[i].toString(16)
+    }
   }
-  return res
+
+  return res + decodeUtf8Char(tmp)
 }
 
 function asciiSlice (buf, start, end) {
@@ -10169,16 +10070,9 @@ Buffer.prototype.copy = function copy (target, targetStart, start, end) {
   }
 
   var len = end - start
-  var i
 
-  if (this === target && start < targetStart && targetStart < end) {
-    // descending copy from end
-    for (i = len - 1; i >= 0; i--) {
-      target[i + targetStart] = this[i + start]
-    }
-  } else if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
-    // ascending copy from start
-    for (i = 0; i < len; i++) {
+  if (len < 1000 || !Buffer.TYPED_ARRAY_SUPPORT) {
+    for (var i = 0; i < len; i++) {
       target[i + targetStart] = this[i + start]
     }
   } else {
@@ -10254,7 +10148,7 @@ Buffer._augment = function _augment (arr) {
   // save reference to original Uint8Array set method before overwriting
   arr._set = arr.set
 
-  // deprecated
+  // deprecated, will be removed in node 0.13+
   arr.get = BP.get
   arr.set = BP.set
 
@@ -10310,7 +10204,7 @@ Buffer._augment = function _augment (arr) {
   return arr
 }
 
-var INVALID_BASE64_RE = /[^+\/0-9A-Za-z-_]/g
+var INVALID_BASE64_RE = /[^+\/0-9A-z\-]/g
 
 function base64clean (str) {
   // Node strips out invalid characters like \n and \t from the string, base64-js does not
@@ -10340,15 +10234,28 @@ function utf8ToBytes (string, units) {
   var length = string.length
   var leadSurrogate = null
   var bytes = []
+  var i = 0
 
-  for (var i = 0; i < length; i++) {
+  for (; i < length; i++) {
     codePoint = string.charCodeAt(i)
 
     // is surrogate component
     if (codePoint > 0xD7FF && codePoint < 0xE000) {
       // last char was a lead
-      if (!leadSurrogate) {
+      if (leadSurrogate) {
+        // 2 leads in a row
+        if (codePoint < 0xDC00) {
+          if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+          leadSurrogate = codePoint
+          continue
+        } else {
+          // valid surrogate pair
+          codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
+          leadSurrogate = null
+        }
+      } else {
         // no lead yet
+
         if (codePoint > 0xDBFF) {
           // unexpected trail
           if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
@@ -10357,29 +10264,17 @@ function utf8ToBytes (string, units) {
           // unpaired lead
           if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
           continue
+        } else {
+          // valid lead
+          leadSurrogate = codePoint
+          continue
         }
-
-        // valid lead
-        leadSurrogate = codePoint
-
-        continue
       }
-
-      // 2 leads in a row
-      if (codePoint < 0xDC00) {
-        if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
-        leadSurrogate = codePoint
-        continue
-      }
-
-      // valid surrogate pair
-      codePoint = leadSurrogate - 0xD800 << 10 | codePoint - 0xDC00 | 0x10000
     } else if (leadSurrogate) {
       // valid bmp char, but last char was a lead
       if ((units -= 3) > -1) bytes.push(0xEF, 0xBF, 0xBD)
+      leadSurrogate = null
     }
-
-    leadSurrogate = null
 
     // encode utf8
     if (codePoint < 0x80) {
@@ -10398,7 +10293,7 @@ function utf8ToBytes (string, units) {
         codePoint >> 0x6 & 0x3F | 0x80,
         codePoint & 0x3F | 0x80
       )
-    } else if (codePoint < 0x110000) {
+    } else if (codePoint < 0x200000) {
       if ((units -= 4) < 0) break
       bytes.push(
         codePoint >> 0x12 | 0xF0,
@@ -10449,6 +10344,14 @@ function blitBuffer (src, dst, offset, length) {
     dst[i + offset] = src[i]
   }
   return i
+}
+
+function decodeUtf8Char (str) {
+  try {
+    return decodeURIComponent(str)
+  } catch (err) {
+    return String.fromCharCode(0xFFFD) // UTF 8 invalid char
+  }
 }
 
 },{"base64-js":35,"ieee754":36,"is-array":37}],35:[function(require,module,exports){
@@ -23824,55 +23727,6 @@ function zeros(shape, dtype) {
   return ndarray(buf, shape, stride, 0)
 }
 exports.zeros = zeros
-
-function ones(shape, dtype) {
-  if(!dtype) {
-    dtype = "double"
-  }
-
-  var sz = 1
-  var stride = new Array(shape.length)
-  for(var i=shape.length-1; i>=0; --i) {
-    stride[i] = sz
-    sz *= shape[i]
-  }
-  var buf = pool.malloc(sz, dtype)
-  for(var i=0; i<sz; ++i) {
-    buf[i] = 1
-  }
-  return ndarray(buf, shape, stride, 0)
-}
-exports.ones = ones
-
-function eye(shape, dtype) {
-  var i, offset
-  if(!dtype) {
-    dtype = "double"
-  }
-
-  var sz = 1
-  var stride = new Array(shape.length)
-  for(i=shape.length-1; i>=0; --i) {
-    stride[i] = sz
-    sz *= shape[i]
-  }
-  var buf = pool.malloc(sz, dtype)
-  for(i=0; i<sz; ++i) {
-    buf[i] = 0
-  }
-  var mindim = Infinity
-  var offsum = 0
-  for( i=shape.length-1; i>=0; i--) {
-    offsum += stride[i]
-    mindim = Math.min(mindim,shape[i])
-  }
-  for(i=0,offset=0; i<mindim; i++,offset+=offsum) {
-    buf[offset] = 1
-  }
-  return ndarray(buf, shape, stride, 0)
-}
-exports.eye = eye
-
 },{"ndarray":58,"ndarray-ops":45,"typedarray-pool":62}],57:[function(require,module,exports){
 "use strict"
 
