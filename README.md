@@ -1,8 +1,27 @@
-# Demo
+# Introduction
 
-Unfinished project, but you can see it at a
-[snapshot](http://alexis.lart.no/emh/snapshots/rts-sc2.git/) or [my dev dir
-](http://alexis.lart.no/emh/rts.git/) (may be broken when I am working on it).
+Unfinished project, but you can see a [demo at github pages](http://emnh.github.io/rts/).
+SC2 files are retrieved from hiveworkshop.com (not mine) through a
+[heroku CORS proxy](http://crossorigin.herokuapp.com/).
+Works best in Firefox, also in Chrome, not in IE and not tested with Safari.
+Only tested on Windows.
+
+If the demo doesn't work for you, you can watch videos of it at YouTube:
+ - [StarCraft 2 on WebGL](https://www.youtube.com/watch?v=PoPNrz2LUG0)
+ - [Starcraft 2 on WebGL with colorful UV mapping](https://www.youtube.com/watch?v=EvhUteDp3o8)
+ - [Banelings, banelings, banelings](https://www.youtube.com/watch?v=aqKsVelmeeI)
+
+# Controls
+
+ - Keyboard
+  - Home to reset view
+  - PgUp/PgDn to zoom in/outside
+  - Arrow keys to move around
+  - Ctrl+arrow keys for camera arc ball rotation 
+ - Mouse
+   - Left click to select unit
+   - Right click to (instantly, for now) move selected units
+   - Left click on minimap to move camera
 
 # Getting started:
 
