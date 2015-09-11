@@ -11,7 +11,7 @@ window.$ = jQuery;
 const bootstrap = require('bootstrap');
 const boxIntersect = require('box-intersect');
 const kdtree = require('static-kdtree');
-const TWEEN = require('tween');
+const TWEEN = require('tween.js');
 const howler = require('howler');
 
 require('./js/Keys.js');
