@@ -1,4 +1,18 @@
-Unfinished project, but you can see it at a [snapshot](http://alexis.lart.no/emh/snapshots/rts-sc2.git/) or [my dev dir ](http://alexis.lart.no/emh/rts.git/) (may be broken when I am working on it).
+# Demo
+
+Unfinished project, but you can see it at a
+[snapshot](http://alexis.lart.no/emh/snapshots/rts-sc2.git/) or [my dev dir
+](http://alexis.lart.no/emh/rts.git/) (may be broken when I am working on it).
+
+# Getting started:
+
+    git clone https://github.com/emnh/rts rts
+    cd rts
+    git submodule update --init
+    npm install
+    ./compile.sh
+
+Now you can open index.html from a web server serving the page.
 
 # Resources
  - [Physijs](http://chandlerprall.github.io/Physijs/)
