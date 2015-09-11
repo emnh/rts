@@ -1,4 +1,4 @@
-const M3Models = require('./M3Models.js');
+const M3Models = require('./m3/M3Models.js');
 const Util = require('./Util.js').Util;
 const mpqFile = M3Models.mpqFile;
 
