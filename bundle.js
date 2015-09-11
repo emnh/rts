@@ -4439,7 +4439,8 @@ try {
   }
 }
 
-var CORSPROXY = "http://crossorigin.me/";
+//var CORSPROXY = "http://crossorigin.me/";
+const CORSPROXY = "http://crossorigin.herokuapp.com/";
 //const CORSPROXY = "http://alexis.lart.no:5179/";
 
 function mpqFile(path) {
