@@ -15,7 +15,7 @@ If the demo doesn't work for you, you can watch videos of it at YouTube:
 
  - Keyboard
   - Home to reset view
-  - PgUp/PgDn to zoom in/outside
+  - PgUp/PgDn to zoom in/out
   - Arrow keys to move around
   - Ctrl+arrow keys for camera arc ball rotation 
  - Mouse
