@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>emhrts - Unnamed Real Time Strategy Game</title>
+    <meta charset="utf-8">
+    <!-- Latest bootstrap compiled and minified CSS-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <!-- Optional theme-->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="css/styles.css">
+    <script type="text/javascript" src="jscache/stats.js"></script>
+    <script type="text/javascript" src="jscache/simplex-noise.js"></script>
+    <script type="text/javascript" src="jscache/dat.gui.min.js"></script>
+    <script type="text/javascript" src="jscache/three.js"></script>
+    <script type="text/javascript" src="jscache/DDSLoader.js"></script>
+    <script type="text/javascript" src="jscache/viewer.js"></script>
+    <!-- <script type="text/javascript" src="jscache/OrbitControls.js"></script>-->
+    <!-- <script type="text/javascript" src="js/MapControls.js"></script>-->
+    <script type="text/javascript" src="bundle.js"></script>
+    <!-- script(type='application/javascript;version=1.8', src='bundle2.js')-->
+  </head>
+  <body>
+    <div id="viewport"></div>
+    <div class="controls">
+      <div class="minimap"></div>
+      <div class="unitinfo">
+        <h3>Unit Info</h3>
+        <div class="debug"></div>
+        <div class="content"></div>
+      </div>
+      <div class="actions">
+        <h3>Actions</h3>
+        <button type="button" class="btn btn-default btn-lg disabled"><span aria-hidden="true" class="glyphicon glyphicon-chevron-right"></span> Move</button>
+        <button type="button" class="btn btn-default btn-lg disabled"><span aria-hidden="true" class="glyphicon glyphicon-flash"></span> Attack</button>
+      </div>
+    </div>
+    <canvas id="viewer"></canvas>
+    <div id="m3progress" class="modal fade">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" data-dismiss="modal" aria-label="Close" class="close"><span aria-hidden="true">×</span></button>
+            <h4 class="modal-title">Loading Units</h4>
+          </div>
+          <div class="modal-body">
+            <div id="m3unit" class="progress invisible">
+              <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" class="progress-bar progress-bar-striped active"><span class="sr-only">0% Complete</span></div>
+            </div>
+            <div id="units" class="progress">
+              <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" class="progress-bar progress-bar-striped active"><span class="sr-only">0% Complete</span></div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" data-dismiss="modal" class="btn btn-default">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script id="modelSizes" type="application/json">{
+  "images": {
+    "models/images/ant.jpg": 70942,
+    "models/images/biplane.jpg": 40375,
+    "models/images/bricks.jpg": 67039,
+    "models/images/camouflage.jpg": 397524,
+    "models/images/crystal.jpg": 828940,
+    "models/images/dragon.jpg": 362174,
+    "models/images/explosion.png": 3768,
+    "models/images/farm.jpg": 262472,
+    "models/images/fighter.jpg": 111875,
+    "models/images/grass.jpg": 159996,
+    "models/images/horse.jpg": 1081321,
+    "models/images/house.jpg": 841353,
+    "models/images/missile.jpg": 102036,
+    "models/images/sky.jpg": 886392,
+    "models/images/thor.jpg": 1658337
+  },
+  "models": {
+    "models/3d/ant.json": 5119061,
+    "models/3d/biplane.json": 284892,
+    "models/3d/coin.json": 108543,
+    "models/3d/crystal.json": 157129,
+    "models/3d/dragon.json": 733297,
+    "models/3d/farm.json": 511058,
+    "models/3d/fighter.json": 386604,
+    "models/3d/horse.json": 2110239,
+    "models/3d/house.json": 447889,
+    "models/3d/missile.json": 40683,
+    "models/3d/tank-apc.json": 308217,
+    "models/3d/tank-m1a1.json": 6561254,
+    "models/3d/thor.json": 11237870
+  }
+}
+
+    </script>
+    <script id="sky-vertex" type="application/x-glsl">varying vec2 vUV;
+
+void main() {
+  vUV = uv;
+  vec4 pos = vec4(position, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+} 
+
+    </script>
+    <script id="sky-fragment" type="application/x-glsl">uniform sampler2D texture;
+varying vec2 vUV;
+
+void main() {
+  vec4 sample = texture2D(texture, vUV);
+  gl_FragColor = vec4(sample.xyz, sample.w);
+}
+
+    </script>
+    <script id="loader-vertex" type="application/x-glsl">varying vec2 surfacePosition;
+
+void main() {
+  surfacePosition = uv;
+  vec4 pos = vec4(position, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+} 
+
+    </script>
+    <script id="loader-fragment" type="application/x-glsl">#ifdef GL_ES
+precision lowp float;
+#endif
+
+uniform float time;
+varying vec2 surfacePosition;
+
+const float PI = 3.1415926535898;
+const float TU = PI*2.;
+
+void main( void ) {
+  gl_FragColor = vec4(1);
+  
+  float rMin = 0.125;
+  float rMax = 0.250;
+  float tSpan = .88;
+  const float arcs = 8.;
+  
+  vec2 p = surfacePosition - 0.5;
+  vec2 r = vec2(length(p), atan(p.x, p.y));
+  
+  if(r.y < 0.) r.y += TU;
+  
+  if(r.x > rMin && r.x < rMax){
+    for(int i = 0; i < int(arcs); i++){
+      float n = float(i)/arcs;
+      float tMin = TU*n;
+      float tMax = TU*(n+tSpan/arcs);
+      if(r.y > tMin && r.y < tMax){
+        gl_FragColor.r *= .5 + fract(-n+time)/2.;
+        gl_FragColor.r = pow(gl_FragColor.r, 1.8);
+        gl_FragColor.g = (gl_FragColor.r+gl_FragColor.b)/2.;
+      }
+    }
+  } else {
+    gl_FragColor.a = 0.5;
+  }
+}
+
+    </script>
+    <script id="health-vertex" type="application/x-glsl">precision highp float;
+
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+
+attribute vec3 position;
+
+attribute float a_health;
+varying float v_health;
+
+void main() {
+  v_health = a_health;
+  vec4 pos = vec4(position, 1.0);
+  gl_PointSize = 50.0;
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+}
+
+    </script>
+    <script id="health-fragment" type="application/x-glsl">#ifdef GL_ES
+precision highp float;
+#endif
+
+// Eivind Magnus Hvidevold
+// hvidevold@gmail.com
+// GLSL health bars for RTS
+
+uniform float time;
+varying float v_health;
+
+void main( void ) {
+
+  //vec2 position = (surfacePosition + 1.0) / 2.0;
+  vec2 position = gl_PointCoord;
+
+  float x = position.x;
+  float y = position.y;
+  float height = 0.15;
+  float minY = 0.5 - height / 2.0;
+  float maxY = 0.5 + height / 2.0;
+  if (y < minY || y > maxY) {
+    gl_FragColor = vec4(0.0);
+  } else {
+    gl_FragColor.a = 1.0;
+    y = (y - minY) / (maxY - minY);
+    if (mod(x, 0.2) < 0.175 &&
+        mod(x, 0.2) > 0.025 &&
+        y > 0.2 &&
+        y < 0.8 &&
+        x < v_health) {
+    
+      if (v_health > 0.75) {
+        // green
+        gl_FragColor.rgb = vec3(0.0, 1.0, 0.0);
+      } else if (v_health > 0.5) {
+        // yellow
+        gl_FragColor.rgb = vec3(1.0, 1.0, 0.0);
+      } else if (v_health > 0.25) { 
+        // orange
+        gl_FragColor.rgb = vec3(1.0, 0.5, 0.0);
+      } else {
+        // red
+        gl_FragColor.rgb = vec3(1.0, 0.0, 0.0); 
+      }
+    }
+  }
+}
+
+    </script>
+    <script id="water-vertex" type="application/x-glsl">varying vec2 surfacePosition;
+
+void main() {
+  surfacePosition = uv;
+  vec4 pos = vec4(position, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+} 
+
+    </script>
+    <script id="water-fragment" type="application/x-glsl">// "Seascape" by Alexander Alekseev aka TDM - 2014
+// License Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+
+uniform float iGlobalTime;
+uniform vec3 ang;
+uniform vec3 angv;
+uniform vec3 ori;
+uniform vec3 dir;
+uniform vec3 light;
+const vec2 iResolution = vec2(10000, 10000);
+varying vec2 surfacePosition;
+
+const int NUM_STEPS = 8;
+const float PI    = 3.1415;
+const float EPSILON = 1e-3;
+float EPSILON_NRM = 0.1 / iResolution.x;
+
+// sea
+const int ITER_GEOMETRY = 3;
+const int ITER_FRAGMENT = 5;
+const float SEA_HEIGHT = 1.6;
+const float SEA_CHOPPY = 4.0;
+const float SEA_SPEED = 0.8;
+const float SEA_FREQ = 0.16;
+const vec3 SEA_BASE = vec3(0.1,0.19,0.22);
+const vec3 SEA_WATER_COLOR = vec3(0.8,0.9,0.6);
+float SEA_TIME = iGlobalTime * SEA_SPEED;
+mat2 octave_m = mat2(1.6,1.2,-1.2,1.6);
+
+// math
+mat3 fromEuler(vec3 ang) {
+  vec2 a1 = vec2(sin(ang.x),cos(ang.x));
+    vec2 a2 = vec2(sin(ang.y),cos(ang.y));
+    vec2 a3 = vec2(sin(ang.z),cos(ang.z));
+    mat3 m;
+    m[0] = vec3(a1.y*a3.y+a1.x*a2.x*a3.x,a1.y*a2.x*a3.x+a3.y*a1.x,-a2.y*a3.x);
+  m[1] = vec3(-a2.y*a1.x,a1.y*a2.y,a2.x);
+  m[2] = vec3(a3.y*a1.x*a2.x+a1.y*a3.x,a1.x*a3.x-a1.y*a3.y*a2.x,a2.y*a3.y);
+  return m;
+}
+float hash( vec2 p ) {
+  float h = dot(p,vec2(127.1,311.7)); 
+    return fract(sin(h)*43758.5453123);
+}
+float noise( in vec2 p ) {
+    vec2 i = floor( p );
+    vec2 f = fract( p );  
+  vec2 u = f*f*(3.0-2.0*f);
+    return -1.0+2.0*mix( mix( hash( i + vec2(0.0,0.0) ), 
+                     hash( i + vec2(1.0,0.0) ), u.x),
+                mix( hash( i + vec2(0.0,1.0) ), 
+                     hash( i + vec2(1.0,1.0) ), u.x), u.y);
+}
+
+// lighting
+float diffuse(vec3 n,vec3 l,float p) {
+    return pow(dot(n,l) * 0.4 + 0.6,p);
+}
+float specular(vec3 n,vec3 l,vec3 e,float s) {    
+    float nrm = (s + 8.0) / (3.1415 * 8.0);
+    return pow(max(dot(reflect(e,n),l),0.0),s) * nrm;
+}
+
+// sky
+vec3 getSkyColor(vec3 e) {
+    e.y = max(e.y,0.0);
+    vec3 ret;
+    ret.x = pow(1.0-e.y,2.0);
+    ret.y = 1.0-e.y;
+    ret.z = 0.6+(1.0-e.y)*0.4;
+    return ret;
+}
+
+// sea
+float sea_octave(vec2 uv, float choppy) {
+    uv += noise(uv);        
+    vec2 wv = 1.0-abs(sin(uv));
+    vec2 swv = abs(cos(uv));    
+    wv = mix(wv,swv,wv);
+    return pow(1.0-pow(wv.x * wv.y,0.65),choppy);
+}
+
+float map(vec3 p) {
+    float freq = SEA_FREQ;
+    float amp = SEA_HEIGHT;
+    float choppy = SEA_CHOPPY;
+    vec2 uv = p.xz; uv.x *= 0.75;
+    
+    float d, h = 0.0;    
+    for(int i = 0; i < ITER_GEOMETRY; i++) {        
+      d = sea_octave((uv+SEA_TIME)*freq,choppy);
+      d += sea_octave((uv-SEA_TIME)*freq,choppy);
+        h += d * amp;        
+      uv *= octave_m; freq *= 1.9; amp *= 0.22;
+        choppy = mix(choppy,1.0,0.2);
+    }
+    return p.y - h;
+}
+
+float map_detailed(vec3 p) {
+    float freq = SEA_FREQ;
+    float amp = SEA_HEIGHT;
+    float choppy = SEA_CHOPPY;
+    vec2 uv = p.xz; uv.x *= 0.75;
+    
+    float d, h = 0.0;    
+    for(int i = 0; i < ITER_FRAGMENT; i++) {        
+      d = sea_octave((uv+SEA_TIME)*freq,choppy);
+      d += sea_octave((uv-SEA_TIME)*freq,choppy);
+        h += d * amp;        
+      uv *= octave_m; freq *= 1.9; amp *= 0.22;
+        choppy = mix(choppy,1.0,0.2);
+    }
+    return p.y - h;
+}
+
+vec3 getSeaColor(vec3 p, vec3 n, vec3 l, vec3 eye, vec3 dist) {  
+    float fresnel = 1.0 - max(dot(n,-eye),0.0);
+    fresnel = pow(fresnel,3.0) * 0.65;
+        
+    vec3 reflected = getSkyColor(reflect(eye,n));    
+    vec3 refracted = SEA_BASE + diffuse(n,l,80.0) * SEA_WATER_COLOR * 0.12; 
+    
+    vec3 color = mix(refracted,reflected,fresnel);
+    
+    float atten = max(1.0 - dot(dist,dist) * 0.001, 0.0);
+    color += SEA_WATER_COLOR * (p.y - SEA_HEIGHT) * 0.18 * atten;
+    
+    color += vec3(specular(n,l,eye,60.0));
+    
+    return color;
+}
+
+// tracing
+vec3 getNormal(vec3 p, float eps) {
+    vec3 n;
+    n.y = map_detailed(p);    
+    n.x = map_detailed(vec3(p.x+eps,p.y,p.z)) - n.y;
+    n.z = map_detailed(vec3(p.x,p.y,p.z+eps)) - n.y;
+    n.y = eps;
+    return normalize(n);
+}
+
+float heightMapTracing(vec3 ori, vec3 dir, out vec3 p) {  
+    float tm = 0.0;
+    float tx = 1000.0;    
+    float hx = map(ori + dir * tx);
+    if(hx > 0.0) return tx;   
+    float hm = map(ori + dir * tm);    
+    float tmid = 0.0;
+    for(int i = 0; i < NUM_STEPS; i++) {
+        tmid = mix(tm,tx, hm/(hm-hx));                   
+        p = ori + dir * tmid;                   
+      float hmid = map(p);
+    if(hmid < 0.0) {
+          tx = tmid;
+            hx = hmid;
+        } else {
+            tm = tmid;
+            hm = hmid;
+        }
+    }
+    return tmid;
+}
+
+// main
+void mainImage( out vec4 fragColor, in vec2 fragCoord ) {
+  vec2 uv = fragCoord.xy; // iResolution.xy;
+  uv = uv * 2.0 - 1.0;
+  uv.x *= iResolution.x / iResolution.y;    
+  float time = iGlobalTime * 0.3;
+      
+  // ray
+  //vec3 ang = vec3(0, 1, 0); //vec3(sin(time*3.0)*0.1,sin(time)*0.2+0.3,time);    
+  //vec3 ori = vec3(4.0,5.5,5.0);
+  vec3 dir = normalize(vec3(uv.xy,-2.0));
+  dir.z += length(uv) * 0.15;
+  dir = normalize(dir) * fromEuler(ang);
+  
+  // tracing
+  vec3 p;
+  heightMapTracing(ori,dir,p);
+  vec3 dist = p - ori;
+  vec3 n = getNormal(p, dot(dist,dist) * EPSILON_NRM);
+  vec3 light = normalize(light); //vec3(0.0,1.0,0.8)); 
+           
+  // color
+  vec3 color = mix(
+      getSkyColor(dir),
+      getSeaColor(p,n,light,dir,dist),
+    pow(smoothstep(0.0,-0.05,dir.y),0.3));
+      
+  // post
+  fragColor = vec4(pow(color,vec3(0.75)), 1.0);
+}
+
+void main() {
+  mainImage(gl_FragColor, surfacePosition);  
+}
+
+    </script>
+    <script id="explosion-vertex" type="application/x-glsl">// http://www.clicktorelease.com/blog/vertex-displacement-webgl-glsl-perlin-noise-three-js/add-some-colour-movement
+//
+// GLSL textureless classic 3D noise "cnoise",
+// with an RSL-style periodic variant "pnoise".
+// Author:  Stefan Gustavson (stefan.gustavson@liu.se)
+// Version: 2011-10-11
+//
+// Many thanks to Ian McEwan of Ashima Arts for the
+// ideas for permutation and gradient selection.
+//
+// Copyright (c) 2011 Stefan Gustavson. All rights reserved.
+// Distributed under the MIT license. See LICENSE file.
+// https://github.com/ashima/webgl-noise
+//
+
+vec3 mod289(vec3 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 mod289(vec4 x)
+{
+  return x - floor(x * (1.0 / 289.0)) * 289.0;
+}
+
+vec4 permute(vec4 x)
+{
+  return mod289(((x*34.0)+1.0)*x);
+}
+
+vec4 taylorInvSqrt(vec4 r)
+{
+  return 1.79284291400159 - 0.85373472095314 * r;
+}
+
+vec3 fade(vec3 t) {
+  return t*t*t*(t*(t*6.0-15.0)+10.0);
+}
+
+// Classic Perlin noise
+float cnoise(vec3 P)
+{
+  vec3 Pi0 = floor(P); // Integer part for indexing
+  vec3 Pi1 = Pi0 + vec3(1.0); // Integer part + 1
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Classic Perlin noise, periodic variant
+float pnoise(vec3 P, vec3 rep)
+{
+  vec3 Pi0 = mod(floor(P), rep); // Integer part, modulo period
+  vec3 Pi1 = mod(Pi0 + vec3(1.0), rep); // Integer part + 1, mod period
+  Pi0 = mod289(Pi0);
+  Pi1 = mod289(Pi1);
+  vec3 Pf0 = fract(P); // Fractional part for interpolation
+  vec3 Pf1 = Pf0 - vec3(1.0); // Fractional part - 1.0
+  vec4 ix = vec4(Pi0.x, Pi1.x, Pi0.x, Pi1.x);
+  vec4 iy = vec4(Pi0.yy, Pi1.yy);
+  vec4 iz0 = Pi0.zzzz;
+  vec4 iz1 = Pi1.zzzz;
+
+  vec4 ixy = permute(permute(ix) + iy);
+  vec4 ixy0 = permute(ixy + iz0);
+  vec4 ixy1 = permute(ixy + iz1);
+
+  vec4 gx0 = ixy0 * (1.0 / 7.0);
+  vec4 gy0 = fract(floor(gx0) * (1.0 / 7.0)) - 0.5;
+  gx0 = fract(gx0);
+  vec4 gz0 = vec4(0.5) - abs(gx0) - abs(gy0);
+  vec4 sz0 = step(gz0, vec4(0.0));
+  gx0 -= sz0 * (step(0.0, gx0) - 0.5);
+  gy0 -= sz0 * (step(0.0, gy0) - 0.5);
+
+  vec4 gx1 = ixy1 * (1.0 / 7.0);
+  vec4 gy1 = fract(floor(gx1) * (1.0 / 7.0)) - 0.5;
+  gx1 = fract(gx1);
+  vec4 gz1 = vec4(0.5) - abs(gx1) - abs(gy1);
+  vec4 sz1 = step(gz1, vec4(0.0));
+  gx1 -= sz1 * (step(0.0, gx1) - 0.5);
+  gy1 -= sz1 * (step(0.0, gy1) - 0.5);
+
+  vec3 g000 = vec3(gx0.x,gy0.x,gz0.x);
+  vec3 g100 = vec3(gx0.y,gy0.y,gz0.y);
+  vec3 g010 = vec3(gx0.z,gy0.z,gz0.z);
+  vec3 g110 = vec3(gx0.w,gy0.w,gz0.w);
+  vec3 g001 = vec3(gx1.x,gy1.x,gz1.x);
+  vec3 g101 = vec3(gx1.y,gy1.y,gz1.y);
+  vec3 g011 = vec3(gx1.z,gy1.z,gz1.z);
+  vec3 g111 = vec3(gx1.w,gy1.w,gz1.w);
+
+  vec4 norm0 = taylorInvSqrt(vec4(dot(g000, g000), dot(g010, g010), dot(g100, g100), dot(g110, g110)));
+  g000 *= norm0.x;
+  g010 *= norm0.y;
+  g100 *= norm0.z;
+  g110 *= norm0.w;
+  vec4 norm1 = taylorInvSqrt(vec4(dot(g001, g001), dot(g011, g011), dot(g101, g101), dot(g111, g111)));
+  g001 *= norm1.x;
+  g011 *= norm1.y;
+  g101 *= norm1.z;
+  g111 *= norm1.w;
+
+  float n000 = dot(g000, Pf0);
+  float n100 = dot(g100, vec3(Pf1.x, Pf0.yz));
+  float n010 = dot(g010, vec3(Pf0.x, Pf1.y, Pf0.z));
+  float n110 = dot(g110, vec3(Pf1.xy, Pf0.z));
+  float n001 = dot(g001, vec3(Pf0.xy, Pf1.z));
+  float n101 = dot(g101, vec3(Pf1.x, Pf0.y, Pf1.z));
+  float n011 = dot(g011, vec3(Pf0.x, Pf1.yz));
+  float n111 = dot(g111, Pf1);
+
+  vec3 fade_xyz = fade(Pf0);
+  vec4 n_z = mix(vec4(n000, n100, n010, n110), vec4(n001, n101, n011, n111), fade_xyz.z);
+  vec2 n_yz = mix(n_z.xy, n_z.zw, fade_xyz.y);
+  float n_xyz = mix(n_yz.x, n_yz.y, fade_xyz.x); 
+  return 2.2 * n_xyz;
+}
+
+// Include the Ashima code here!
+ 
+varying vec2 vUv;
+varying float noise;
+uniform float time;
+
+float turbulence( vec3 p ) {
+  float w = 100.0;
+  float t = -.5;
+  for (float f = 1.0 ; f <= 10.0 ; f++ ){
+    float power = pow( 2.0, f );
+    t += abs( pnoise( vec3( power * p ), vec3( 10.0, 10.0, 10.0 ) ) / power );
+  }
+  return t;
+}
+
+void main() {
+
+  vUv = uv;
+
+  noise = 10.0 *  -.10 * turbulence( .5 * normal + time );
+  float b = 5.0 * pnoise( 0.05 * position + vec3( 2.0 * time ), vec3( 100.0 ) );
+  float displacement = - 10. * noise + b;
+  
+  vec3 newPosition = position + normal * displacement;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
+
+}
+
+    </script>
+    <script id="explosion-fragment" type="application/x-glsl">varying vec2 vUv;
+varying float noise;
+uniform sampler2D tExplosion;
+uniform float time;
+uniform float opacity;
+
+float random( vec3 scale, float seed ){
+  return fract( sin( dot( gl_FragCoord.xyz + seed, scale ) ) * 43758.5453 + seed ) ;
+}
+
+void main() {
+  float r = 0.01 * random( vec3( 12.9898, 78.233, 151.7182 ), 0.0);
+  vec2 tPos = vec2(0.0, 2.0 * noise + r);
+  vec4 color = texture2D(tExplosion, tPos);
+  gl_FragColor = vec4(color.rgb, opacity);
+}
+
+    </script>
+    <script id="teambar-vertex" type="application/x-glsl">precision highp float;
+
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+
+attribute vec3 position;
+attribute vec3 a_color;
+
+varying vec3 v_color;
+
+void main() {
+  v_color = a_color;
+  vec4 pos = vec4(position, 1.0);
+
+  gl_PointSize = 50.0;
+
+  gl_Position = projectionMatrix * modelViewMatrix * pos;
+} 
+
+    </script>
+    <script id="teambar-fragment" type="application/x-glsl">precision highp float;
+
+uniform float time;
+uniform float health;
+varying vec3 v_color;
+
+void main( void ) {
+
+  vec2 position = gl_PointCoord;
+
+  float x = position.x;
+  float y = position.y;
+  float height = 0.15;
+  float minY = 0.5 - height / 2.0;
+  float maxY = 0.5 + height / 2.0;
+  
+  if (y < minY || y > maxY) {
+    gl_FragColor = vec4(0.0);
+  } else {
+    gl_FragColor.a = 1.0;
+    y = (y - minY) / (maxY - minY);
+    if (x > 0.05 &&
+        x < 0.95 &&
+        y > 0.3 &&
+        y < 0.7) {
+      gl_FragColor.rgb = v_color;
+    }
+  }
+}
+
+    </script>
+    <script id="m3-vertex" type="application/x-glsl">uniform sampler2D u_boneMap;
+uniform float u_matrix_size;
+uniform float u_texel_size;
+uniform float u_frame_size;
+//uniform float u_frame;
+
+attribute vec4 a_mv0;
+attribute vec4 a_mv1;
+attribute vec4 a_mv2;
+attribute vec4 a_mv3;
+//attribute mat4 a_mv;
+attribute vec3 a_teamColor;
+attribute float a_frame;
+
+highp mat4 transpose(in highp mat4 inMatrix) {
+  highp vec4 i0 = inMatrix[0];
+  highp vec4 i1 = inMatrix[1];
+  highp vec4 i2 = inMatrix[2];
+  highp vec4 i3 = inMatrix[3];
+
+  highp mat4 outMatrix = mat4(
+                   vec4(i0.x, i1.x, i2.x, i3.x),
+                   vec4(i0.y, i1.y, i2.y, i3.y),
+                   vec4(i0.z, i1.z, i2.z, i3.z),
+                   vec4(i0.w, i1.w, i2.w, i3.w)
+                   );
+  return outMatrix;
+}
+
+mat4 boneAtIndex(float index) {
+    float offset = index * u_matrix_size;
+    float frame = fract(a_frame * u_frame_size);
+    mat4 ret = mat4(
+        texture2D(u_boneMap, vec2(offset, frame)),
+        texture2D(u_boneMap, vec2(offset + u_texel_size, frame)),
+        texture2D(u_boneMap, vec2(offset + u_texel_size * 2.0, frame)),
+        texture2D(u_boneMap, vec2(offset + u_texel_size * 3.0, frame)));
+    return ret;
+}
+
+vec3 TBN(vec3 vector, vec3 tangent, vec3 binormal, vec3 normal) {
+    vec3 transformed;
+
+    transformed.x = dot(vector, tangent);
+    transformed.y = dot(vector, binormal);
+    transformed.z = dot(vector, normal);
+
+    return transformed;
+}
+
+vec4 decodeVector(vec4 v) {
+    return ((v / 255.0) * 2.0) - 1.0;
+}
+
+uniform mat4 projectionMatrix;
+uniform mat4 modelViewMatrix;
+#define u_mv mat4(a_mv0, a_mv1, a_mv2, a_mv3)
+#define u_mvp projectionMatrix * u_mv
+uniform vec3 u_eyePos;
+uniform vec3 u_lightPos;
+uniform float u_firstBoneLookupIndex;
+
+attribute vec3 position;
+attribute vec4 a_normal;
+attribute vec2 a_uv0;
+attribute vec2 a_uv1;
+attribute vec2 a_uv2;
+attribute vec2 a_uv3;
+
+attribute vec4 a_tangent;
+attribute vec4 a_bones;
+attribute vec4 a_weights;
+
+varying vec3 v_normal;
+varying vec2 v_uv[4];
+varying vec3 v_lightDir;
+varying vec3 v_eyeVec;
+varying vec3 v_halfVec;
+varying vec3 v_teamColor;
+
+void transform(vec3 inposition, vec3 innormal, vec3 intangent, vec4 bones, vec4 weights, out vec3 outposition, out vec3 outnormal, out vec3 outtangent) {
+    vec4 position = vec4(inposition, 1);
+    vec4 normal = vec4(innormal, 0);
+    vec4 tangent = vec4(intangent, 0);
+    vec4 temp;
+
+    mat4 weightedBone0 = boneAtIndex(bones[0]) * weights[0];
+    mat4 weightedBone1 = boneAtIndex(bones[1]) * weights[1];
+    mat4 weightedBone2 = boneAtIndex(bones[2]) * weights[2];
+    mat4 weightedBone3 = boneAtIndex(bones[3]) * weights[3];
+
+    temp = vec4(0);
+    temp += weightedBone0 * position;
+    temp += weightedBone1 * position;
+    temp += weightedBone2 * position;
+    temp += weightedBone3 * position;
+    outposition = vec3(temp);
+
+    temp = vec4(0);
+    temp += weightedBone0 * normal;
+    temp += weightedBone1 * normal;
+    temp += weightedBone2 * normal;
+    temp += weightedBone3 * normal;
+    outnormal = normalize(vec3(temp));
+
+    temp = vec4(0);
+    temp += weightedBone0 * tangent;
+    temp += weightedBone1 * tangent;
+    temp += weightedBone2 * tangent;
+    temp += weightedBone3 * tangent;
+    outtangent = normalize(vec3(temp));
+}
+
+void main() {
+    vec4 decodedNormal = decodeVector(a_normal);
+    vec4 decodedTangent = decodeVector(a_tangent);
+    vec3 cposition, normal, tangent;
+
+    transform(position, vec3(decodedNormal), vec3(decodedTangent), a_bones + u_firstBoneLookupIndex, a_weights / 255.0, cposition, normal, tangent);
+
+    mat3 mv = mat3(u_mv);
+
+    vec3 position_mv = (u_mv * vec4(cposition, 1)).xyz;
+
+    vec3 n = normalize(mv * normal);
+    vec3 t = normalize(mv * tangent);
+    vec3 b = normalize(cross(n, t) * decodedNormal.w);
+
+    vec3 lightDir = normalize(u_lightPos - position_mv);
+    v_lightDir = normalize(TBN(lightDir, t, b, n));
+
+    vec3 eyeVec = normalize(u_eyePos - position_mv);
+    vec3 halfVec = normalize(eyeVec - u_lightPos);
+
+    v_eyeVec = TBN(eyeVec, t, b, n);
+    v_halfVec = TBN(halfVec, t, b, n);
+
+    v_normal = n;
+
+    v_uv[0] = a_uv0 / 2048.0;
+
+    v_uv[1] = vec2(0);
+    v_uv[2] = vec2(0);
+    v_uv[3] = vec2(0);
+
+    v_uv[1] = a_uv1 / 2048.0;
+    v_uv[2] = a_uv2 / 2048.0;
+    v_uv[3] = a_uv3 / 2048.0;
+
+    v_teamColor = a_teamColor;
+
+    gl_Position = projectionMatrix * u_mv * vec4(cposition, 1);
+    //gl_Position = u_mvp * vec4(a_position, 1);
+}
+
+    </script>
+    <script id="m3-fragment" type="application/x-glsl">#ifdef GL_ES
+precision mediump float;
+#endif
+
+
+varying vec3 v_teamColor;
+varying vec3 v_normal;
+varying vec2 v_uv[4];
+varying vec3 v_lightDir;
+varying vec3 v_eyeVec;
+varying vec3 v_halfVec;
+
+vec3 rgb2hsv(vec3 c)
+{
+    vec4 K = vec4(0.0, -1.0 / 3.0, 2.0 / 3.0, -1.0);
+    vec4 p = mix(vec4(c.bg, K.wz), vec4(c.gb, K.xy), step(c.b, c.g));
+    vec4 q = mix(vec4(p.xyw, c.r), vec4(c.r, p.yzx), step(p.x, c.r));
+
+    float d = q.x - min(q.w, q.y);
+    float e = 1.0e-10;
+    return vec3(abs(q.z + (q.w - q.y) / (6.0 * d + e)), d / (q.x + e), q.x);
+}
+
+vec3 hsv2rgb(vec3 c)
+{
+    vec4 K = vec4(1.0, 2.0 / 3.0, 1.0 / 3.0, 3.0);
+    vec3 p = abs(fract(c.xxx + K.xyz) * 6.0 - K.www);
+    return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
+}
+
+struct LayerSettings {
+    bool enabled;
+    float op;
+    float channels;
+    float teamColorMode;
+    //vec3 multAddAlpha;
+    //bool useAlphaFactor;
+    bool invert;
+    //bool multColor;
+    //bool addColor;
+    bool clampResult;
+    //bool useConstantColor;
+    //vec4 constantColor;
+    //float uvSource;
+    float uvCoordinate;
+    //float fresnelMode;
+    //float fresnelTransformMode;
+    //mat4 fresnelTransform;
+    //bool fresnelClamp;
+    //vec3 fresnelExponentBiasScale;
+};
+
+#define SPECULAR_RGB 0.0
+#define SPECULAR_A_ONLY 1.0
+
+#define FRESNELMODE_NONE 0.0
+#define FRESNELMODE_STANDARD 1.0
+#define FRESNELMODE_INVERTED 2.0
+
+#define FRESNELTRANSFORM_NONE 0.0
+#define FRESNELTRANSFORM_SIMPLE 1.0
+#define FRESNELTRANSFORM_NORMALIZED 2.0
+
+#define UVMAP_EXPLICITUV0 0.0
+#define UVMAP_EXPLICITUV1 1.0
+#define UVMAP_REFLECT_CUBICENVIO 2.0
+#define UVMAP_REFLECT_SPHERICALENVIO 3.0
+#define UVMAP_PLANARLOCALZ 4.0
+#define UVMAP_PLANARWORLDZ 5.0
+#define UVMAP_PARTICLE_FLIPBOOK 6.0
+#define UVMAP_CUBICENVIO 7.0
+#define UVMAP_SPHERICALENVIO 8.0
+#define UVMAP_EXPLICITUV2 9.0
+#define UVMAP_EXPLICITUV3 10.0
+#define UVMAP_PLANARLOCALX 11.0
+#define UVMAP_PLANARLOCALY 12.0
+#define UVMAP_PLANARWORLDX 13.0
+#define UVMAP_PLANARWORLDY 14.0
+#define UVMAP_SCREENSPACE 15.0
+#define UVMAP_TRIPLANAR_LOCAL 16.0
+#define UVMAP_TRIPLANAR_WORLD 17.0
+#define UVMAP_TRIPLANAR_WORLD_LOCAL_Z 18.0
+
+#define CHANNELSELECT_RGB 0.0
+#define CHANNELSELECT_RGBA 1.0
+#define CHANNELSELECT_A 2.0
+#define CHANNELSELECT_R 3.0
+#define CHANNELSELECT_G 4.0
+#define CHANNELSELECT_B 5.0
+
+#define TEAMCOLOR_NONE 0.0
+#define TEAMCOLOR_DIFFUSE 1.0
+#define TEAMCOLOR_EMISSIVE 2.0
+
+#define LAYEROP_MOD 0.0
+#define LAYEROP_MOD2X 1.0
+#define LAYEROP_ADD 2.0
+#define LAYEROP_LERP 3.0
+#define LAYEROP_TEAMCOLOR_EMISSIVE_ADD 4.0
+#define LAYEROP_TEAMCOLOR_DIFFUSE_ADD 5.0
+#define LAYEROP_ADD_NO_ALPHA 6.0
+/*
+float calculateFresnelTerm(vec3 normal, vec3 eyeToVertex, float exponent, mat4 fresnelTransform, float fresnelTransformMode, bool fresnelClamp) {
+  vec3 fresnelDir = eyeToVertex;
+  float result;
+  
+  if (fresnelTransformMode != FRESNELTRANSFORM_NONE) {
+    fresnelDir = (fresnelTransform * vec4(fresnelDir, 1.0)).xyz;
+    
+    if (fresnelTransformMode == FRESNELTRANSFORM_NORMALIZED) {
+      fresnelDir = normalize(fresnelDir);
+    }
+  }
+  
+  if (fresnelClamp) {
+    result = 1.0 - clamp(-dot(normal, fresnelDir), 0.0, 1.0);
+  } else {
+    result = 1.0 - abs(dot(normal, fresnelDir));
+  }
+  
+  result = max(result, 0.0000001);
+  
+  return pow(result, exponent);
+}
+*/
+vec3 combineLayerColor(vec4 color, vec3 result, LayerSettings layerSettings) {
+    if (layerSettings.op == LAYEROP_MOD) {
+        result *= color.rgb;
+    } else if (layerSettings.op == LAYEROP_MOD2X) {
+        result *= color.rgb * 2.0;
+    } else if (layerSettings.op == LAYEROP_ADD) {
+        result += color.rgb * color.a;
+    } else if (layerSettings.op == LAYEROP_ADD_NO_ALPHA) {
+        result += color.rgb;
+    } else if (layerSettings.op == LAYEROP_LERP) {
+        result = mix(result, color.rgb, color.a);
+    } else if (layerSettings.op == LAYEROP_TEAMCOLOR_EMISSIVE_ADD) {
+        result += color.a * (v_teamColor / 255.0);
+    } else if (layerSettings.op == LAYEROP_TEAMCOLOR_DIFFUSE_ADD) {
+        result += color.a * (v_teamColor / 255.0);
+    }
+
+    return result;
+}
+
+vec4 chooseChannel(float channel, vec4 texel) {
+    if (channel == CHANNELSELECT_R) {
+        texel = texel.rrrr;
+    } else if (channel == CHANNELSELECT_G) {
+        texel = texel.gggg;
+    } else if (channel == CHANNELSELECT_B) {
+        texel = texel.bbbb;
+    } else if (channel == CHANNELSELECT_A) {
+        texel = texel.aaaa;
+    } else if (channel == CHANNELSELECT_RGB) {
+        texel.a = 1.0;
+    }
+
+    return texel;
+}
+
+vec2 getUV(LayerSettings layerSettings) {
+    if (layerSettings.uvCoordinate == 1.0) {
+        return v_uv[1];
+    } else if (layerSettings.uvCoordinate == 2.0) {
+        return v_uv[2];
+    } else if (layerSettings.uvCoordinate == 3.0) {
+        return v_uv[3];
+    }
+
+    return v_uv[0];
+}
+
+vec4 sampleLayer(sampler2D layer, LayerSettings layerSettings) {
+      /*
+      if (layerSettings.useConstantColor && false) {
+        return layerSettings.constantColor;
+      }
+      */
+      return texture2D(layer, getUV(layerSettings));
+}
+
+vec4 computeLayerColor(sampler2D layer, LayerSettings layerSettings) {
+    vec4 texel = sampleLayer(layer, layerSettings);
+    vec4 result = chooseChannel(layerSettings.channels, texel);
+    /*
+    if (layerSettings.useAlphaFactor && false) {
+    result.a *= layerSettings.multAddAlpha.z;
+    }
+    */
+    if (layerSettings.teamColorMode == TEAMCOLOR_DIFFUSE) {
+        result = vec4(mix(v_teamColor / 255.0, result.rgb, texel.a), 1);
+    } else if (layerSettings.teamColorMode == TEAMCOLOR_EMISSIVE) {
+        result = vec4(mix(v_teamColor / 255.0, result.rgb, texel.a), 1);
+    }
+
+    if (layerSettings.invert) {
+        result = vec4(1) - result;
+    }
+    /*
+    if (layerSettings.multColor && false) {
+    result *= layerSettings.multAddAlpha.x;
+    }
+
+    if (layerSettings.addColor && false) {
+    result += layerSettings.multAddAlpha.y;
+    }
+    */
+    if (layerSettings.clampResult) {
+        result = clamp(result, 0.0, 1.0);
+    }
+    /*
+    if (layerSettings.fresnelMode != FRESNELMODE_NONE) {
+    float fresnelTerm = calculateFresnelTerm(v_normal, v_eyeVec, layerSettings.fresnelExponentBiasScale.x, layerSettings.fresnelTransform, layerSettings.fresnelTransformMode, layerSettings.fresnelClamp);
+
+    if (layerSettings.fresnelMode == FRESNELMODE_INVERTED) {
+    fresnelTerm = 1.0 - fresnelTerm;
+    }
+
+    fresnelTerm = clamp(fresnelTerm * layerSettings.fresnelExponentBiasScale.z + layerSettings.fresnelExponentBiasScale.y, 0.0, 1.0);
+
+    result *= fresnelTerm;
+    }
+    */
+    return result;
+}
+
+vec3 decodeNormal(sampler2D map) {
+    vec4 texel = texture2D(map, v_uv[0]);
+    vec3 normal;
+
+    normal.xy = 2.0 * texel.wy - 1.0;
+    normal.z = sqrt(max(0.0, 1.0 - dot(normal.xy, normal.xy)));
+
+    return normal;
+}
+
+vec4 computeSpecular(sampler2D specularMap, LayerSettings layerSettings, float specularity, float specMult, vec3 normal) {
+    vec4 color;
+
+    if (layerSettings.enabled) {
+        color = computeLayerColor(specularMap, layerSettings);
+    } else {
+        color = vec4(0);
+    }
+
+    float factor = pow(max(-dot(v_halfVec, normal), 0.0), specularity) * specMult;
+
+    return color * factor;
+}
+
+uniform float u_specularity;
+uniform float u_specMult;
+uniform float u_emisMult;
+uniform vec4 u_lightAmbient;
+
+uniform LayerSettings u_diffuseLayerSettings;
+uniform sampler2D u_diffuseMap;
+uniform LayerSettings u_decalLayerSettings;
+uniform sampler2D u_decalMap;
+uniform LayerSettings u_specularLayerSettings;
+uniform sampler2D u_specularMap;
+uniform LayerSettings u_glossLayerSettings;
+uniform sampler2D u_glossMap;
+uniform LayerSettings u_emissiveLayerSettings;
+uniform sampler2D u_emissiveMap;
+uniform LayerSettings u_emissive2LayerSettings;
+uniform sampler2D u_emissive2Map;
+uniform LayerSettings u_evioLayerSettings;
+uniform sampler2D u_evioMap;
+uniform LayerSettings u_evioMaskLayerSettings;
+uniform sampler2D u_evioMaskMap;
+uniform LayerSettings u_alphaLayerSettings;
+uniform sampler2D u_alphaMap;
+uniform LayerSettings u_alphaMaskLayerSettings;
+uniform sampler2D u_alphaMaskMap;
+uniform LayerSettings u_normalLayerSettings;
+uniform sampler2D u_normalMap;
+uniform LayerSettings u_heightLayerSettings;
+uniform sampler2D u_heightMap;
+uniform LayerSettings u_lightMapLayerSettings;
+uniform sampler2D u_lightMapMap;
+uniform LayerSettings u_aoLayerSettings;
+uniform sampler2D u_aoMap;
+
+void main() {
+    vec3 color;
+    vec4 final = u_lightAmbient;
+    vec3 normal;
+    vec3 lightMapDiffuse;
+
+    if (u_normalLayerSettings.enabled) {
+        normal = decodeNormal(u_normalMap);
+    } else {
+        normal = v_normal;
+    }
+
+    vec3 lightDir = v_lightDir; //vec3(1.0, 1.0, 1.0);
+
+    float lambertFactor = max(dot(normal, lightDir), 0.0);
+    if (lambertFactor > 1.0) {
+      lambertFactor = 1.0; //fract(lambertFactor);
+    }
+        
+    if (lambertFactor > 0.0) {
+        if (u_diffuseLayerSettings.enabled) {
+            vec4 diffuseColor = computeLayerColor(u_diffuseMap, u_diffuseLayerSettings);
+
+            color = combineLayerColor(diffuseColor, color, u_diffuseLayerSettings);
+        }
+
+        if (u_decalLayerSettings.enabled) {
+            vec4 decalColor = computeLayerColor(u_decalMap, u_decalLayerSettings);
+
+            color = combineLayerColor(decalColor, color, u_decalLayerSettings);
+        }
+
+        vec4 specularColor = computeSpecular(u_specularMap, u_specularLayerSettings, u_specularity, u_specMult, normal);
+
+        if (u_lightMapLayerSettings.enabled) {
+            vec4 lightMapColor = computeLayerColor(u_lightMapMap, u_lightMapLayerSettings) * 2.0;
+
+            lightMapDiffuse = lightMapColor.rgb;
+        }
+
+        //final.rgb = color * lightMapDiffuse + specularColor.rgb;
+        //final.rgb = (color + specularColor.rgb) * lambertFactor;
+        final.rgb += (color + specularColor.rgb) * lambertFactor;
+
+        bool addEmissive = false;
+        vec3 emissiveColor;
+        vec4 tempColor;
+
+        if (u_emissiveLayerSettings.enabled) {
+            tempColor = computeLayerColor(u_emissiveMap, u_emissiveLayerSettings);
+
+            if (u_emissiveLayerSettings.op == LAYEROP_MOD || u_emissiveLayerSettings.op == LAYEROP_MOD2X || u_emissiveLayerSettings.op == LAYEROP_LERP) {
+                final.rgb = combineLayerColor(tempColor, final.rgb, u_emissiveLayerSettings);
+            } else {
+                emissiveColor = combineLayerColor(tempColor, emissiveColor, u_emissiveLayerSettings);
+                addEmissive = true;
+            }
+        }
+
+        if (u_emissive2LayerSettings.enabled) {
+            tempColor = computeLayerColor(u_emissive2Map, u_emissive2LayerSettings);
+
+            if (!addEmissive && (u_emissive2LayerSettings.op == LAYEROP_MOD || u_emissive2LayerSettings.op == LAYEROP_MOD2X || u_emissive2LayerSettings.op == LAYEROP_LERP)) {
+                final.rgb = combineLayerColor(tempColor, final.rgb, u_emissive2LayerSettings);
+            } else {
+                emissiveColor = combineLayerColor(tempColor, emissiveColor, u_emissive2LayerSettings);
+                addEmissive = true;
+            }
+        }
+
+        if (addEmissive) {
+            final.rgb += emissiveColor * u_emisMult;
+        }
+    }
+
+  gl_FragColor = final;
+  //gl_FragColor.r = lambertFactor;
+
+  /*
+  const float power = 4.0;
+  const float scale = 0.000001;
+  gl_FragColor.r += scale * pow(1.0 / final.r, power);
+  gl_FragColor.g += scale * pow(1.0 / final.g, power);
+  gl_FragColor.b += scale * pow(1.0 / final.b, power);
+  */
+  if (hsv2rgb(final.rgb).z < 0.2) {
+    vec4 diffuseColor = computeLayerColor(u_diffuseMap, u_diffuseLayerSettings);
+    color = vec3(0.0);
+    color = combineLayerColor(diffuseColor, color, u_diffuseLayerSettings);
+
+    gl_FragColor.rgb = color; //texture2D(u_diffuseMap, v_uv[0]) * 1.5;
+  }
+  //gl_FragColor.rg = v_uv[0];
+  //gl_FragColor.b = lambertFactor;
+}
+
+    </script>
+    <script id="generic-vertex" type="application/x-glsl">precision highp float;
+
+uniform mat4 projectionMatrix;
+
+attribute vec3 position;
+attribute vec2 uv;
+
+attribute vec4 a_mv0;
+attribute vec4 a_mv1;
+attribute vec4 a_mv2;
+attribute vec4 a_mv3;
+#define a_mv mat4(a_mv0, a_mv1, a_mv2, a_mv3)
+
+varying vec2 vUv;
+
+void main() {
+  vUv = uv;
+
+  gl_Position = projectionMatrix * a_mv * vec4(position, 1.0);
+}
+
+    </script>
+    <script id="generic-fragment" type="application/x-glsl">precision highp float;
+
+varying vec2 vUv;
+uniform sampler2D map;
+
+void main() {
+  gl_FragColor = texture2D(map, vUv);
+}
+
+    </script>
+  </body>
+</html>
