@@ -27,7 +27,7 @@ All credits to flowtsohg for decoding the M3 format in JavaScript.
    - Right click to (instantly, for now) move selected units
    - Left click on minimap to move camera
 
-# Getting started:
+# Getting started
 
     git clone https://github.com/emnh/rts rts
     cd rts
