@@ -67,7 +67,7 @@ var config = {
   units: {
     maxUnits: 20 * 20,
     count: 0,
-    m3count: 20,
+    m3count: 5,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
