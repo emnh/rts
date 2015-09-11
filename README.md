@@ -1,4 +1,4 @@
-Unfinished project, but you can see it [here](http://alexis.lart.no/emh/rts.git/).
+Unfinished project, but you can see it at a [snapshot](http://alexis.lart.no/emh/snapshots/rts-sc2.git/) or [my dev dir ](http://alexis.lart.no/emh/rts.git/) (may be broken when I am working on it).
 
 # Resources
  - [Physijs](http://chandlerprall.github.io/Physijs/)
