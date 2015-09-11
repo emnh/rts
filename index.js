@@ -962,7 +962,7 @@ function removeUnit(unit) {
 function loadModels(finishCallback) {
   function getLoadTextureSuccess(options, material, units) {
     return function(texture) {
-      options.downloadedTexture = options.textureSize;
+      options.downloadedTexture = 1.0;
       texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
       texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
       texture.repeat.set(options.textureRepeat.x, options.textureRepeat.y);
@@ -981,7 +981,7 @@ function loadModels(finishCallback) {
     const textureRepeat = options.textureRepeat;
     const opacity = options.opacity;
     return function(geometry) {
-      //options.downloadedModel = options.modelSize;
+      //options.downloadedModel = 1.0;
       const mat = new THREE.Matrix4();
       mat.makeRotationX(rotation.x);
       geometry.applyMatrix(mat);
@@ -1074,8 +1074,8 @@ function loadModels(finishCallback) {
     let downloadedSize = 0;
     let totalSize = 0;
     for (const model of optionList) {
-      downloadedSize += model.downloadedModel;
-      downloadedSize += model.downloadedTexture;
+      downloadedSize += model.downloadedModel * model.modelSize;
+      downloadedSize += model.downloadedTexture * model.textureSize;
       totalSize += model.modelSize;
       totalSize += model.textureSize;
     }
@@ -1090,13 +1090,13 @@ function loadModels(finishCallback) {
 
   function getOnProgress(modelOptions) {
     return function(xhr) {
-      modelOptions.downloadedModel = xhr.loaded;
+      modelOptions.downloadedModel = xhr.loaded / xhr.total;
     }
   }
   
   function getLoadTextureProgress(modelOptions) {
     return function(xhr) {
-      modelOptions.downloadedTexture = xhr.loaded;
+      modelOptions.downloadedTexture = xhr.loaded / xhr.total;
     }; 
   }
 
