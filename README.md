@@ -1,8 +1,9 @@
 # Introduction
 
 Unfinished project, but you can see a [demo at github pages](http://emnh.github.io/rts/).
-SC2 files are retrieved from hiveworkshop.com (not mine) through a
-[heroku CORS proxy](http://crossorigin.herokuapp.com/).
+SC2 files are retrieved from
+[viewer.hiveworkshop.com](http://viewer.hiveworkshop.com/?q=Assets/units/zerg/baneling/baneling.m3)
+(not mine) through a [heroku CORS proxy](http://crossorigin.herokuapp.com/).
 Works best in Firefox, also in Chrome, not in IE and not tested with Safari.
 Only tested on Windows.
 
@@ -10,6 +11,9 @@ If the demo doesn't work for you, you can watch videos of it at YouTube:
  - [StarCraft 2 on WebGL](https://www.youtube.com/watch?v=PoPNrz2LUG0)
  - [Starcraft 2 on WebGL with colorful UV mapping](https://www.youtube.com/watch?v=EvhUteDp3o8)
  - [Banelings, banelings, banelings](https://www.youtube.com/watch?v=aqKsVelmeeI)
+
+See also [mdx-m3-viewer](https://github.com/flowtsohg/mdx-m3-viewer).
+All credits to flowtsohg for decoding the M3 format in JavaScript.
 
 # Controls
 
