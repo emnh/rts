@@ -1,3 +1,6 @@
 [submodule "models"]
 	path = models
 	url = https://github.com/emnh/rts-models
+[submodule "js/m3"]
+	path = js/m3
+	url = https://github.com/emnh/m3
