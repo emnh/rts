@@ -38,7 +38,6 @@ All credits to flowtsohg for decoding the M3 format in JavaScript.
 Now you can open index.html from a web server serving the page.
 
 # Resources
- - [Physijs](http://chandlerprall.github.io/Physijs/)
  - [Three.js](http://threejs.org/)
  - [Three.js model editor](http://threejs.org/editor/) Can import .obj and export to .json.
  - [Turbosquid 3D Models](http://www.turbosquid.com)
