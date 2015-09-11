@@ -1,6 +1,9 @@
 # Introduction
 
-Unfinished project, but you can see a [demo at github pages](http://emnh.github.io/rts/).
+Unfinished project, but you can see a [demo at github
+pages](http://emnh.github.io/rts/) and another [demo displaying only free
+3D models, not from SC2](http://alexis.lart.no/emh/snapshots/rts-free.git/).
+
 SC2 files are retrieved from
 [viewer.hiveworkshop.com](http://viewer.hiveworkshop.com/?q=Assets/units/zerg/baneling/baneling.m3)
 (not mine) through a [heroku CORS proxy](http://crossorigin.herokuapp.com/).
