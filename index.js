@@ -832,6 +832,7 @@ function HealthBars() {
   geo.addAttribute('a_health', healthAttribute);
 
   const mesh = new THREE.PointCloud(geo, healthMaterial);
+  mesh.renderOrder = game.renderOrders.healthBar;
   addToScene(mesh);
 
   // TODO: remove health bar of dead units.
@@ -885,6 +886,7 @@ function TeamBars() {
   geo.addAttribute('a_color', colorAttribute);
 
   const mesh = new THREE.PointCloud(geo, teamMaterial);
+  mesh.renderOrder = game.renderOrders.teamBar;
   addToScene(mesh);
 
   this.updateTeamBars = function(units) {
@@ -939,6 +941,8 @@ function createUnit(options) {
 
   unit.castShadow = true;
   unit.receiveShadow = true;
+
+  unit.renderOrder = options.id;
 
   addToScene(unit);
 
@@ -1009,7 +1013,7 @@ function loadModels(finishCallback) {
       geometry.computeVertexNormals();
 
 
-      const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, transparent: true, opacity: opacity });
+      const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, transparent: false, opacity: opacity });
 
       // for showing bounding box
       const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
@@ -1121,8 +1125,11 @@ function loadModels(finishCallback) {
   const loader = new THREE.BufferGeometryLoader();
   const textureLoader = new THREE.TextureLoader();
 
+  let i = 1;
   for (const model of Models) {
     const modelOptions = $.extend({}, options, model);
+    modelOptions.id = i;
+    i++;
     modelOptions.modelSize = modelSizes.models[modelOptions.path];
     modelOptions.textureSize = modelSizes.images[modelOptions.texturePath];
     optionList.push(modelOptions);
