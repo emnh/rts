@@ -24,10 +24,17 @@ const float SEA_SPEED = 0.8;
 const float SEA_FREQ = 0.16;
 const vec3 SEA_BASE = vec3(0.1,0.19,0.22);
 const vec3 SEA_WATER_COLOR = vec3(0.8,0.9,0.6);
-float SEA_TIME = iGlobalTime * SEA_SPEED;
+#define SEA_TIME iGlobalTime * SEA_SPEED
 mat2 octave_m = mat2(1.6,1.2,-1.2,1.6);
 
 // math
+vec3 apow(vec3 a, vec3 b) {
+  return pow(abs(a), b);
+}
+float apow(float a, float b) {
+  return pow(abs(a), b);
+}
+#define pow apow
 mat3 fromEuler(vec3 ang) {
   vec2 a1 = vec2(sin(ang.x),cos(ang.x));
     vec2 a2 = vec2(sin(ang.y),cos(ang.y));
