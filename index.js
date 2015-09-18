@@ -62,8 +62,8 @@ const config = {
   },
   units: {
     maxUnits: 20 * 20,
-    count: 0,
-    m3count: 20,
+    count: 20,
+    m3count: 0,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
@@ -822,7 +822,9 @@ function HealthBars() {
   });
   const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
-  geo.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
+  const positionArray = new Float32Array(maxInstances * 3);
+  geo.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+  positionArray.fill(Number.POSITIVE_INFINITY);
 
   const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
   geo.addAttribute('a_health', healthAttribute);
@@ -916,6 +918,7 @@ function createUnit(options) {
 
   const materialClone = material.clone();
   const unit = new THREE.Mesh(geometry, materialClone);
+  game.unitPool.createUnit(unit);
   unit.model = options;
 
   setUnitProperties(unit, options);
@@ -927,7 +930,7 @@ function createUnit(options) {
   unit.bbox = bboxHelper.box;
 
   initialPlaceUnit(unit, size);
-  //unit.healthBar = game.healthBars.createHealthBar();
+  unit.healthBar = game.healthBars.createHealthBar();
   unit.teamBar = game.teamBars.createTeamBar(unit);
 
   unit.castShadow = true;
@@ -942,7 +945,10 @@ function createUnit(options) {
     });
   };
 
-  unit.removeUnit = () => { removeUnit(unit); };
+  unit.removeUnit = () => { 
+    game.unitPool.returnUnit(unit);
+    removeUnit(unit);
+  };
   return unit;
 }
 
@@ -1921,7 +1927,7 @@ function main() {
   game.sound = new Sound();
   initScene();
   initSelection();
-  initM3Models();
+  // initM3Models();
   initUI();
 }
 
