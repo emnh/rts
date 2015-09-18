@@ -48,6 +48,8 @@ const TeamColors = [
   new THREE.Color(0xFFFF00),
 ];
 
+const outOfSight = -10000;
+
 const config = {
   audio: {
     sounds: false,
@@ -824,7 +826,7 @@ function HealthBars() {
   const maxInstances = config.units.maxUnits;
   const positionArray = new Float32Array(maxInstances * 3);
   geo.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
-  positionArray.fill(Number.POSITIVE_INFINITY);
+  positionArray.fill(outOfSight);
 
   const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
   geo.addAttribute('a_health', healthAttribute);
@@ -875,7 +877,9 @@ function TeamBars() {
   });
   const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
-  geo.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
+  const positionArray = new Float32Array(maxInstances * 3);
+  geo.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+  positionArray.fill(outOfSight);
 
   const colorAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3);
   geo.addAttribute('a_color', colorAttribute);
