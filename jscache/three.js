@@ -20688,7 +20688,6 @@ THREE.WebGLRenderer = function ( parameters ) {
 					} else {
 
 						_gl.bindBuffer( _gl.ARRAY_BUFFER, buffer );
-            // console.log("attrib name", name);
 						_gl.vertexAttribPointer( programAttribute, size, _gl.FLOAT, false, 0, startIndex * size * 4 ); // 4 bytes per Float32
 
 						if ( geometryAttribute instanceof THREE.InstancedBufferAttribute ) {

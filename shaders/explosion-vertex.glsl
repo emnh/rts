@@ -13,8 +13,6 @@
 // https://github.com/ashima/webgl-noise
 //
 
-precision highp float;
-
 vec3 mod289(vec3 x)
 {
   return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -181,24 +179,9 @@ float pnoise(vec3 P, vec3 rep)
 
 // Include the Ashima code here!
  
+varying vec2 vUv;
 varying float noise;
-varying float v_opacity;
-
-uniform mat4 projectionMatrix;
-
-// normal attributes
-attribute vec3 position;
-attribute vec3 normal;
-
-// instanced attributes
-attribute vec4 a_mv0;
-attribute vec4 a_mv1;
-attribute vec4 a_mv2;
-attribute vec4 a_mv3;
-attribute float time;
-attribute float opacity;
-#define a_mv mat4(a_mv0, a_mv1, a_mv2, a_mv3)
-
+uniform float time;
 
 float turbulence( vec3 p ) {
   float w = 100.0;
@@ -212,13 +195,13 @@ float turbulence( vec3 p ) {
 
 void main() {
 
-  v_opacity = opacity;
+  vUv = uv;
 
-  noise = 10.0 * -0.10 * turbulence(0.5 * normal + time);
-  float b = 5.0 * pnoise( 0.05 * position + vec3(2.0 * time), vec3(100.0));
+  noise = 10.0 *  -.10 * turbulence( .5 * normal + time );
+  float b = 5.0 * pnoise( 0.05 * position + vec3( 2.0 * time ), vec3( 100.0 ) );
   float displacement = - 10. * noise + b;
   
   vec3 newPosition = position + normal * displacement;
-  gl_Position = projectionMatrix * a_mv * vec4(newPosition, 1.0);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4( newPosition, 1.0 );
 
 }

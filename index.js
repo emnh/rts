@@ -59,7 +59,7 @@ const config = {
     controlsHeight: 250,
   },
   effects: {
-    explosionPool: 100,
+    explosionPool: 20,
     missilePool: 2000,
   },
   units: {
@@ -612,6 +612,8 @@ function Missiles() {
   const fragmentShader = $('#generic-fragment').text();
 
   const newMaterial = new THREE.RawShaderMaterial({
+    defines: {
+    },
     uniforms: {
       map: { type: 't', value: material.map },
     },
@@ -622,6 +624,8 @@ function Missiles() {
     vertexShader: vertexShader,
     fragmentShader: fragmentShader,
   });
+
+  Util.createAttributeMatrix(igeo, maxInstances);
 
   const imesh = new THREE.Mesh(igeo, newMaterial);
   addToScene(imesh);
@@ -1564,7 +1568,6 @@ function render() {
   updateCameraInfo();
   updateBBoxes();
   updateBars();
-  game.explosions.updateExplosions();
   if (game.missiles) {
     game.missiles.updateMissiles();
   }
@@ -1641,30 +1644,26 @@ function findTargets() {
 }
 
 function Explosions() {
-  const Explosion = function() {
-    THREE.Object3D.call(this);
-  };
-  Explosion.prototype = Object.create(THREE.Object3D.prototype);
-  Explosion.prototype.constructor = Explosion;
-  
   const texture = THREE.ImageUtils.loadTexture('models/images/explosion.png');
   texture.anisotropy = game.scene.renderer.getMaxAnisotropy();
   texture.minFilter = THREE.NearestFilter;
   texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
 
-  const material = new THREE.RawShaderMaterial({
+  const material = new THREE.ShaderMaterial({
     uniforms: { 
       tExplosion: { 
         type: "t", 
         value: texture, 
       },
+      time: { 
+        type: "f", 
+        value: 0.0,
+      },
+      opacity: { 
+        type: "f", 
+        value: 0.0,
+      }
     },
-    attributes: [
-      'position',
-      'normal',
-      'opacity',
-      'time',
-    ],
     vertexShader: $('#explosion-vertex').text(),
     fragmentShader: $('#explosion-fragment').text(),
     transparent: true
@@ -1673,76 +1672,28 @@ function Explosions() {
   geometry.computeFaceNormals();
   geometry.computeVertexNormals();
 
-  const bgeo = new THREE.BufferGeometry();
-  bgeo.fromGeometry(geometry);
-
-  const maxInstances = config.effects.explosionPool;
-
-  const igeo = new THREE.InstancedBufferGeometry();
-  igeo.addAttribute('position', bgeo.getAttribute('position'));
-  igeo.addAttribute('normal', bgeo.getAttribute('normal'));
-
-  Util.createAttributeMatrix(igeo, maxInstances);
-  const opacityAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, 1, true);
-  igeo.addAttribute('opacity', opacityAttribute);
-  const timeAttribute = new THREE.InstancedBufferAttribute(new Float32Array(maxInstances), 1, 1, true);
-  igeo.addAttribute('time', timeAttribute);
-
-  const imesh = new THREE.Mesh(igeo, material);
-  imesh.renderOrder = game.renderOrders.explosion;
-  addToScene(imesh);
-
   this.pool = [];
-  this.active = {};
-
-  this.updateExplosions = function() {
-    const focus = getCameraFocus(0, 0);
-    imesh.position.copy(focus);
-
-    for (const explosionId in this.active) {
-      if (this.active.hasOwnProperty(explosionId)) {
-        const explosion = this.active[explosionId];
-        const matrix = new THREE.Matrix4();
-        matrix.multiply(game.scene.camera.matrixWorldInverse);
-        explosion.updateMatrixWorld();
-        matrix.multiply(explosion.matrixWorld);
-        Util.updateAttributeMatrix(igeo, matrix, explosion.explosionId);
-      }
-    }
-  }
 
   this.createExplosion = function() {
     let mesh;
     if (this.pool.length > 0) {
       mesh = this.pool.pop();
-      this.active[mesh.explosionId] = mesh;
     } else {
-      // TODO: scale explosion pool
-      throw new Error('explosion pool too small');
+      const newMaterial = material.clone();
+      newMaterial.uniforms.tExplosion.value = texture;
+      mesh = new THREE.Mesh(geometry, newMaterial);
+      mesh.renderOrder = game.renderOrders.explosion;
     }
     return mesh;
   }
 
-  this.returnExplosion = function(mesh) {
-    delete this.active[mesh.explosionId];
-    mesh.position.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-    mesh.updateMatrix();
-    Util.updateAttributeMatrix(igeo, mesh.matrix, mesh.missileId);
-    this.pool.push(mesh);
+  this.returnExplosion = function(explosion) {
+    this.pool.push(explosion);
   }
   
   var newpool = [];
   for (let i = 0; i < config.effects.explosionPool; i++) {
-    const mesh = new Explosion();
-    mesh.explosionId = i;
-    mesh.setOpacity = (opacity) => {
-      opacityAttribute.setX(mesh.explosionId, opacity);
-      opacityAttribute.needsUpdate = true;
-    };
-    mesh.setTime = (time) => {
-      timeAttribute.setX(mesh.explosionId, time);
-      timeAttribute.needsUpdate = true;
-    };
+    const mesh = this.createExplosion();
     newpool.push(mesh);
   }
   this.pool = newpool;
@@ -1764,15 +1715,18 @@ function getApplyShot(unit, target, shotMesh) {
       explosion.time = 0;
       explosion.tscale = 0;
       explosion.opacity = 2;
+      explosion.material.uniforms.time.value = this.time;
+      //explosion.material.uniforms.tExplosion.value = game.explosion;
+      addToScene(explosion);
       const seed = Math.random();
       game.sound.blast();
       const tween = new TWEEN.Tween(explosion)
         .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
         .onUpdate(function() {
-          explosion.setOpacity(this.opacity);
-          explosion.setTime(this.time + seed);
+          this.material.uniforms.time.value = this.time + seed;
+          this.material.uniforms.opacity.value = this.opacity;
           let scale = this.tscale;
-          explosion.scale.set(scale, scale, scale);
+          this.scale.set(scale, scale, scale);
         })
         .onComplete(function() {
           game.explosions.returnExplosion(explosion);
