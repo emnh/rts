@@ -18,18 +18,6 @@ If the demo doesn't work for you, you can watch videos of it at YouTube:
 See also [mdx-m3-viewer](https://github.com/flowtsohg/mdx-m3-viewer).
 All credits to flowtsohg for decoding the M3 format in JavaScript.
 
-# Controls
-
- - Keyboard
-  - Home to reset view
-  - PgUp/PgDn to zoom in/out
-  - Arrow keys to move around
-  - Ctrl+arrow keys for camera arc ball rotation 
- - Mouse
-   - Left click to select unit
-   - Right click to (instantly, for now) move selected units
-   - Left click on minimap to move camera
-
 # Getting started
 
     git clone https://github.com/emnh/rts rts

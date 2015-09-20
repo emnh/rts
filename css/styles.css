@@ -124,3 +124,8 @@ canvas#viewer {
 #topmenu li a {
   color: white;
 }
+
+#Help span.key {
+  position: absolute;
+  left: 30em;
+}
