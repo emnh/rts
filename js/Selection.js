@@ -47,7 +47,19 @@ export function Selection(options) {
 
   function getScreenBoxes() {
     const screenBoxes = [];
+
+    const frustum = new THREE.Frustum();
+    const cameraViewProjectionMatrix = new THREE.Matrix4();
+    const camera = options.camera;
+    camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromMatrix(cameraViewProjectionMatrix);
+
     for (let unit of options.game.units) {
+      if (!frustum.intersectsObject(unit)) {
+        continue;
+      }
       const geometry = unit.bboxMesh.geometry.clone();
       const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
       geometry.applyMatrix(mat);
@@ -183,7 +195,6 @@ export function Selection(options) {
   $(mouseElement).mouseleave(selection.onMouseLeave);
 
   $(mouseElement).on('contextmenu', (evt) => {
-    console.log("overlayCanvas preventDefault contextmenu");
     evt.preventDefault();
   });
 }

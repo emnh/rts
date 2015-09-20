@@ -18,7 +18,14 @@ export const Debug = {
     blueMarkers.push(loadMarker(0x0000FF));
   },
 
-  drawOutLine: function(units, worldToScreen, canvas) {
+  drawOutLine: function(units, worldToScreen, canvas, camera) {
+    const frustum = new THREE.Frustum();
+    const cameraViewProjectionMatrix = new THREE.Matrix4();
+    camera.updateMatrixWorld(); // make sure the camera matrix is updated
+    camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+    cameraViewProjectionMatrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
+    frustum.setFromMatrix(cameraViewProjectionMatrix);
+
     const viewport = $('#viewport');
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -26,6 +33,9 @@ export const Debug = {
     ctx.strokeStyle = "black";
     ctx.beginPath();
     for (let unit of units) {
+      if (!frustum.intersectsObject(unit)) {
+        continue;
+      }
       // need to get corners of bbox
       // make a cube, then rotate it
       const geometry = unit.bboxMesh.geometry.clone();

@@ -532,7 +532,7 @@ function getGroundAlignment(unit) {
 }
 
 function moveAlignedToGround(object) {
-  const nowTime = (new Date().getTime()) / 1000.0;
+  const nowTime = getGameTime();
   if (object.lastMoved === undefined) {
     object.lastMoved = nowTime;
     return;
@@ -1279,7 +1279,7 @@ function shortcutHandler(evt) {
     if (game.paused.state) {
       const endTime = getTime();
       const elapsed = endTime - game.paused.startTime;
-      game.paused.totalTime = elapsed;
+      game.paused.totalTime += elapsed;
       game.paused.state = false;
     } else {
       game.paused.startTime = getTime();
@@ -1552,7 +1552,7 @@ function render() {
   // funTerrain();
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
-  // Debug.drawOutLine(game.units, worldToScreen, game.scene.$overlay[0]);
+  // Debug.drawOutLine(game.units, worldToScreen, game.scene.$overlay[0], game.scene.camera);
   
   /*for (const child of game.scene.scene3.children) {
     if (!(child instanceof THREE.InstancedBufferGeometry)) {
