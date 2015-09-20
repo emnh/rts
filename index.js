@@ -1270,6 +1270,10 @@ function onResize() {
   game.scene.$overlay[0].height = game.scene.height;
 }
 
+function isModalOpen() {
+  return $(".modal.in").length > 0;
+}
+
 function shortcutHandler(evt) {
   if (evt.keyCode === window.KeyEvent.DOM_VK_P) {
     if (game.paused.state) {
@@ -1281,6 +1285,33 @@ function shortcutHandler(evt) {
       game.paused.startTime = getTime();
       game.paused.state = true;
     }
+  } else if (evt.keyCode === window.KeyEvent.DOM_VK_F9) {
+    evt.preventDefault();
+    if (isModalOpen()) {
+      const $modal = $(".modal.in");
+      $modal.modal('hide');
+      if (!$modal.is($('#menu #Help'))) {
+        $('#menuHelp').trigger('click');
+      }
+    } else {
+      $('#menuHelp').trigger('click');
+    }
+  } else if (evt.keyCode === window.KeyEvent.DOM_VK_F10) {
+    evt.preventDefault();
+    if (isModalOpen()) {
+      const $modal = $(".modal.in");
+      $modal.modal('hide');
+      if (!$modal.is($('#menu #Menu'))) {
+        $('#menuMenu').trigger('click');
+      }
+    } else {
+      $('#menuMenu').trigger('click');
+    }
+  } else if (evt.keyCode === window.KeyEvent.DOM_VK_ESCAPE) {
+    if (isModalOpen()) {
+      evt.preventDefault();
+      $(".modal.in").modal('hide');
+    }
   }
 }
 
@@ -1289,9 +1320,23 @@ function initShortcuts() {
   body.addEventListener('keydown', shortcutHandler);
 }
 
+function initMenu() {
+  $('#menuHelp').click((evt) => {
+    if (isModalOpen()) return;
+    const $modal = $('#menu #Help');
+    $modal.modal();
+  });
+  $('#menuMenu').click((evt) => {
+    if (isModalOpen()) return;
+    const $modal = $('#menu #Menu');
+    $modal.modal();
+  });
+}
+
 function initUI() {
   initShortcuts();
   initDAT();
+  initMenu();
   $(window).resize(onResize);
 }
 
@@ -1868,6 +1913,12 @@ function initScene() {
     game.scene.renderer.shadowMap.soft = true;
   }
   $('#viewport').append(game.scene.renderer.domElement);
+  $(game.scene.renderer.domElement).css({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    'z-index': 0,
+  });
   const $overlay = $('<canvas/>');
   $overlay.css({
     position: 'absolute',

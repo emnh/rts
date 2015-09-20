@@ -21,7 +21,44 @@ html
     script(type='text/javascript', src='bundle.js')
     // script(type='application/javascript;version=1.8', src='bundle2.js')
   body
+    #menu
+      #Menu.modal.fade
+        .modal-dialog
+          .modal-content
+            .modal-header
+              button.close(type='button', data-dismiss='modal', aria-label='Close')
+                span(aria-hidden='true') ×
+              h4.modal-title Menu
+            .modal-body
+              ul
+                li 1
+                li 2
+                li 3
+                li 4
+            .modal-footer
+              button.btn.btn-default(type='button', data-dismiss='modal') Close
+      #Help.modal.fade
+        .modal-dialog
+          .modal-content
+            .modal-header
+              button.close(type='button', data-dismiss='modal', aria-label='Close')
+                span(aria-hidden='true') ×
+              h4.modal-title Help
+            .modal-body
+              h1 Keyboard controls
+              ul
+                li 1
+                li 2
+                li 3
+                li 4
+            .modal-footer
+              button.btn.btn-default(type='button', data-dismiss='modal') Close
     #viewport
+      ul#topmenu
+        li
+          a#menuHelp(href="javascript:void(0)") Help(F9)
+        li
+          a#menuMenu(href="javascript:void(0)") Menu(F10)
     .controls
       .minimap
       .unitinfo
@@ -36,6 +73,7 @@ html
         button.btn.btn-default.btn-lg.disabled(type='button')
           span.glyphicon.glyphicon-flash(aria-hidden='true')
           |  Attack
+    // Canvas for js/ModelLoader.js
     canvas#viewer
     #m3progress.modal.fade
       .modal-dialog

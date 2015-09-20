@@ -102,3 +102,25 @@ canvas#viewer {
 
 #m3progress {
 }
+
+#topmenu {
+  position: absolute;
+  left: 80px;
+  z-index: 102;
+  background-color: rgba(0, 0, 255, 0.2);
+  padding-bottom: 5px;
+  padding-left: 0px;
+  margin: 0px;
+}
+#topmenu li {
+  display: inline;
+  border: 2px solid rgba(0, 0, 255, 0.2);
+  font-size: 12pt;
+  padding-bottom: 5px;
+  padding-left: 50px;
+  padding-right: 50px;
+  margin: 0px;
+}
+#topmenu li a {
+  color: white;
+}
