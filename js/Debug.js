@@ -18,8 +18,13 @@ export const Debug = {
     blueMarkers.push(loadMarker(0x0000FF));
   },
 
-  drawOutLine: function(units, worldToScreen) {
+  drawOutLine: function(units, worldToScreen, canvas) {
     const viewport = $('#viewport');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.lineWidth = "1";
+    ctx.strokeStyle = "black";
+    ctx.beginPath();
     for (let unit of units) {
       // need to get corners of bbox
       // make a cube, then rotate it
@@ -32,25 +37,13 @@ export const Debug = {
         const vec2 = worldToScreen(pos);
         screenBox.expandByPoint(vec2);
       }
-      let div = unit.outline;
-      if (div === undefined) {
-        div = $('<div/>');
-        unit.outline = div;
-        viewport.append(div);
-      }
       const left = screenBox.min.x;
       const top = screenBox.min.y;
       const width = screenBox.max.x - screenBox.min.x;
       const height = screenBox.max.y - screenBox.min.y;
-      div.css({
-        position: 'absolute',
-        left,
-        top,
-        height,
-        width,
-        border: '1px solid black',
-      });
+      ctx.rect(left, top, width, height);
     }
+    ctx.stroke();
   }
 
 }

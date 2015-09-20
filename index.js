@@ -119,14 +119,23 @@ const game = {
     healthBar: -2,
     explosion: -3,
     missile: -4,
-  }
+  },
+  paused: {
+    state: false,
+    startTime: 0,
+    totalTime: 0,
+  },
 };
 
 // for debugging in JS console
 window.game = game;
 
+function getTime() {
+  return (new Date().getTime()) / 1000.0;
+}
+
 function getGameTime() {
-  return (new Date().getTime()) / 1000.0 - game.startTime;
+  return getTime() - game.startTime - game.paused.totalTime;
 }
 
 function getSize(box) {
@@ -147,7 +156,7 @@ function isObject(obj) {
 }
 
 function worldToScreen(pos) {
-  const vector = pos.project(game.scene.camera);
+  const vector = pos.clone().project(game.scene.camera);
 
   vector.x = (vector.x + 1) / 2 * game.scene.width;
   vector.y = -(vector.y - 1) / 2 * game.scene.height;
@@ -1194,7 +1203,8 @@ function unmark(unit) {
 }
 
 function initSelection() {
-  const mouseElement = game.scene.renderer.domElement;
+  //const mouseElement = game.scene.renderer.domElement;
+  const mouseElement = game.scene.$overlay[0];
   game.selector = new Selection({
     mark,
     unmark,
@@ -1259,9 +1269,32 @@ function onResize() {
   game.scene.camera.aspect = game.scene.width / game.scene.height;
   game.scene.camera.updateProjectionMatrix();
   game.scene.renderer.setSize(game.scene.width, game.scene.height);
+
+  game.scene.$overlay[0].width = game.scene.width;
+  game.scene.$overlay[0].height = game.scene.height;
+}
+
+function shortcutHandler(evt) {
+  if (evt.keyCode === window.KeyEvent.DOM_VK_P) {
+    if (game.paused.state) {
+      const endTime = getTime();
+      const elapsed = endTime - game.paused.startTime;
+      game.paused.totalTime = elapsed;
+      game.paused.state = false;
+    } else {
+      game.paused.startTime = getTime();
+      game.paused.state = true;
+    }
+  }
+}
+
+function initShortcuts() {
+  const body = document.body;
+  body.addEventListener('keydown', shortcutHandler);
 }
 
 function initUI() {
+  initShortcuts();
   initDAT();
   $(window).resize(onResize);
 }
@@ -1519,7 +1552,7 @@ function render() {
   // funTerrain();
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
-  // Debug.drawOutLine(game.units, worldToScreen);
+  // Debug.drawOutLine(game.units, worldToScreen, game.scene.$overlay[0]);
   
   /*for (const child of game.scene.scene3.children) {
     if (!(child instanceof THREE.InstancedBufferGeometry)) {
@@ -1757,14 +1790,16 @@ function removeDead() {
 }
 
 function updateSimulation() {
-  for (const unit of game.units) {
-    moveAlignedToGround(unit);
+  if (!game.paused.state) {
+    for (const unit of game.units) {
+      moveAlignedToGround(unit);
+    }
+    checkCollisions();
+    findTargets();
+    attackTargets();
+    removeDead();
+    game.scene.physicsStats.update();
   }
-  checkCollisions();
-  findTargets();
-  attackTargets();
-  removeDead();
-  game.scene.physicsStats.update();
   requestAnimationFrame(updateSimulation);
 }
 
@@ -1837,6 +1872,15 @@ function initScene() {
     game.scene.renderer.shadowMap.soft = true;
   }
   $('#viewport').append(game.scene.renderer.domElement);
+  const $overlay = $('<canvas/>');
+  $overlay.css({
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    'z-index': 1,
+  });
+  game.scene.$overlay = $overlay;
+  $('#viewport').append($overlay);
   $('#viewport').height(game.scene.height);
 
   game.scene.raycaster = new THREE.Raycaster();
@@ -1940,6 +1984,7 @@ function main() {
   initSelection();
   // initM3Models();
   initUI();
+  onResize();
 }
 
 $(main);

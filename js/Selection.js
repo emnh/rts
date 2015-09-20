@@ -52,6 +52,11 @@ export function Selection(options) {
       const mat = new THREE.Matrix4().makeRotationFromQuaternion(unit.quaternion);
       geometry.applyMatrix(mat);
       const screenBox = new THREE.Box2();
+
+      // test
+      // const vec2 = options.worldToScreen(unit.position);
+      // screenBox.expandByPoint(vec2);
+
       for (let vertex of geometry.vertices) {
         const pos = vertex.clone().multiply(unit.scale).add(unit.position);
         const vec2 = options.worldToScreen(pos);
@@ -81,9 +86,8 @@ export function Selection(options) {
 
   this.getOnMouseDown = function() {
     return function(eventData) {
+      eventData.preventDefault();
       if (eventData.which === leftMouseButton) {
-        eventData.preventDefault();
-
         // clear old selection
         for (const s of selection.selected) {
           options.unmark(s);
@@ -117,7 +121,8 @@ export function Selection(options) {
     };
   }
 
-  this.onMouseUp = function() {
+  this.onMouseUp = function(evt) {
+    evt.preventDefault();
     selectionRectangle.visible = false;
     $selectionDiv.css({
       'visibility': 'hidden'
@@ -176,4 +181,9 @@ export function Selection(options) {
 
   $(mouseElement).mouseup(selection.onMouseUp);
   $(mouseElement).mouseleave(selection.onMouseLeave);
+
+  $(mouseElement).on('contextmenu', (evt) => {
+    console.log("overlayCanvas preventDefault contextmenu");
+    evt.preventDefault();
+  });
 }
