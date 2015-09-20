@@ -110,6 +110,7 @@ const game = {
   units: [],
   newUnits: [],
   heightField: [],
+  heightFieldIndex: [],
   components: [],
   models: {},
   emitters: [],
@@ -317,6 +318,7 @@ function initGround() {
   groundGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
   for (let i = 0; i <= config.terrain.xFaces; i++) {
     game.heightField[i] = [];
+    game.heightFieldIndex[i] = [];
   }
   const stride = 3;
   let positionsLength;
@@ -346,6 +348,7 @@ function initGround() {
     const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
     const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
     game.heightField[xi][yi] = y;
+    game.heightFieldIndex[xi][yi] = i;
   }
   groundGeometry.computeFaceNormals();
   groundGeometry.computeVertexNormals();
@@ -1274,44 +1277,73 @@ function isModalOpen() {
   return $(".modal.in").length > 0;
 }
 
+function elevateGround(amount) {
+  const focus = getCameraFocus(0, 0);
+  const x = focus.x;
+  const z = focus.z;
+  
+  const xi = Math.round((x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width);
+  const yi = Math.round((z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height);
+  const i = game.heightFieldIndex[xi][yi];
+  const y = game.heightField[xi][yi] + amount;
+  game.scene.ground.geometry.attributes.position.array[i + 1] = y;
+  game.heightField[xi][yi] = y;
+
+  game.scene.ground.geometry.computeFaceNormals();
+  game.scene.ground.geometry.computeVertexNormals();
+  game.scene.ground.geometry.attributes.position.needsUpdate = true;
+}
+
 function shortcutHandler(evt) {
-  if (evt.keyCode === window.KeyEvent.DOM_VK_P) {
-    if (game.paused.state) {
-      const endTime = getTime();
-      const elapsed = endTime - game.paused.startTime;
-      game.paused.totalTime += elapsed;
-      game.paused.state = false;
-    } else {
-      game.paused.startTime = getTime();
-      game.paused.state = true;
-    }
-  } else if (evt.keyCode === window.KeyEvent.DOM_VK_F9) {
-    evt.preventDefault();
-    if (isModalOpen()) {
-      const $modal = $(".modal.in");
-      $modal.modal('hide');
-      if (!$modal.is($('#menu #Help'))) {
+  switch (evt.keyCode) {
+    case window.KeyEvent.DOM_VK_P:
+      if (game.paused.state) {
+        const endTime = getTime();
+        const elapsed = endTime - game.paused.startTime;
+        game.paused.totalTime += elapsed;
+        game.paused.state = false;
+      } else {
+        game.paused.startTime = getTime();
+        game.paused.state = true;
+      }
+      break;
+    case window.KeyEvent.DOM_VK_F9:
+      evt.preventDefault();
+      if (isModalOpen()) {
+        const $modal = $(".modal.in");
+        $modal.modal('hide');
+        if (!$modal.is($('#menu #Help'))) {
+          $('#menuHelp').trigger('click');
+        }
+      } else {
         $('#menuHelp').trigger('click');
       }
-    } else {
-      $('#menuHelp').trigger('click');
-    }
-  } else if (evt.keyCode === window.KeyEvent.DOM_VK_F10) {
-    evt.preventDefault();
-    if (isModalOpen()) {
-      const $modal = $(".modal.in");
-      $modal.modal('hide');
-      if (!$modal.is($('#menu #Menu'))) {
+      break;
+    case window.KeyEvent.DOM_VK_F10:
+      evt.preventDefault();
+      if (isModalOpen()) {
+        const $modal = $(".modal.in");
+        $modal.modal('hide');
+        if (!$modal.is($('#menu #Menu'))) {
+          $('#menuMenu').trigger('click');
+        }
+      } else {
         $('#menuMenu').trigger('click');
       }
-    } else {
-      $('#menuMenu').trigger('click');
-    }
-  } else if (evt.keyCode === window.KeyEvent.DOM_VK_ESCAPE) {
-    if (isModalOpen()) {
-      evt.preventDefault();
-      $(".modal.in").modal('hide');
-    }
+      break;
+    case window.KeyEvent.DOM_VK_ESCAPE:
+      if (isModalOpen()) {
+        evt.preventDefault();
+        $(".modal.in").modal('hide');
+      }
+      break;
+    case window.KeyEvent.DOM_VK_SPACE:
+      if (evt.shiftKey) {
+        elevateGround(-5);
+      } else {
+        elevateGround(5);
+      }
+      break;
   }
 }
 
@@ -1898,6 +1930,10 @@ function initM3Models() {
     }
     createM3Units();
   });
+}
+
+function isMapEditor() {
+  return $('input[name=mapEditor]')[0].checked;
 }
 
 function initScene() {
