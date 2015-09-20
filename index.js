@@ -612,8 +612,6 @@ function Missiles() {
   const fragmentShader = $('#generic-fragment').text();
 
   const newMaterial = new THREE.RawShaderMaterial({
-    defines: {
-    },
     uniforms: {
       map: { type: 't', value: material.map },
     },
@@ -624,8 +622,6 @@ function Missiles() {
     vertexShader: vertexShader,
     fragmentShader: fragmentShader,
   });
-
-  Util.createAttributeMatrix(igeo, maxInstances);
 
   const imesh = new THREE.Mesh(igeo, newMaterial);
   addToScene(imesh);
