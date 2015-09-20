@@ -19,6 +19,7 @@ export const Debug = {
   },
 
   drawOutLine: function(units, worldToScreen, canvas, camera) {
+    // http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current-camera
     const frustum = new THREE.Frustum();
     const cameraViewProjectionMatrix = new THREE.Matrix4();
     camera.updateMatrixWorld(); // make sure the camera matrix is updated

@@ -48,6 +48,7 @@ export function Selection(options) {
   function getScreenBoxes() {
     const screenBoxes = [];
 
+    // http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current-camera
     const frustum = new THREE.Frustum();
     const cameraViewProjectionMatrix = new THREE.Matrix4();
     const camera = options.camera;
