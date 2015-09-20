@@ -125,6 +125,10 @@ canvas#viewer {
   color: white;
 }
 
+#Help li {
+  border-bottom: 1px solid black;
+}
+
 #Help span.key {
   position: absolute;
   left: 30em;
