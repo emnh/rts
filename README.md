@@ -43,6 +43,7 @@ Now you can open index.html from a web server serving the page.
 # Resources
  - [Three.js](http://threejs.org/)
  - [Three.js model editor](http://threejs.org/editor/) Can import .obj and export to .json.
+ - [OpenGameArt](http://opengameart.org/)
  - [Turbosquid 3D Models](http://www.turbosquid.com)
 
 # TODO
@@ -53,9 +54,6 @@ Now you can open index.html from a web server serving the page.
  - Fix box mesh to contain unit exactly
 
 ## Functionality
- - Fix minimap rectangle in Chrome
- - M3 loading
-   - Take care of memory leaks.
  - Fix minimap rectangle to show real terrain, not plane
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
@@ -67,7 +65,7 @@ Now you can open index.html from a web server serving the page.
  - Configurable (or at least listable) keyboard controls
  - Export/import terrain as JSON
  - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
- - Select more than unit with ctrl or shift
+ - Select more than one unit with ctrl or shift
  - Move selected unit according to its move speed
   - Target
   - Waypoint queue
