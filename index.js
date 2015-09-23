@@ -831,6 +831,8 @@ function HealthBars() {
     transparent: true,
     vertexShader: $('#health-vertex').text(),
     fragmentShader: $('#health-fragment').text(),
+    depthTest: false,
+    depthWrite: false,
   });
   const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
@@ -850,6 +852,7 @@ function HealthBars() {
   this.updateHealthBars = function(units) {
     const focus = getCameraFocus(0, 0);
     // necessary for bars to be visible
+    // console.log("focus", focus.x, focus.y, focus.z);
     mesh.position.copy(focus);
     for (const unit of units) {
       const position = unit.position.clone().sub(focus);
@@ -885,6 +888,8 @@ function TeamBars() {
     transparent: true,
     vertexShader: $('#teambar-vertex').text(),
     fragmentShader: $('#teambar-fragment').text(),
+    depthTest: false,
+    depthWrite: false,
   });
   const geo = new THREE.BufferGeometry();
   const maxInstances = config.units.maxUnits;
@@ -1461,22 +1466,19 @@ function funTerrain() {
 }
 
 function getCameraFocus(mouseX, mouseY) {
-  // TODO: optimize to not use raycasting
   // TODO: move/use this function in MapControls
+
+  // http://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
   const camera = game.scene.camera;
-  const vector = new THREE.Vector3(mouseX, mouseY, camera.near);
-  const mesh = game.scene.navigationPlane;
+  const vector = new THREE.Vector3();
+  vector.set(mouseX, mouseY, camera.near);
   vector.unproject(camera);
-  const raycaster = new THREE.Raycaster(camera.position, vector.sub(camera.position).normalize());
-  const intersects = raycaster.intersectObject(mesh);
-  if (intersects.length > 0) {
-    return intersects[0].point;
-  } else {
-    // TODO: handle it better
-    // console.log("ray", mouseX, mouseY, intersects, camera.position);
-    // console.warn("nav fail");
-    return new THREE.Vector3(0, 0, 0);
-  }
+
+  const dir = vector.sub(camera.position).normalize();
+  const distance = -camera.position.y / dir.y;
+  const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+
+  return pos;
 }
 
 function MiniMap() {
@@ -1612,8 +1614,14 @@ function MiniMap() {
 
 }
 
-var oldChangeProgramCount = 0;
-var oldChangeMaterialCount = 0;
+function updateDebug() {
+  if (game.debugSphere) {
+    game.debugSphere.position.copy(getCameraFocus(0, 0));
+  }
+}
+
+let oldChangeProgramCount = 0;
+let oldChangeMaterialCount = 0;
 function render() {
   /*
   // 1st person perspective of a unit
@@ -1629,16 +1637,11 @@ function render() {
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // Debug.drawOutLine(game.units, worldToScreen, game.scene.$overlay[0], game.scene.camera);
   
-  /*for (const child of game.scene.scene3.children) {
-    if (!(child instanceof THREE.InstancedBufferGeometry)) {
-      game.scene.scene3.remove(child);
-    }
-  }*/
-
   if (game.m3loader && config.units.animated) {
     game.m3loader.update();
   }
   TWEEN.update();
+  updateDebug();
   updateUnitInfo();
   updateCameraInfo();
   updateBBoxes();
@@ -2063,6 +2066,14 @@ function Sound() {
   }
 }
 
+function initDebug() {
+  const geometry = new THREE.SphereGeometry(100, 32, 32);
+  const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+  const sphere = new THREE.Mesh(geometry, material);
+  // game.scene.scene3.add(sphere);
+  // game.debugSphere = sphere;
+}
+
 function main() {
   game.sound = new Sound();
   initScene();
@@ -2070,6 +2081,7 @@ function main() {
   // initM3Models();
   initUI();
   onResize();
+  initDebug();
 }
 
 $(main);
