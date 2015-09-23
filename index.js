@@ -13,6 +13,20 @@ const boxIntersect = require('box-intersect');
 const kdtree = require('static-kdtree');
 const TWEEN = require('tween.js');
 const howler = require('howler');
+window.StackTrace = require('stacktrace-js');
+
+window.logstack = function() {
+  const callback = function(stackframes) {
+    const stringifiedStack = stackframes.map(function(sf) { 
+        return sf.toString(); 
+    }).join('\n'); 
+    console.log(stringifiedStack); 
+  };
+
+  const errback = function(err) { console.log(err.message); };
+
+  StackTrace.get().then(callback).catch(errback);
+};
 
 require('./js/Keys.js');
 const MapControls = require('./js/MapControls.js').MapControls;
@@ -620,10 +634,6 @@ function Missiles() {
     uniforms: {
       map: { type: 't', value: material.map },
     },
-    attributes: [
-      'position',
-      'uv',
-    ],
     vertexShader: vertexShader,
     fragmentShader: fragmentShader,
   });
@@ -824,10 +834,6 @@ function HealthBars() {
   const healthMaterial = new THREE.RawShaderMaterial({
     uniforms: {
     },
-    attributes: [
-      'position',
-      'a_health',
-    ],
     transparent: true,
     vertexShader: $('#health-vertex').text(),
     fragmentShader: $('#health-fragment').text(),
@@ -843,7 +849,7 @@ function HealthBars() {
   const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
   geo.addAttribute('a_health', healthAttribute);
 
-  const mesh = new THREE.PointCloud(geo, healthMaterial);
+  const mesh = new THREE.Points(geo, healthMaterial);
   mesh.renderOrder = game.renderOrders.healthBar;
   addToScene(mesh);
 
@@ -881,10 +887,6 @@ function TeamBars() {
   const teamMaterial = new THREE.RawShaderMaterial({
     uniforms: {
     },
-    attributes: [
-      'position',
-      'a_color',
-    ],
     transparent: true,
     vertexShader: $('#teambar-vertex').text(),
     fragmentShader: $('#teambar-fragment').text(),
@@ -900,7 +902,7 @@ function TeamBars() {
   const colorAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3);
   geo.addAttribute('a_color', colorAttribute);
 
-  const mesh = new THREE.PointCloud(geo, teamMaterial);
+  const mesh = new THREE.Points(geo, teamMaterial);
   mesh.renderOrder = game.renderOrders.teamBar;
   addToScene(mesh);
 
@@ -1501,7 +1503,7 @@ function MiniMap() {
   minimapCamera.aspect = minimapWidth / minimapHeight;
   minimapCamera.updateProjectionMatrix();
   minimapScene.add(minimapCamera);
-  const minimapMaterial = new THREE.PointCloudMaterial({ size: 0.1 });
+  const minimapMaterial = new THREE.PointsMaterial({ size: 0.1 });
   const light = new THREE.AmbientLight(0xFFFFFF);
   minimapScene.add(light);
 
@@ -1541,7 +1543,7 @@ function MiniMap() {
       geom.vertices[i] = v;
       i++;
     }
-    const pointCloud = new THREE.PointCloud(geom, minimapMaterial);
+    const pointCloud = new THREE.Points(geom, minimapMaterial);
     minimapScene.add(pointCloud);
     oldCloud = pointCloud;
 
@@ -1782,7 +1784,6 @@ function getApplyShot(unit, target, shotMesh) {
     const oldHealth = target.health;
     target.health -= unit.weapon.damage;
     game.missiles.returnMissile(shotMesh);
-    //removeFromScene(shotMesh);
     shotMesh = null;
     if (target.health <= 0 && oldHealth > 0) {
       target.dead = true;
@@ -1790,25 +1791,25 @@ function getApplyShot(unit, target, shotMesh) {
       target = null;
       let explosion = game.explosions.createExplosion();
       explosion.position.copy(pos);
-      explosion.time = 0;
-      explosion.tscale = 0;
-      explosion.opacity = 2;
+      const explosionTween = {
+        time: 0,
+        tscale: 0,
+        opacity: 2,
+      };
       explosion.material.uniforms.time.value = this.time;
-      //explosion.material.uniforms.tExplosion.value = game.explosion;
       addToScene(explosion);
       const seed = Math.random();
       game.sound.blast();
-      const tween = new TWEEN.Tween(explosion)
+      const tween = new TWEEN.Tween(explosionTween)
         .to({ time: 1, tscale: 1, opacity: 0 }, 1000)
         .onUpdate(function() {
-          this.material.uniforms.time.value = this.time + seed;
-          this.material.uniforms.opacity.value = this.opacity;
-          let scale = this.tscale;
-          this.scale.set(scale, scale, scale);
+          explosion.material.uniforms.time.value = this.time + seed;
+          explosion.material.uniforms.opacity.value = this.opacity;
+          const scale = this.tscale;
+          explosion.scale.set(scale, scale, scale);
         })
         .onComplete(function() {
           game.explosions.returnExplosion(explosion);
-          //removeFromScene(explosion);
           explosion = null;
         }).start();
     }
@@ -1840,7 +1841,6 @@ function attackTargets() {
             shotMesh.lookAt(target.position);
           })
           .onComplete(getApplyShot(unit, target, shotMesh));
-        //addToScene(shotMesh);
         unit.lastShot = getGameTime();
         tween.start();
       }
