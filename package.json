@@ -17,7 +17,8 @@
     "bootstrap": "*",
     "browserify": "*",
     "babelify": "*",
-    "three": "*"
+    "three": "*",
+    "stacktrace-js": "*"
   },
   "devDependencies": {
     "jslint": "*",
