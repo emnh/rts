@@ -120,6 +120,7 @@ const game = {
     healthBar: -2,
     explosion: -3,
     missile: -4,
+    ground: -5,
   },
   paused: {
     state: false,
@@ -356,6 +357,7 @@ function initGround() {
   game.scene.ground = new THREE.Mesh(groundGeometry, groundMaterial);
   // ground.rotation.x = Math.PI / -2;
   game.scene.ground.receiveShadow = true;
+  game.scene.ground.renderOrder = game.renderOrders.ground;
   addToScene(game.scene.ground);
 
   samplerPromise.then((sampler) => {
