@@ -62,7 +62,7 @@ const TeamColors = [
   new THREE.Color(0xFFFF00),
 ];
 
-const outOfSight = -10000;
+const outOfSight = Number.NEGATIVE_INFINITY;
 
 const config = {
   audio: {
