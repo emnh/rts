@@ -42,6 +42,7 @@ Now you can open index.html from a web server serving the page.
  - Fix box mesh to contain unit exactly
 
 ## Functionality
+ - Make funky lighting optional via menu
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
  - Minimap

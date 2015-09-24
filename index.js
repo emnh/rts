@@ -77,9 +77,9 @@ const config = {
     missilePool: 2000,
   },
   units: {
-    maxUnits: 20 * 20,
+    maxUnits: 40 * 20,
     count: 20,
-    m3count: 0,
+    m3count: 20,
     speed: 50,
     randomLocation: false,
     airAltitude: 40,
@@ -162,11 +162,6 @@ function getSize(box) {
   };
 }
 
-function formatFloat(f, decimals=2) {
-  const mul = Math.pow(10, decimals);
-  return Math.round(f * mul) / mul;
-}
-
 function isObject(obj) {
   return Object.prototype.toString.call(obj) === '[object Object]';
 }
@@ -247,22 +242,42 @@ function SkyBox() {
 
 function initLight() {
   // Light
-  const light = new THREE.DirectionalLight(0xFFFFFF);
+  const light = new THREE.DirectionalLight(0xAAAAAA);
   game.scene.light = light;
-  light.position.set(500, 1000, -400);
+  // light.position.set(500, 1000, -400);
+  light.position.set(5, 10, -4);
   light.target.position.copy(game.scene.scene3.position);
   light.castShadow = true;
   light.shadowCameraLeft = -config.terrain.width;
   light.shadowCameraTop = -config.terrain.height;
   light.shadowCameraRight = config.terrain.width;
   light.shadowCameraBottom = config.terrain.height;
-  light.shadowCameraNear = 0;
-  light.shadowCameraFar = 2000;
+  light.shadowCameraNear = game.scene.camera.near;
+  light.shadowCameraFar = game.scene.camera.far;
   // light.shadowCameraVisible = true;
   light.shadowBias = -0.0001;
   light.shadowMapWidth = light.shadowMapHeight = 2048;
-  light.shadowDarkness = 0.7;
+  light.shadowDarkness = 1.0;
   addToScene(light);
+  light.lookAt(new THREE.Vector3(0, 0, 0));
+  const light2 = new THREE.DirectionalLight(0x00FF00);
+  light2.castShadow = true;
+  light2.position.set(5, 0, -4);
+  addToScene(light2);
+  light2.lookAt(new THREE.Vector3(0, 0, 0));
+  game.scene.light2 = light2;
+  const light3 = new THREE.DirectionalLight(0x0000FF);
+  light3.castShadow = true;
+  light3.position.set(-10, 10, 10);
+  addToScene(light3);
+  light3.lookAt(new THREE.Vector3(0, 0, 0));
+  game.scene.light3 = light3;
+  const light4 = new THREE.DirectionalLight(0x220000);
+  light4.castShadow = true;
+  light4.position.set(0, 10, 0);
+  addToScene(light4);
+  light4.lookAt(new THREE.Vector3(0, 0, 0));
+  game.scene.light4 = light4;
 
   // const ambient = new THREE.AmbientLight(0xFFFFFF);
   // addToScene(ambient);
@@ -1389,18 +1404,18 @@ function initUI() {
 function updateUnitInfo() {
   if (game.selector.selected.length > 0) {
     const unit = game.selector.selected[0];
-    const x = formatFloat(unit.position.x);
-    const y = formatFloat(unit.position.y);
-    const z = formatFloat(unit.position.z);
+    const x = Util.formatFloat(unit.position.x);
+    const y = Util.formatFloat(unit.position.y);
+    const z = Util.formatFloat(unit.position.z);
     const min = unit.bbox.min;
-    const minx = formatFloat(min.x);
-    const miny = formatFloat(min.y);
-    const minz = formatFloat(min.z);
+    const minx = Util.formatFloat(min.x);
+    const miny = Util.formatFloat(min.y);
+    const minz = Util.formatFloat(min.z);
     const max = unit.bbox.max;
-    const maxx = formatFloat(max.x);
-    const maxy = formatFloat(max.y);
-    const maxz = formatFloat(max.z);
-    const health = formatFloat(unit.health);
+    const maxx = Util.formatFloat(max.x);
+    const maxy = Util.formatFloat(max.y);
+    const maxz = Util.formatFloat(max.z);
+    const health = Util.formatFloat(unit.health);
     let s = '<table>';
     s += '<tr><th></th><th>Position|</th><th>BBox-</th><th>BBox+</th></tr>';
 
@@ -1637,8 +1652,43 @@ function updateDebug() {
   }
 }
 
-let oldChangeProgramCount = 0;
-let oldChangeMaterialCount = 0;
+function updateLights() {
+  Util.clearLog();
+  const time = getGameTime() / 100.0;
+  {
+    const x = 5 + game.noiseGen.noise(time, time) * 5;
+    const y = 10 + game.noiseGen.noise(time*3, time*3) * 10;
+    const z = -4 + game.noiseGen.noise(time*7, time*7) * 4;
+    Util.log("light", x, y, z);
+    game.scene.light.position.set(x, y, z);
+    game.scene.light.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+  {
+    const x = game.noiseGen.noise(time*4, time*13) + 0;
+    const y = game.noiseGen.noise(time*5, time*3) + 0;
+    const z = game.noiseGen.noise(time*7, time*5) + 0;
+    Util.log("light2", x, y, z);
+    game.scene.light2.position.set(x, y, z);
+    game.scene.light2.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+  {
+    const x = game.noiseGen.noise(time*27, time*13) + 0;
+    const y = game.noiseGen.noise(time*3, time*3) + 0;
+    const z = game.noiseGen.noise(time*7, time*7) + 0;
+    Util.log("light3", x, y, z);
+    game.scene.light3.position.set(x, y, z);
+    game.scene.light3.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+  {
+    const x = game.noiseGen.noise(time*9, time*17) + 0;
+    const y = game.noiseGen.noise(time*2, time*3) + 0;
+    const z = game.noiseGen.noise(time*2, time*3) + 0;
+    Util.log("light4", x, y, z);
+    game.scene.light4.position.set(x, y, z);
+    game.scene.light4.lookAt(new THREE.Vector3(0, 0, 0));
+  }
+}
+
 function render() {
   /*
   // 1st person perspective of a unit
@@ -1657,6 +1707,7 @@ function render() {
   if (game.m3loader && config.units.animated) {
     game.m3loader.update();
   }
+  // updateLights();
   TWEEN.update();
   updateDebug();
   updateUnitInfo();
@@ -1668,11 +1719,6 @@ function render() {
   }
   game.components.forEach((x) => { x.render(); });
   game.scene.renderer.render(game.scene.scene3, game.scene.camera);
-  Util.clearLog();
-  Util.log("change program", game.scene.renderer.changeProgramCount - oldChangeProgramCount);
-  Util.log("change material", game.scene.renderer.changeMaterialCount - oldChangeMaterialCount);
-  oldChangeProgramCount = game.scene.renderer.changeProgramCount;
-  oldChangeMaterialCount = game.scene.renderer.changeMaterialCount;
   game.scene.renderStats.update();
   requestAnimationFrame(render);
 }

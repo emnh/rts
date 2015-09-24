@@ -1,4 +1,9 @@
 export const Util = {
+  formatFloat: (f, decimals=2) => {
+    const mul = Math.pow(10, decimals);
+    return Math.round(f * mul) / mul;
+  },
+
   mix: (a, b, alpha) => {
     return a + (b - a) * alpha;
   },
@@ -21,7 +26,7 @@ export const Util = {
     let s = '';
     for (let arg of args) {
       if (Util.isFloat(arg)) {
-        arg = formatFloat(arg);
+        arg = Util.formatFloat(arg);
       }
       s += arg + ' ';
     }
