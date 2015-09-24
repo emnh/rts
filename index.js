@@ -844,6 +844,8 @@ function HealthBars() {
   const maxInstances = config.units.maxUnits;
   const positionArray = new Float32Array(maxInstances * 3);
   geo.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+  // run computeBoundingSphere before fill so it doesn't report NaN error in console
+  geo.computeBoundingSphere();
   positionArray.fill(outOfSight);
 
   const healthAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances), 1);
@@ -852,6 +854,7 @@ function HealthBars() {
   const mesh = new THREE.Points(geo, healthMaterial);
   mesh.renderOrder = game.renderOrders.healthBar;
   addToScene(mesh);
+
 
   // TODO: remove health bar of dead units.
   // doesn't see the problem now, because new units are created.
@@ -897,6 +900,8 @@ function TeamBars() {
   const maxInstances = config.units.maxUnits;
   const positionArray = new Float32Array(maxInstances * 3);
   geo.addAttribute('position', new THREE.BufferAttribute(positionArray, 3));
+  // run computeBoundingSphere before fill so it doesn't report NaN error in console
+  geo.computeBoundingSphere();
   positionArray.fill(outOfSight);
 
   const colorAttribute = new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3);
@@ -1503,7 +1508,15 @@ function MiniMap() {
   minimapCamera.aspect = minimapWidth / minimapHeight;
   minimapCamera.updateProjectionMatrix();
   minimapScene.add(minimapCamera);
-  const minimapMaterial = new THREE.PointsMaterial({ size: 0.1 });
+  // const minimapMaterial = new THREE.PointsMaterial({ size: 0.15 });
+  const minimapMaterial = new THREE.RawShaderMaterial({
+    uniforms: {
+    },
+    vertexShader: $('#minimap-vertex').text(),
+    fragmentShader: $('#minimap-fragment').text(),
+    depthTest: false,
+    depthWrite: false,
+  });
   const light = new THREE.AmbientLight(0xFFFFFF);
   minimapScene.add(light);
 
@@ -1533,14 +1546,16 @@ function MiniMap() {
       minimapScene.remove(oldCloud);
       oldCloud.geometry.dispose();
     }
-    const geom = new THREE.Geometry();
+    const maxInstances = game.units.length;
+    const geom = new THREE.BufferGeometry();
+    geom.addAttribute('position', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
+    geom.addAttribute('a_color', new THREE.BufferAttribute(new Float32Array(maxInstances * 3), 3));
     let i = 0;
     for (const unit of game.units) {
-      if (unit.minimap === undefined) {
-        unit.minimap = {};
-      }
       const v = translate(unit.position);
-      geom.vertices[i] = v;
+      const c = TeamColors[unit.team];
+      geom.attributes.position.setXYZ(i, v.x, v.y, v.z);
+      geom.attributes.a_color.setXYZ(i, c.r, c.g, c.b);
       i++;
     }
     const pointCloud = new THREE.Points(geom, minimapMaterial);

@@ -42,13 +42,12 @@ Now you can open index.html from a web server serving the page.
  - Fix box mesh to contain unit exactly
 
 ## Functionality
- - Fix minimap rectangle to show real terrain, not plane
  - Constrain camera controls to stay on map
  - Pathfinding / A-star
  - Minimap
    - Add terrain
-   - Units as colored squares with black border
    - Link minimap camera rotation to screen camera rotation?
+   - Fix minimap camera rectangle to show real terrain, not plane?
  - Disable unit selection when mouse control for camera is enabled
  - Configurable (or at least listable) keyboard controls
  - Export/import terrain as JSON
