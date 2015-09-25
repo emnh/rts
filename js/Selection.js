@@ -31,8 +31,8 @@ export function Selection(options) {
   options.scene.add(selectionRectangle);
 
   const $selectionDiv = $('<div/>').css({
-    visibility: 'hidden'
-  })
+      visibility: 'hidden'
+    })
     .addClass("selectionRect")
     .appendTo('#viewport')
     .mouseup((evt) => {
@@ -42,7 +42,9 @@ export function Selection(options) {
       });
     })
     .mousemove((evt) => {
-      rectangleSelect(evt);
+      const x2 = evt.clientX;
+      const y2 = evt.clientY;
+      rectangleSelect(x2, y2, true);
     });;
 
   function getScreenBoxes() {
@@ -146,26 +148,29 @@ export function Selection(options) {
     selectionRectangle.visible = false;
   }
 
-  function rectangleSelect(evt) {
+  function rectangleSelect(x2, y2, update) {
     // rectangle select in screen coordinates
     if ($selectionDiv.css('visibility') === 'visible') {
       let x1 = $selectionDiv.startPos[0];
       let y1 = $selectionDiv.startPos[1];
-      let x2 = evt.clientX;
-      let y2 = evt.clientY;
+      if (update) {
+        $selectionDiv.endPos = [x2, y2];
+      }
       if (x2 < x1) {
         [x1, x2] = [x2, x1];
       }
       if (y2 < y1) {
         [y1, y2] = [y2, y1];
       }
-      $selectionDiv.css({
-        position: 'absolute',
-        left: x1,
-        top: y1,
-        width: x2 - x1,
-        height: y2 - y1,
-      });
+      if (update)  {
+        $selectionDiv.css({
+          position: 'absolute',
+          left: x1,
+          top: y1,
+          width: x2 - x1,
+          height: y2 - y1,
+        });
+      }
 
       checkIntersectScreen(x1, y1, x2, y2);
     }
@@ -180,9 +185,19 @@ export function Selection(options) {
       options.config.debug.mouseY = mouse.y;
 
       // rectangle select in screen coordinates
-      rectangleSelect(evt);
+      const x2 = evt.clientX;
+      const y2 = evt.clientY;
+      rectangleSelect(x2, y2, true);
     };
   };
+
+  this.updateSelection = function() {
+    if ($selectionDiv.endPos !== undefined) {
+      const x2 = $selectionDiv.endPos[0];
+      const y2 = $selectionDiv.endPos[1];
+      rectangleSelect(x2, y2, false);
+    }
+  }
 
   const mouseElement = options.mouseElement;
 

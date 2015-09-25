@@ -62,10 +62,7 @@ Now you can open index.html from a web server serving the page.
  - Show actions specific to selected object
  - Cursor indicator when camera enabled?
  - 3D positioning of sounds
- - Unit selection rectangle
-  - Update for units that move into selection
- - Deal with large jumps in game time
-  - High delta makes velocity move units outside map
+ - Show selected units' portraits
 
 ## Server needed
  - Multiplayer

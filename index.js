@@ -1708,6 +1708,7 @@ function render() {
     game.m3loader.update();
   }
   // updateLights();
+  game.selector.updateSelection();
   TWEEN.update();
   updateDebug();
   updateUnitInfo();
