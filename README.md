@@ -49,20 +49,26 @@ Now you can open index.html from a web server serving the page.
    - Add terrain
    - Link minimap camera rotation to screen camera rotation?
    - Fix minimap camera rectangle to show real terrain, not plane?
- - Disable unit selection when mouse control for camera is enabled
- - Configurable (or at least listable) keyboard controls
- - Export/import terrain as JSON
- - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
- - Select more than one unit with ctrl or shift
+ - Configurable keyboard controls
+ - Map editor
+   - Export/import terrain as JSON
+   - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Move selected unit according to its move speed
   - Target
   - Waypoint queue
  - Attack another unit
   - Select target unit
  - Show actions specific to selected object
- - Cursor indicator when camera enabled?
- - 3D positioning of sounds
+ - Select more than one unit with ctrl or shift
+ - Remove dead units from selection
  - Show selected units' portraits
+  - Show health on portraits
+  - Non-demo: Select only own team units
+
+## Low-priority
+ - 3D positioning of sounds
+ - Disable unit selection when mouse control for camera is enabled
+ - Cursor indicator when camera enabled?
 
 ## Server needed
  - Multiplayer

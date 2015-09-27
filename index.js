@@ -36,6 +36,7 @@ const Models = require('./js/Models.js').Models;
 const UnitType = require('./js/UnitType.js').UnitType;
 const Debug = require('./js/Debug.js').Debug;
 const ModelLoader = require('./js/ModelLoader.js').ModelLoader;
+const Portraits = require('./js/Portraits.js').Portraits;
 
 const Mouse = {
   LBUTTON: 0,
@@ -107,6 +108,10 @@ const config = {
   debug: {
     mouseX: 0,
     mouseY: 0,
+  },
+  portrait: {
+    width: 60,
+    height: 60,
   },
 };
 
@@ -755,6 +760,7 @@ function UnitPool() {
 
 function createM3Unit(modelOptions, instance) {
   const unit = instance;
+  unit.model = modelOptions;
   game.unitPool.createUnit(unit);
   const size = getSize(modelOptions.bboxHelper.box);
   setUnitProperties(unit, modelOptions);
@@ -1403,6 +1409,18 @@ function initUI() {
 
 function updateUnitInfo() {
   if (game.selector.selected.length > 0) {
+    if (!Util.arraysEqual(game.selector.oldSelected, game.selector.selected)) {
+      game.dom.$unitinfo.empty();
+      for (const unit of game.selector.selected) {
+        const canvas = game.portraits.renderUnit(unit);
+        game.dom.$unitinfo.append(canvas);
+        $(canvas).css({
+          border: '1px solid green',
+        });
+      }
+    }
+    game.selector.oldSelected = game.selector.selected.slice();
+    /*
     const unit = game.selector.selected[0];
     const x = Util.formatFloat(unit.position.x);
     const y = Util.formatFloat(unit.position.y);
@@ -1437,6 +1455,7 @@ function updateUnitInfo() {
     s += `<span>${health}</span>`;
     s += '</div>';
     game.dom.$unitinfo.html(s);
+    */
   }
 }
 
@@ -2066,14 +2085,6 @@ function initScene() {
   game.teamBars = new TeamBars();
 
   requestAnimationFrame(render);
-
-  loadModels(() => {
-    //setInterval(updateSimulation, 1000 / 120);
-    game.missiles = new Missiles();
-    requestAnimationFrame(updateSimulation);
-  });
-
-  //updateSimulation();
 }
 
 function Sound() {
@@ -2136,10 +2147,24 @@ function initDebug() {
   // game.debugSphere = sphere;
 }
 
+function initPortraits() {
+  game.portraits = new Portraits({
+    // container: game.dom.$unitinfo,
+    width: config.portrait.width,
+    height: config.portrait.height,
+    unmark: unmark,
+  });
+}
+
 function main() {
   game.sound = new Sound();
   initScene();
+  loadModels(() => {
+    game.missiles = new Missiles();
+    requestAnimationFrame(updateSimulation);
+  });
   initSelection();
+  initPortraits();
   // initM3Models();
   initUI();
   onResize();
