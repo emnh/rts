@@ -32,10 +32,12 @@ export function ModelLoader(options) {
   this.modelByName = {};
   this.instanceRegister = [];
 
-  function createObject(modelOptions, model, geomats) {
+  function createObject(modelOptions, model, geomats, geometry) {
     const rotation = modelOptions.rotation;
     const scale = modelOptions.scale;
     let meshparent = new THREE.Object3D();
+    // for bounding sphere etc
+    meshparent.geometry = geometry.clone();
     meshparent.geomats = geomats;
     meshparent.modelOptions = modelOptions;
     meshparent.model = model;
@@ -60,7 +62,21 @@ export function ModelLoader(options) {
       const instance = object.instance;
       const teamId = 0;
       const modelInfo = scope.modelByName[model.model.name];
-      const meshparent = createObject(modelOptions, model, modelInfo.geomats);
+      const meshparent = createObject(modelOptions, model, modelInfo.geomats, modelInfo.geometry);
+      meshparent.forPortrait = () => {
+        //const geometry = modelInfo.geometry.clone();
+        const geometry = new THREE.BoxGeometry(5, 5, 5);
+        const material = new THREE.MeshBasicMaterial({
+          wireframe: true,
+          color: 0x00FF00,
+        });
+        const mesh = new THREE.Mesh(geometry, material);
+        // const meshClone = mesh.clone();
+        // meshClone.position.copy(meshparent.position);
+        // options.scene.add(meshClone);
+        // meshparent.add(meshClone);
+        return mesh;
+      };
       meshparent.instance = instance;
       meshparent.instanceId = modelOptions.freeInstances.pop();
       scope.instanceRegister.push(meshparent);
@@ -261,6 +277,14 @@ export function ModelLoader(options) {
       mat.makeScale(scale, scale, scale);
       bgeo.applyMatrix(mat);
       
+      bgeo.computeFaceNormals();
+      bgeo.computeVertexNormals();
+
+      /*const bufferGeo = new THREE.BufferGeometry();
+      bufferGeo.fromGeometry(bgeo);
+      bufferGeo.computeBoundingSphere();
+      bufferGeo.computeBoundingBox();
+      bufferGeo.computeVertexNormals();*/
       return bgeo;
     }
     const bgeo = updatePositions();
@@ -508,6 +532,7 @@ export function ModelLoader(options) {
           model,
           geomats,
           pTextures,
+          geometry: bgeo,
         };
         scope.modelRegister.push(modelInfo);
         scope.modelByName[model.model.name] = modelInfo;

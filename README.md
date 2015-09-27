@@ -40,6 +40,8 @@ Now you can open index.html from a web server serving the page.
  - Separate game logic from rendering
  - Remove old bounding box mesh, use BoundingBoxHelper instead
  - Fix box mesh to contain unit exactly
+ - Use BufferGeometry for bgeo in m3 loader
+ - Figure out why m3 unit portraits render empty (currently replaced by a box)
 
 ## Functionality
  - Make funky lighting optional via menu

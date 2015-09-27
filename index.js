@@ -521,6 +521,8 @@ function getGroundHeight(x, y) {
   const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
   if (xi < 0 ||
       yi < 0 ||
+      isNaN(xi) ||
+      isNaN(yi) ||
       xi >= game.heightField.length ||
       xi + 1 >= game.heightField.length ||
       yi >= game.heightField[xi].length ||
