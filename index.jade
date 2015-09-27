@@ -80,18 +80,19 @@ html
           a#menuMenu(href="javascript:void(0)") Menu(F10)
     .controls
       .minimap
-      .unitinfo
-        h3 Unit Info
-        .debug
-        .content
-      .actions
-        h3 Actions
-        button.btn.btn-default.btn-lg.disabled(type='button')
-          span.glyphicon.glyphicon-chevron-right(aria-hidden='true')
-          |  Move
-        button.btn.btn-default.btn-lg.disabled(type='button')
-          span.glyphicon.glyphicon-flash(aria-hidden='true')
-          |  Attack
+      .minimapRest
+        .unitinfo
+          h3 Unit Info
+          .debug
+          .content
+        .actions
+          h3 Actions
+          button.btn.btn-default.btn-lg.disabled(type='button')
+            span.glyphicon.glyphicon-chevron-right(aria-hidden='true')
+            |  Move
+          button.btn.btn-default.btn-lg.disabled(type='button')
+            span.glyphicon.glyphicon-flash(aria-hidden='true')
+            |  Attack
     // Canvas for js/ModelLoader.js
     canvas#viewer
     #m3progress.modal.fade

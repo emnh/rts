@@ -62,29 +62,25 @@ a {
   box-sizing: border-box;
   /*text-align: center;*/
   vertical-align: center;
-  overflow: hide;
+  /* overflow: hide; */
 }
 
 .minimap {
-  width: 30%;
+  width: 250px;
+}
+
+.minimapRest {
 }
 
 .unitinfo {
-  /* padding-top: 5%; */
-  width: 40%;
+  padding-left: 20px;
+  width: 50%;
+  height: 250px;
+  overflow-y: auto;
 }
 
 .actions {
   width: 30%;
-}
-
-.unitinfo .progress {
-  width: 50%;
-}
-.unitinfo .progress-bar {
-  color: black;
-  width: 0%;
-  height: 20px;
 }
 
 .selectionRect {

@@ -5,7 +5,7 @@ export function Portraits(options) {
   const scene = new THREE.Scene();
 
   const camera = new THREE.PerspectiveCamera(75, options.width / options.height, 1, 10000);
-  camera.position.set(-10, 10, 10);
+  camera.position.set(-12, 12, 12);
   camera.lookAt(new THREE.Vector3(0, 0, 0));
 
   const light = new THREE.AmbientLight(0xFFFFFF);
@@ -14,6 +14,7 @@ export function Portraits(options) {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(options.width, options.height);
+  renderer.setClearColor(0xffffff, 1);
 
   this.renderUnit = function(unit) {
     const geometry = unit.model.geometry;
