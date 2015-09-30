@@ -37,16 +37,21 @@ Now you can open index.html from a web server serving the page.
 # TODO
 
 ## Code
- - Separate game logic from rendering
+ - Get rid of navigationPlane
+ - Modularize index.js
+ - Keep game logic separate from rendering
+  - Separate 3D meshes from game logic
+  - What to do about TWEENS / pause?
  - Remove old bounding box mesh, use BoundingBoxHelper instead
  - Fix box mesh to contain unit exactly
  - Use BufferGeometry for bgeo in m3 loader
  - Figure out why m3 unit portraits render empty (currently replaced by a box)
 
 ## Functionality
+ - Better selection indication, ring
+ - Make missiles follow ground, or arc, at least not go through it
  - Make funky lighting optional via menu
  - Constrain camera controls to stay on map
- - Pathfinding / A-star
  - Minimap
    - Add terrain
    - Link minimap camera rotation to screen camera rotation?
@@ -56,7 +61,7 @@ Now you can open index.html from a web server serving the page.
    - Export/import terrain as JSON
    - Terraforming (like [Worldmonger](http://www.babylonjs.com/Scenes/Worldmonger/index.html))
  - Move selected unit according to its move speed
-  - Target
+  - Pathfinding / A-star
   - Waypoint queue
  - Attack another unit
   - Select target unit

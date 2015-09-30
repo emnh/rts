@@ -78,11 +78,11 @@ const config = {
     missilePool: 2000,
   },
   units: {
-    maxUnits: 40 * 20,
-    count: 20,
+    maxUnits: 40 * 40,
+    count: 40,
     m3count: 20,
     speed: 50,
-    randomLocation: false,
+    randomLocation: true,
     airAltitude: 40,
     animated: true,
     collisionBounce: 0.2,
@@ -270,18 +270,21 @@ function initLight() {
   light2.position.set(5, 0, -4);
   addToScene(light2);
   light2.lookAt(new THREE.Vector3(0, 0, 0));
+  light2.target.position.copy(game.scene.scene3.position);
   game.scene.light2 = light2;
   const light3 = new THREE.DirectionalLight(0x0000FF);
   light3.castShadow = true;
   light3.position.set(-10, 10, 10);
   addToScene(light3);
   light3.lookAt(new THREE.Vector3(0, 0, 0));
+  light3.target.position.copy(game.scene.scene3.position);
   game.scene.light3 = light3;
   const light4 = new THREE.DirectionalLight(0x220000);
   light4.castShadow = true;
   light4.position.set(0, 10, 0);
   addToScene(light4);
   light4.lookAt(new THREE.Vector3(0, 0, 0));
+  light4.target.position.copy(game.scene.scene3.position);
   game.scene.light4 = light4;
 
   // const ambient = new THREE.AmbientLight(0xFFFFFF);
@@ -563,8 +566,11 @@ function getGroundHeight(x, y) {
   return fyy;
 }
 
-function getGroundAlignment(unit) {
-  const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
+function getGroundAlignment(unit, position) {
+  if (position === undefined) {
+    position = unit.position;
+  }
+  const groundHeight = getGroundHeight(position.x, position.z);
   let y = groundHeight - unit.bbox.min.y * unit.scale.y;
   if (unit.type === UnitType.Air) {
     y += config.units.airAltitude;
@@ -591,7 +597,17 @@ function moveAlignedToGround(object) {
     // in that case units turn to original rotation.
     return;
   }
+  if (object.moveTarget === undefined) {
+    return;
+  }
   const speed = config.units.speed * object.moveSpeed * timeDelta;
+  if (object.position.distanceTo(object.moveTarget) < speed) {
+    object.position.copy(object.moveTarget);
+    object.position.y = getGroundAlignment(object);
+    object.moveTarget = undefined;
+    return;
+  }
+  object.lookAt(object.moveTarget);
   const zAxis = new THREE.Vector3(0, 0, speed);
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
@@ -729,8 +745,8 @@ function setUnitProperties(unit, modelOptions) {
 
 function initialPlaceUnit(unit, size) {
   if (config.units.randomLocation) {
-    unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 2;
-    unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 2;
+    unit.position.x = (Math.random() * config.terrain.width - config.terrain.width / 2) / 1.1;
+    unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 1.1;
   }
   const height = size.height * unit.scale.y;
   //const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
@@ -1186,9 +1202,15 @@ function loadModels(finishCallback) {
   requestAnimationFrame(setModelProgress);
 }
 
+function setMoveTarget(unit, pos) {
+  const newPos = pos.clone();
+  newPos.y = getGroundAlignment(unit, newPos);
+  unit.moveTarget = newPos;
+}
+
 function placeUnit(unit, pos) {
   const newPos = pos.clone();
-  newPos.y = getGroundAlignment(unit);
+  newPos.y = getGroundAlignment(unit, newPos);
   unit.position.copy(newPos);
 }
 
@@ -1245,6 +1267,7 @@ function initSelection() {
     mark,
     unmark,
     placeUnit,
+    setMoveTarget,
     boxIntersect,
     getBBoxes,
     mouseElement,
@@ -1255,7 +1278,6 @@ function initSelection() {
     ground: game.scene.ground,
     scene: game.scene.scene3,
     config,
-    planeMesh: game.scene.navigationPlane,
     getGroundHeight: getGroundHeight,
   });
 }
@@ -1710,6 +1732,15 @@ function updateLights() {
   }
 }
 
+function updateLights2() {
+  game.scene.light.position.copy(game.scene.camera.position);
+  const target = getCameraFocus(0, 0);
+  game.scene.light.target.position.copy(target)
+  /*game.scene.light2.position.copy(game.scene.camera.position);
+  game.scene.light3.position.copy(game.scene.camera.position);
+  game.scene.light4.position.copy(game.scene.camera.position);*/
+}
+
 function render() {
   /*
   // 1st person perspective of a unit
@@ -1728,7 +1759,7 @@ function render() {
   if (game.m3loader && config.units.animated) {
     game.m3loader.update();
   }
-  // updateLights();
+  // updateLights2();
   game.selector.updateSelection();
   TWEEN.update();
   updateDebug();

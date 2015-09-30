@@ -129,7 +129,7 @@ export function Selection(options) {
         const intersects = raycaster.intersectObject(options.ground);
         if (intersects.length > 0 && selection.selected.length > 0) {
           for (const unit of selection.selected) {
-            options.placeUnit(unit, intersects[0].point);
+            options.setMoveTarget(unit, intersects[0].point);
           }
         }
       }
