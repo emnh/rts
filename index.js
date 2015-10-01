@@ -1861,7 +1861,8 @@ function initScene() {
   game.ground = new Ground({
     game: game,
     config: config,
-    addToScene, addToScene,
+    addToScene: addToScene,
+    getCameraFocus: getCameraFocus,
   });
   initCameraControls();
   game.components.push(new Sea());

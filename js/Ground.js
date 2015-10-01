@@ -40,6 +40,32 @@ export function Ground(options) {
     });
   }
 
+  function xramp(y, start, end, current, width, reverse) {
+    const box = new THREE.Box2();
+    box.expandByPoint(new THREE.Vector2(start.x, start.z));
+    box.expandByPoint(new THREE.Vector2(end.x, end.z));
+    box.min.x = -width / 2;
+    box.max.x = width / 2;
+    if (box.containsPoint(current)) {
+      let delta = (current.y - box.min.y) / (box.max.y - box.min.y);
+      if (reverse) {
+        delta = 1 - delta;
+      }
+      return delta * (start.y - end.y);
+    } else {
+      return y;
+    }
+  }
+
+  function plateau(y, centre, current, radius, height) {
+    const dist = centre.distanceTo(current);
+    if (dist <= radius) {
+      return height;
+    } else {
+      return y;
+    }
+  }
+
   function initGround() {
 
     const samplerPromise = getSampler();
@@ -79,6 +105,31 @@ export function Ground(options) {
         // normalize [-1,1] to [0,1]
         const normalNoise = (noise + 1) / 2;
         y = normalNoise * config.terrain.maxElevation + config.terrain.minElevation;
+        const plateauHeight = config.terrain.maxElevation * 2;
+        const plateauRadius = 500;
+        y = plateau(y,
+            new THREE.Vector2(0, config.terrain.height / 2),
+            new THREE.Vector2(x, z),
+            plateauRadius,
+            plateauHeight);
+        y = plateau(y,
+            new THREE.Vector2(0, -config.terrain.height / 2),
+            new THREE.Vector2(x, z),
+            plateauRadius,
+            plateauHeight);
+        const rampWidth = 100;
+        const rampLength = 200;
+        y = xramp(y,
+            new THREE.Vector3(0, plateauHeight, config.terrain.height / 2 - plateauRadius),
+            new THREE.Vector3(0, 0, config.terrain.height / 2 - plateauRadius - rampLength),
+            new THREE.Vector2(x, z),
+            rampWidth);
+        y = xramp(y,
+            new THREE.Vector3(0, plateauHeight, -(config.terrain.height / 2 - plateauRadius)),
+            new THREE.Vector3(0, 0, -(config.terrain.height / 2 - plateauRadius - rampLength)),
+            new THREE.Vector2(x, z),
+            rampWidth,
+            true);
         groundGeometry.attributes.position.array[i + 1] = y;
       }
 
@@ -143,7 +194,24 @@ export function Ground(options) {
     game.scene.ground.geometry.computeFaceNormals();
     game.scene.ground.geometry.computeVertexNormals();
     game.scene.ground.geometry.attributes.position.needsUpdate = true;
-  }
+  };
+
+  this.setHeight = (x, y, height, increment, batch) => {
+    // set height of nearest vertex
+    const xi = Math.round((x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width);
+    const yi = Math.round((y + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height);
+    // TODO: calculate heightFieldIndex instead of using map
+    const i = heightFieldIndex[xi][yi];
+    const newHeight = height + (increment ? heightField[xi][yi] : 0);
+    game.scene.ground.geometry.attributes.position.array[i + 1] = newHeight;
+    heightField[xi][yi] = newHeight;
+
+    if (batch !== true) {
+      game.scene.ground.geometry.computeFaceNormals();
+      game.scene.ground.geometry.computeVertexNormals();
+      game.scene.ground.geometry.attributes.position.needsUpdate = true;
+    }
+  };
 
   this.getHeight = (x, y) => {
     const xd = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
@@ -176,7 +244,7 @@ export function Ground(options) {
     const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
 
     return fyy;
-  }
+  };
 
   this.getAlignment = (unit, position) => {
     if (position === undefined) {
@@ -188,24 +256,14 @@ export function Ground(options) {
       y += config.units.airAltitude;
     }
     return y;
-  }
+  };
 
   this.elevate = (amount) => {
-    const focus = getCameraFocus(0, 0);
+    const focus = options.getCameraFocus(0, 0);
     const x = focus.x;
     const z = focus.z;
-    
-    const xi = Math.round((x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width);
-    const yi = Math.round((z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height);
-    const i = heightFieldIndex[xi][yi];
-    const y = heightField[xi][yi] + amount;
-    game.scene.ground.geometry.attributes.position.array[i + 1] = y;
-    heightField[xi][yi] = y;
-
-    game.scene.ground.geometry.computeFaceNormals();
-    game.scene.ground.geometry.computeVertexNormals();
-    game.scene.ground.geometry.attributes.position.needsUpdate = true;
-  }
+    ground.setHeight(x, z, amount, true, false);
+  };
 
   initGround();
 }
