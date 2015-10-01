@@ -901,14 +901,36 @@ function loadModels(finishCallback) {
 
       const material = new THREE.MeshLambertMaterial({ color: 0xF5F5F5, transparent: false, opacity: opacity });
 
-      // for showing bounding box
-      const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
-      const proto = new THREE.Mesh(geometry, material.clone());
+      // compute bounding box
+      let proto = new THREE.Mesh(geometry, material.clone());
       addToScene(proto);
-      const bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
+      let bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
       bboxHelper.update();
       removeFromScene(proto);
+
+      // center geometry using bounding box
+      const t = bboxHelper.box.min.clone().add(bboxHelper.box.max).divideScalar(2);
+      mat.makeTranslation(-t.x, -t.y, -t.z);
+      // mat.makeTranslation(-t.x, -bboxHelper.box.min.y, -t.z);
+      geometry.applyMatrix(mat);
+      
+      // recompute properties
+      geometry.computeBoundingSphere();
+      geometry.computeBoundingBox();
+      // needed for proper lighting
+      geometry.computeFaceNormals();
+      geometry.computeVertexNormals();
+
+      // recompute bounding box
+      proto = new THREE.Mesh(geometry, material.clone());
+      addToScene(proto);
+      bboxHelper = new THREE.BoundingBoxHelper(proto, 0);
+      bboxHelper.update();
+      removeFromScene(proto);
+
+      // for showing bounding box
       const size = getSize(bboxHelper.box);
+      const boxMaterial = new THREE.MeshLambertMaterial({ color: 0x0000FF, opacity: 0.0, transparent: true });
       const boxGeometry = new THREE.BoxGeometry(size.height, size.width, size.depth);
       for (const vertex of boxGeometry.vertices) {
         vertex.add(bboxHelper.box.min).add(bboxHelper.box.max).divideScalar(2);
@@ -1064,7 +1086,8 @@ function getBBoxes() {
 
 function mark(unit) {
   const size = getSize(unit.bbox);
-  const radius = Math.max(size.height, Math.max(size.width, size.depth)) / 2;
+  // const radius = Math.max(size.height, Math.max(size.width, size.depth)) / 2;
+  const radius = unit.geometry.boundingSphere.radius;
   const geometry = new THREE.CircleGeometry(radius, 32);
   geometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
   const material = new THREE.MeshLambertMaterial({
@@ -1073,6 +1096,7 @@ function mark(unit) {
   });
   const mesh = new THREE.Mesh(geometry, material);
   unit.add(mesh);
+  //mesh.position.y = size.width / 2;
   unit.selectedMesh = mesh;
 }
 
