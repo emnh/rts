@@ -48,6 +48,8 @@ Now you can open index.html from a web server serving the page.
  - Figure out why m3 unit portraits render empty (currently replaced by a box)
 
 ## Functionality
+ - Add game timer
+ - Check for obstacles when moving unit, save bbox structure from last simulation step
  - Better selection indication, ring
  - Make missiles follow ground, or arc, at least not go through it
  - Make funky lighting optional via menu
