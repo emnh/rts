@@ -24,10 +24,28 @@ export function Map(options) {
         crystal.position.set(x, y, z);
       }
     }
-    const z1 = config.terrain.height / 2 - 100;
-    createCrystals(z1);
-    const z2 = -(config.terrain.height / 2 - 100);
-    createCrystals(z2);
+    {
+      const z1 = config.terrain.height / 2 - 100;
+      createCrystals(z1);
+      const z2 = -(config.terrain.height / 2 - 100);
+      createCrystals(z2);
+    }
+
+    function addHQ(z) {
+      const protohq = game.models.headquarters;
+      const hq = createUnit(protohq);
+      const x = 0;
+      const y = ground.getAlignment(hq, new THREE.Vector3(x, 0, z));
+      hq.position.set(x, y, z);
+      game.units.push(hq);
+    }
+    {
+      const z1 = config.terrain.height / 2 - 200;
+      addHQ(z1);
+      const z2 = -(config.terrain.height / 2 - 200);
+      addHQ(z2);
+    }
+
   }
 
   initMap();

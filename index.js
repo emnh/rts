@@ -145,12 +145,16 @@ function Unit() {
 
 // TODO: member function
 function isTeamUnit(unit) {
-    return unit.type === UnitType.Air || unit.type === UnitType.Ground;
+    return unit.type === UnitType.Air ||
+           unit.type === UnitType.Ground ||
+           unit.type === UnitType.Building;
 }
 
 // TODO: member function
 function isHealthUnit(unit) {
-    return unit.type === UnitType.Air || unit.type === UnitType.Ground;
+    return unit.type === UnitType.Air ||
+           unit.type === UnitType.Ground ||
+           unit.type === UnitType.Building;
 }
 
 function getTime() {
@@ -533,12 +537,13 @@ function Missiles() {
 
 function setUnitProperties(unit, modelOptions) {
   // game properties
-  unit.health = 1.0
+  unit.health = modelOptions.maxHealth;
+  unit.maxHealth = modelOptions.maxHealth;
   unit.type = modelOptions.type;
   unit.moveSpeed = modelOptions.moveSpeed;
   unit.weapon = {
     range: 100.0,
-    damage: 0.1,
+    damage: 10,
     reload: 0.5,
   };
   unit.shots = []
@@ -547,13 +552,9 @@ function setUnitProperties(unit, modelOptions) {
   }
   unit.attackTarget = null;
   unit.dead = false;
+  unit.canAttack = modelOptions.canAttack;
+  unit.canMove = modelOptions.canMove;
   unit.attackable = false;
-  unit.canAttack = true;
-  unit.canMove = true;
-  if (unit.type === UnitType.Resource) {
-    unit.canMove = false;
-    unit.canAttack = false;
-  }
   if (isHealthUnit(unit)) {
     unit.attackable = true;
   }
@@ -727,7 +728,7 @@ function HealthBars() {
       geo.attributes.position.needsUpdate = true;
       geo.verticesNeedUpdate = true;
 
-      healthAttribute.setX(unit.unitId, unit.health);
+      healthAttribute.setX(unit.unitId, unit.health / unit.maxHealth);
       healthAttribute.needsUpdate = true;
       
       geo.needsUpdate = true;
@@ -981,6 +982,9 @@ function loadModels(finishCallback) {
     downloadedModel: 0,
     downloadedTexture: 0,
     moveSpeed: 1.0,
+    canAttack: true,
+    canMove: true,
+    maxHealth: 100,
   };
 
   function setProgress(value) {

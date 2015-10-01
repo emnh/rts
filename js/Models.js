@@ -21,6 +21,8 @@ export const Models = [
     scale: 0.03,
     texturePath: 'models/images/house.jpg',
     type: UnitType.Building,
+    canAttack: false,
+    canMove: false,
   },
   {
     name: 'ant',
@@ -69,6 +71,8 @@ export const Models = [
     scale: 500,
     texturePath: 'models/images/farm.jpg',
     type: UnitType.Building,
+    canAttack: false,
+    canMove: false,
   },
   {
     name: 'missile',
@@ -82,10 +86,20 @@ export const Models = [
     path: 'models/3d/crystal.json',
     scale: 2,
     texturePath: 'models/images/crystal.jpg',
-    // TODO: UnitType.Resource
     type: UnitType.Resource,
     opacity: 1.0,
+    canAttack: false,
+    canMove: false,
   },
-
+  {
+    name: 'headquarters',
+    path: 'models/3d/moonbase.json',
+    scale: 3,
+    type: UnitType.Building,
+    opacity: 1.0,
+    canAttack: false,
+    canMove: false,
+    maxHealth: 2000,
+  },
 ];
 

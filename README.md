@@ -48,6 +48,7 @@ Now you can open index.html from a web server serving the page.
  - Figure out why m3 unit portraits render empty (currently replaced by a box)
 
 ## Functionality
+ - Scale units for unit portrait according to bbox, e.g. HQ size is overfull
  - Add game timer
  - Check for obstacles when moving unit, save bbox structure from last simulation step
  - Better selection indication, ring
