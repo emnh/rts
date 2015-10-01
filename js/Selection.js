@@ -1,6 +1,3 @@
-const jQuery = require('jquery');
-const $ = jQuery;
-
 export function Selection(options) {
 
   const leftMouseButton = 1;

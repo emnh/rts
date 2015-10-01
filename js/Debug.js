@@ -1,5 +1,3 @@
-const $ = require('jquery');
-
 export const Debug = {
 
   debugLoadMarkers: function(scene) {

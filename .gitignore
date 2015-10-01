@@ -3,6 +3,7 @@
 npm-debug.log
 *.swp
 /bundle.js
+/bundle-deps.js
 /bundle2.js
 /index.html
 /compile2.sh

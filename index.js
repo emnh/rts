@@ -4,17 +4,6 @@
  * $, THREE, Stats, SimplexNoise, dat
  */
 
-const jQuery = require('jquery');
-const $ = jQuery;
-window.jQuery = jQuery;
-window.$ = jQuery;
-const bootstrap = require('bootstrap');
-const boxIntersect = require('box-intersect');
-const kdtree = require('static-kdtree');
-const TWEEN = require('tween.js');
-const howler = require('howler');
-window.StackTrace = require('stacktrace-js');
-
 window.logstack = function() {
   const callback = function(stackframes) {
     const stringifiedStack = stackframes.map(function(sf) { 
@@ -38,6 +27,7 @@ const Debug = require('./js/Debug.js').Debug;
 const ModelLoader = require('./js/ModelLoader.js').ModelLoader;
 const Portraits = require('./js/Portraits.js').Portraits;
 const Ground = require('./js/Ground.js').Ground;
+const Map = require('./js/Map.js').Map;
 
 const Mouse = {
   LBUTTON: 0,
@@ -149,6 +139,19 @@ const game = {
 
 // for debugging in JS console
 window.game = game;
+
+function Unit() {
+}
+
+// TODO: member function
+function isTeamUnit(unit) {
+    return unit.type === UnitType.Air || unit.type === UnitType.Ground;
+}
+
+// TODO: member function
+function isHealthUnit(unit) {
+    return unit.type === UnitType.Air || unit.type === UnitType.Ground;
+}
 
 function getTime() {
   return (new Date().getTime()) / 1000.0;
@@ -390,6 +393,9 @@ function initCameraControls() {
 
 function moveAlignedToGround(object) {
   const nowTime = getGameTime();
+  if (!object.canMove) {
+    return;
+  }
   if (object.lastMoved === undefined) {
     object.lastMoved = nowTime;
     return;
@@ -536,7 +542,9 @@ function setUnitProperties(unit, modelOptions) {
     reload: 0.5,
   };
   unit.shots = []
-  unit.team = Math.floor(Math.random() * TeamColors.length);
+  if (isTeamUnit(unit)) {
+    unit.team = Math.floor(Math.random() * TeamColors.length);
+  }
   unit.attackTarget = null;
   unit.dead = false;
 }
@@ -700,6 +708,9 @@ function HealthBars() {
     // console.log("focus", focus.x, focus.y, focus.z);
     mesh.position.copy(focus);
     for (const unit of units) {
+      if (!isHealthUnit(unit)) {
+        continue;
+      }
       const position = unit.position.clone().sub(focus);
       position.y += getSize(unit.bbox).height * unit.scale.y;
       geo.attributes.position.setXYZ(unit.unitId, position.x, position.y, position.z);
@@ -752,6 +763,9 @@ function TeamBars() {
     // necessary for bars to be visible
     mesh.position.copy(focus);
     for (const unit of units) {
+      if (!isTeamUnit(unit)) {
+        continue;
+      }
       const position = unit.position.clone().sub(focus);
       position.y += getSize(unit.bbox).height * unit.scale.y + 4;
       geo.attributes.position.setXYZ(unit.unitId, position.x, position.y, position.z);
@@ -794,8 +808,19 @@ function createUnit(options) {
   unit.bbox = bboxHelper.box;
 
   initialPlaceUnit(unit, size);
-  unit.healthBar = game.healthBars.createHealthBar();
-  unit.teamBar = game.teamBars.createTeamBar(unit);
+  if (isTeamUnit(unit)) {
+    unit.teamBar = game.teamBars.createTeamBar(unit);
+  }
+  unit.attackable = false;
+  unit.canAttack = true;
+  if (unit.type === UnitType.Resource) {
+    unit.canMove = false;
+    unit.canAttack = false;
+  }
+  if (isHealthUnit(unit)) {
+    unit.attackable = true;
+    unit.healthBar = game.healthBars.createHealthBar();
+  }
 
   unit.castShadow = true;
   unit.receiveShadow = true;
@@ -1372,9 +1397,14 @@ function MiniMap() {
     let i = 0;
     for (const unit of game.units) {
       const v = translate(unit.position);
-      const c = TeamColors[unit.team];
       geom.attributes.position.setXYZ(i, v.x, v.y, v.z);
-      geom.attributes.a_color.setXYZ(i, c.r, c.g, c.b);
+      if (isTeamUnit(unit)) {
+        const c = TeamColors[unit.team];
+        geom.attributes.a_color.setXYZ(i, c.r, c.g, c.b);
+      } else if (unit.type === UnitType.Resource) {
+        const c = new THREE.Color(0xFFFFFF);
+        geom.attributes.a_color.setXYZ(i, c.r, c.g, c.b);
+      }
       i++;
     }
     const pointCloud = new THREE.Points(geom, minimapMaterial);
@@ -1576,12 +1606,14 @@ function checkCollisions() {
 function findTargets() {
   const points = [];
   for (const unit of game.units) {
+    if (!unit.attackable) continue;
     const pos = unit.position.toArray();
     pos.unit = unit;
     points.push(pos);
   }
   const tree = kdtree(points);
   for (const unit of game.units) {
+    if (!unit.canAttack) continue;
     let minHealth = Number.POSITIVE_INFINITY;
     unit.attackTarget = null;
     tree.rnn(unit.position.toArray(), unit.weapon.range, function(idx) {
@@ -1953,16 +1985,22 @@ function initPortraits() {
 function main() {
   game.sound = new Sound();
   initScene();
-  loadModels(() => {
-    game.missiles = new Missiles();
-    requestAnimationFrame(updateSimulation);
-  });
   initSelection();
   initPortraits();
-  // initM3Models();
   initUI();
   onResize();
   initDebug();
+  // initM3Models();
+  loadModels(() => {
+    game.missiles = new Missiles();
+    game.map = new Map({
+      config: config,
+      game: game,
+      addToScene: addToScene,
+      createUnit: createUnit,
+    });
+    requestAnimationFrame(updateSimulation);
+  });
 }
 
 $(main);
