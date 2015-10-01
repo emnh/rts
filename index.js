@@ -37,6 +37,7 @@ const UnitType = require('./js/UnitType.js').UnitType;
 const Debug = require('./js/Debug.js').Debug;
 const ModelLoader = require('./js/ModelLoader.js').ModelLoader;
 const Portraits = require('./js/Portraits.js').Portraits;
+const Ground = require('./js/Ground.js').Ground;
 
 const Mouse = {
   LBUTTON: 0,
@@ -128,8 +129,6 @@ const game = {
   startTime: (new Date().getTime()) / 1000.0,
   units: [],
   newUnits: [],
-  heightField: [],
-  heightFieldIndex: [],
   components: [],
   models: {},
   emitters: [],
@@ -305,128 +304,6 @@ function initStats() {
   $('body').append(game.scene.physicsStats.domElement);
 }
 
-function getSampler() {
-  return new Promise((resolve, reject) => {
-    const loader = new THREE.ImageLoader();
-    
-    const sampler = {};
-
-    loader.load('models/maps/man.jpg', function(image) {
-      const canvas = document.createElement('canvas');
-      canvas.width = image.width;
-      canvas.height = image.height;
-
-      const context = canvas.getContext('2d');
-      context.drawImage(image, 0, 0);
-      const imageData = context.getImageData(0, 0, image.width, image.height);
-
-      sampler.getHeight = (x, y) => {
-        x = Math.round(x * image.width) % image.width;
-        y = Math.round(y * image.height) % image.height;
-        const i = (x + y * image.width) * 4;
-        const r = imageData.data[i];
-        const g = imageData.data[i + 1];
-        const b = imageData.data[i + 2];
-        return new THREE.Color(r, g, b).getHSL().l;
-      };
-
-      resolve(sampler);
-    });
-  });
-}
-
-function initGround() {
-
-  const samplerPromise = getSampler();
-
-  // Materials
-  const groundMaterial = new THREE.MeshLambertMaterial({
-    map: THREE.ImageUtils.loadTexture( 'models/images/grass.jpg'),
-  });
-  groundMaterial.map.wrapS = groundMaterial.map.wrapT = THREE.RepeatWrapping;
-  groundMaterial.map.repeat.set(config.terrain.width / 100.0, config.terrain.height / 100.0);
-
-  // Ground
-  game.noiseGen = new SimplexNoise();
-  const groundGeometry = new THREE.PlaneBufferGeometry(
-      config.terrain.width,
-      config.terrain.height,
-      config.terrain.xFaces,
-      config.terrain.yFaces);
-  groundGeometry.applyMatrix(new THREE.Matrix4().makeRotationX(Math.PI / -2));
-  for (let i = 0; i <= config.terrain.xFaces; i++) {
-    game.heightField[i] = [];
-    game.heightFieldIndex[i] = [];
-  }
-  const stride = 3;
-  let positionsLength;
-  if (THREE.REVISION === '71') {
-    positionsLength = groundGeometry.attributes.position.length;
-  } else {
-    positionsLength = groundGeometry.attributes.position.count * stride;
-  }
-  // TODO: for three r72dev use setX setY setZ on the attribute
-  for (let i = 0; i < positionsLength; i += stride) {
-    const x = groundGeometry.attributes.position.array[i];
-    const z = groundGeometry.attributes.position.array[i + 2];
-    let y = 0;
-    // let edges of map be 0
-    const eps = 0.01;
-    if (x > -config.terrain.width / 2 + eps &&
-        x < config.terrain.width / 2 - eps &&
-        z > -config.terrain.height / 2 + eps &&
-        z < config.terrain.height / 2 - eps) {
-      const noise = game.noiseGen.noise(x / 100, z / 100);
-      // normalize [-1,1] to [0,1]
-      const normalNoise = (noise + 1) / 2;
-      y = normalNoise * config.terrain.maxElevation + config.terrain.minElevation;
-      groundGeometry.attributes.position.array[i + 1] = y;
-    }
-
-    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
-    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    game.heightField[xi][yi] = y;
-    game.heightFieldIndex[xi][yi] = i;
-  }
-  groundGeometry.computeFaceNormals();
-  groundGeometry.computeVertexNormals();
-
-  game.scene.ground = new THREE.Mesh(groundGeometry, groundMaterial);
-  // ground.rotation.x = Math.PI / -2;
-  game.scene.ground.receiveShadow = true;
-  game.scene.ground.renderOrder = game.renderOrders.ground;
-  addToScene(game.scene.ground);
-
-  samplerPromise.then((sampler) => {
-    for (let i = 0; i < positionsLength; i += 3) {
-      const x = groundGeometry.attributes.position.array[i];
-      const z = groundGeometry.attributes.position.array[i + 2];
-      const xt = (x + config.terrain.width / 2) / config.terrain.width;
-      const yt = (z + config.terrain.height / 2) / config.terrain.height;
-      const xi = Math.round(xt * config.terrain.xFaces);
-      const yi = Math.round(yt * config.terrain.yFaces);
-      let y = sampler.getHeight(xt, yt) + config.terrain.minElevation;
-      // const y = config.terrain.minElevation;
-      if (!Util.isInt(y) && !Util.isFloat(y)) {
-        throw 'doesnt work'
-      }
-      // XXX: disabled
-      // groundGeometry.attributes.position.array[i + 1] = y;
-      // game.heightField[xi][yi] = y;
-    };
-    game.scene.ground.geometry.computeFaceNormals();
-    game.scene.ground.geometry.computeVertexNormals();
-    game.scene.ground.geometry.attributes.position.needsUpdate = true;
-  });
-
-  game.mapBounds.min.x = -config.terrain.width / 2;
-  game.mapBounds.min.y = 0;
-  game.mapBounds.min.z = -config.terrain.height / 2;
-  game.mapBounds.max.x = config.terrain.width / 2;
-  game.mapBounds.max.y = config.terrain.maxElevation * 2;
-  game.mapBounds.max.z = config.terrain.height / 2;
-}
-
 function Sea() {
   const plane = new THREE.PlaneGeometry(config.terrain.width * 2, config.terrain.height * 2, 1, 1);
 
@@ -484,7 +361,7 @@ function resetCamera() {
   //game.scene.camera.position.set(0, 4500, 0);
   const x = game.scene.scene3.position.x;
   const z = game.scene.scene3.position.z;
-  const y = getGroundHeight(x, z);
+  const y = game.ground.getHeight(x, z);
   const pos = new THREE.Vector3(x, y, z);
   game.scene.camera.lookAt(pos);
   //game.scene.camera.position.set(308, 502, -71);
@@ -509,73 +386,6 @@ function initCameraControls() {
   game.scene.cameraControls.minDistance = 10;
   game.scene.cameraControls.maxDistance = 1000;
   game.scene.cameraControls.enabled = config.camera.mouseControl;
-}
-
-function getGroundHeight(x, y) {
-  const xd = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
-  const yd = (y + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-  const xi = Math.floor(xd);
-  const yi = Math.floor(yd);
-
-  // https:// en.wikipedia.org/wiki/Bilinear_interpolation
-  const x1 = x - (xd % 1) * config.terrain.width / config.terrain.xFaces;
-  const x2 = x1 + 1 * config.terrain.width / config.terrain.xFaces;
-  const y1 = y - (yd % 1) * config.terrain.height / config.terrain.yFaces;
-  const y2 = y1 + 1 * config.terrain.height / config.terrain.yFaces;
-  if (xi < 0 ||
-      yi < 0 ||
-      isNaN(xi) ||
-      isNaN(yi) ||
-      xi >= game.heightField.length ||
-      xi + 1 >= game.heightField.length ||
-      yi >= game.heightField[xi].length ||
-      yi + 1 >= game.heightField[xi].length) {
-    return 0;
-  }
-  const fQ11 = game.heightField[xi][yi];
-  const fQ21 = game.heightField[xi + 1][yi];
-  const fQ12 = game.heightField[xi][yi + 1];
-  const fQ22 = game.heightField[xi + 1][yi + 1];
-
-  const fxy1 = ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21;
-  const fxy2 = ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22;
-  const fyy = ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2;
-
-  /*
-  redSphere.position.x = x;
-  redSphere.position.y = fyy;
-  redSphere.position.z = y;
-
-  blueSpheres[0].position.x = x1;
-  blueSpheres[0].position.y = fQ11;
-  blueSpheres[0].position.z = y1;
-
-  blueSpheres[1].position.x = x2;
-  blueSpheres[1].position.y = fQ21;
-  blueSpheres[1].position.z = y1;
-
-  blueSpheres[2].position.x = x1;
-  blueSpheres[2].position.y = fQ12;
-  blueSpheres[2].position.z = y2;
-
-  blueSpheres[3].position.x = x2;
-  blueSpheres[3].position.y = fQ22;
-  blueSpheres[3].position.z = y2;
-  */
-
-  return fyy;
-}
-
-function getGroundAlignment(unit, position) {
-  if (position === undefined) {
-    position = unit.position;
-  }
-  const groundHeight = getGroundHeight(position.x, position.z);
-  let y = groundHeight - unit.bbox.min.y * unit.scale.y;
-  if (unit.type === UnitType.Air) {
-    y += config.units.airAltitude;
-  }
-  return y;
 }
 
 function moveAlignedToGround(object) {
@@ -603,7 +413,7 @@ function moveAlignedToGround(object) {
   const speed = config.units.speed * object.moveSpeed * timeDelta;
   if (object.position.distanceTo(object.moveTarget) < speed) {
     object.position.copy(object.moveTarget);
-    object.position.y = getGroundAlignment(object);
+    object.position.y = game.ground.getAlignment(object);
     object.moveTarget = undefined;
     return;
   }
@@ -612,7 +422,7 @@ function moveAlignedToGround(object) {
   zAxis.applyQuaternion(object.quaternion);
   zAxis.y = 0;
   const xzDirection = zAxis;
-  const oldGroundHeight = getGroundAlignment(object);
+  const oldGroundHeight = game.ground.getAlignment(object);
   if (object.position.x + xzDirection.x <= game.mapBounds.min.x) {
     xzDirection.x = -xzDirection.x;
   }
@@ -630,7 +440,7 @@ function moveAlignedToGround(object) {
   object.position.z += xzDirection.z;
 
   // align to ground
-  object.position.y = getGroundAlignment(object);
+  object.position.y = game.ground.getAlignment(object);
   const groundHeight = object.position.y;
 
   // rotate in velocity direction
@@ -638,18 +448,6 @@ function moveAlignedToGround(object) {
   dir.y = groundHeight - oldGroundHeight;
   dir.add(object.position);
   object.lookAt(dir);
-
-  // rotate left/right. doesnt' work, so disabled
-  /*
-  const yAxis = new THREE.Vector3(0, 0.1, 0);
-  yAxis.applyQuaternion(object.quaternion);
-  yAxis.y = 0;
-  const leftGroundHeight = getGroundHeight(object.position.x + yAxis.x, object.position.z + yAxis.z);
-  const yAxis2 = new THREE.Vector3(0, -0.1, 0);
-  yAxis2.applyQuaternion(object.quaternion);
-  yAxis2.y = 0;
-  const rightGroundHeight = getGroundHeight(object.position.x + yAxis2.x, object.position.z + yAxis2.z);
-  */
 }
 
 function Missiles() {
@@ -749,8 +547,7 @@ function initialPlaceUnit(unit, size) {
     unit.position.z = (Math.random() * config.terrain.height - config.terrain.height / 2) / 1.1;
   }
   const height = size.height * unit.scale.y;
-  //const groundHeight = getGroundHeight(unit.position.x, unit.position.z);
-  const groundHeight = getGroundAlignment(unit);
+  const groundHeight = game.ground.getAlignment(unit);
   unit.position.y = groundHeight; // + height;
   unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
   unit.stayUpRight = true;
@@ -1204,13 +1001,13 @@ function loadModels(finishCallback) {
 
 function setMoveTarget(unit, pos) {
   const newPos = pos.clone();
-  newPos.y = getGroundAlignment(unit, newPos);
+  newPos.y = game.ground.getAlignment(unit, newPos);
   unit.moveTarget = newPos;
 }
 
 function placeUnit(unit, pos) {
   const newPos = pos.clone();
-  newPos.y = getGroundAlignment(unit, newPos);
+  newPos.y = game.ground.getAlignment(unit, newPos);
   unit.position.copy(newPos);
 }
 
@@ -1278,7 +1075,7 @@ function initSelection() {
     ground: game.scene.ground,
     scene: game.scene.scene3,
     config,
-    getGroundHeight: getGroundHeight,
+    getGroundHeight: game.ground.getHeight,
   });
 }
 
@@ -1336,23 +1133,6 @@ function isModalOpen() {
   return $(".modal.in").length > 0;
 }
 
-function elevateGround(amount) {
-  const focus = getCameraFocus(0, 0);
-  const x = focus.x;
-  const z = focus.z;
-  
-  const xi = Math.round((x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width);
-  const yi = Math.round((z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height);
-  const i = game.heightFieldIndex[xi][yi];
-  const y = game.heightField[xi][yi] + amount;
-  game.scene.ground.geometry.attributes.position.array[i + 1] = y;
-  game.heightField[xi][yi] = y;
-
-  game.scene.ground.geometry.computeFaceNormals();
-  game.scene.ground.geometry.computeVertexNormals();
-  game.scene.ground.geometry.attributes.position.needsUpdate = true;
-}
-
 function shortcutHandler(evt) {
   switch (evt.keyCode) {
     case window.KeyEvent.DOM_VK_P:
@@ -1398,9 +1178,9 @@ function shortcutHandler(evt) {
       break;
     case window.KeyEvent.DOM_VK_SPACE:
       if (evt.shiftKey) {
-        elevateGround(-5);
+        game.ground.elevate(-5);
       } else {
-        elevateGround(5);
+        game.ground.elevate(5);
       }
       break;
   }
@@ -1509,25 +1289,6 @@ function updateBBoxes() {
 function updateBars() {
   game.healthBars.updateHealthBars(game.units);
   game.teamBars.updateTeamBars(game.units);
-}
-
-function funTerrain() {
-  const time = (new Date().getTime()) / 1000.0 - game.startTime;
-  for (let i = 0; i < game.scene.ground.geometry.attributes.position.length; i += 3) {
-    const x = game.scene.ground.geometry.attributes.position.array[i];
-    const z = game.scene.ground.geometry.attributes.position.array[i + 2];
-    const noise = game.noiseGen.noise3d(x / 100, z / 100, time);
-    const normalNoise = (noise + 1) / 2;
-    const y = normalNoise * config.terrain.maxElevation;
-    game.scene.ground.geometry.attributes.position.array[i + 1] = y;
-
-    const xi = (x + config.terrain.width / 2) * config.terrain.xFaces / config.terrain.width;
-    const yi = (z + config.terrain.height / 2) * config.terrain.yFaces / config.terrain.height;
-    game.heightField[xi][yi] = y;
-  }
-  game.scene.ground.geometry.computeFaceNormals();
-  game.scene.ground.geometry.computeVertexNormals();
-  game.scene.ground.geometry.attributes.position.needsUpdate = true;
 }
 
 function getCameraFocus(mouseX, mouseY) {
@@ -1751,7 +1512,7 @@ function render() {
   }
   */
 
-  // funTerrain();
+  // game.ground.funTerrain();
 
   // drawOutLine is slow. I ended up doing health bars in 3D instead and looks pretty good.
   // Debug.drawOutLine(game.units, worldToScreen, game.scene.$overlay[0], game.scene.camera);
@@ -2060,13 +1821,8 @@ function initScene() {
 
   game.scene.renderer = new THREE.WebGLRenderer({ antialias: true });
   game.scene.renderer.setSize(game.scene.width, game.scene.height);
-  if (THREE.REVISION === '71') {
-    game.scene.renderer.shadowMapEnabled = true;
-    game.scene.renderer.shadowMapSoft = true;
-  } else {
-    game.scene.renderer.shadowMap.enabled = true;
-    game.scene.renderer.shadowMap.soft = true;
-  }
+  game.scene.renderer.shadowMap.enabled = true;
+  game.scene.renderer.shadowMap.soft = true;
   $('#viewport').append(game.scene.renderer.domElement);
   $(game.scene.renderer.domElement).css({
     position: 'absolute',
@@ -2102,7 +1858,11 @@ function initScene() {
   addToScene(game.scene.camera);
 
   initLight();
-  initGround();
+  game.ground = new Ground({
+    game: game,
+    config: config,
+    addToScene, addToScene,
+  });
   initCameraControls();
   game.components.push(new Sea());
   game.components.push(new SkyBox());
