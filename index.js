@@ -547,6 +547,16 @@ function setUnitProperties(unit, modelOptions) {
   }
   unit.attackTarget = null;
   unit.dead = false;
+  unit.attackable = false;
+  unit.canAttack = true;
+  unit.canMove = true;
+  if (unit.type === UnitType.Resource) {
+    unit.canMove = false;
+    unit.canAttack = false;
+  }
+  if (isHealthUnit(unit)) {
+    unit.attackable = true;
+  }
 }
 
 function initialPlaceUnit(unit, size) {
@@ -557,7 +567,7 @@ function initialPlaceUnit(unit, size) {
   const height = size.height * unit.scale.y;
   const groundHeight = game.ground.getAlignment(unit);
   unit.position.y = groundHeight; // + height;
-  unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
+  // unit.rotation.y = Math.random() * 2 * Math.PI - Math.PI;
   unit.stayUpRight = true;
   unit.lastMoved = undefined;
 }
@@ -811,14 +821,7 @@ function createUnit(options) {
   if (isTeamUnit(unit)) {
     unit.teamBar = game.teamBars.createTeamBar(unit);
   }
-  unit.attackable = false;
-  unit.canAttack = true;
-  if (unit.type === UnitType.Resource) {
-    unit.canMove = false;
-    unit.canAttack = false;
-  }
   if (isHealthUnit(unit)) {
-    unit.attackable = true;
     unit.healthBar = game.healthBars.createHealthBar();
   }
 
@@ -1592,13 +1595,17 @@ function checkCollisions() {
         p1new.x <= game.mapBounds.max.x &&
         p1new.z >= game.mapBounds.min.z &&
         p1new.z <= game.mapBounds.max.z) {
-      p1.sub(d);
+      if (boxes[i].unit.canMove) {
+        p1.sub(d);
+      }
     }
     if (p2new.x >= game.mapBounds.min.x &&
         p2new.x <= game.mapBounds.max.x &&
         p2new.z >= game.mapBounds.min.z &&
         p2new.z <= game.mapBounds.max.z) {
-      p2.add(d);
+      if (boxes[j].unit.canMove) {
+        p2.add(d);
+      }
     }
   });
 }
