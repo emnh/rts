@@ -85,10 +85,12 @@ export function Selection(options) {
     const screenBoxes = getScreenBoxes();
     const flatSelectionBox = [x1, y1, x2, y2];
     const selectedIndices = options.boxIntersect(screenBoxes, [flatSelectionBox]);
+    // clear old selection
     for (const s of selection.selected) {
       options.unmark(s);
     }
-    selection.selected.length = 0;
+    //selection.selected.length = 0;
+    selection.selected = [];
     for (const [i, j] of selectedIndices) {
       const unit = screenBoxes[i].unit;
       options.mark(unit);
@@ -100,16 +102,11 @@ export function Selection(options) {
     return function(eventData) {
       eventData.preventDefault();
       if (eventData.which === leftMouseButton) {
-        // clear old selection
-        for (const s of selection.selected) {
-          options.unmark(s);
-        }
-
         const eps = 1;
         const x = eventData.clientX;
         const y = eventData.clientY;
-        checkIntersectScreen(x - eps, y - eps, x + eps, y + eps);
-        $selectionDiv.startPos = [x, y];
+        $selectionDiv.startPos = [x - eps, y - eps];
+        $selectionDiv.endPos = [x + eps, y + eps];
         $selectionDiv.css({
           visibility: 'visible',
           position: 'absolute',
@@ -118,6 +115,7 @@ export function Selection(options) {
           width: eps,
           height: eps,
         });
+        checkIntersectScreen(x - eps, y - eps, x + eps, y + eps);
       }
       if (eventData.which === rightMouseButton) {
         const raycaster = options.raycaster;
@@ -143,6 +141,9 @@ export function Selection(options) {
 
   this.onMouseLeave = function() {
     selectionRectangle.visible = false;
+    $selectionDiv.css({
+      'visibility': 'hidden'
+    });
   }
 
   function rectangleSelect(x2, y2, update) {
