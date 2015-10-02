@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.core
-    (:require[om.core :as om :include-macros true]
+    (:require [om.core :as om :include-macros true]
               [om.dom :as dom :include-macros true]))
 
 (enable-console-print!)
