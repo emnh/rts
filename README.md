@@ -37,6 +37,9 @@ Now you can open index.html from a web server serving the page.
     cd ng/server/game; npm install; node figwheel.js
     cd ng/game;lein figwheel
 
+ - Client figwheel runs on 3449
+ - Server figwheel runs on 3450
+ - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
  - Now you can open [the dev page](http://localhost:3449)
  - Write a file to push files to browser (only happens on reload):
 
