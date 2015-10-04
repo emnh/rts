@@ -5,7 +5,8 @@
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.107"]
                  [sablono "0.3.6"]
-                 [hiccups "0.3.0"]]
+                 [hiccups "0.3.0"]
+                 [clojurewerkz/neocons "3.1.0"]]
 
   :plugins [[lein-cljsbuild "1.0.4"]
             [lein-figwheel "0.4.0"]]
