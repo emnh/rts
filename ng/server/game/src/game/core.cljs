@@ -49,17 +49,13 @@
   [req res next]
   (if
     (-> req .isAuthenticated)
-    (do
-      (println "authed")
-      (next))
-    (do
-      (println "not authed")
-      (-> res (.redirect "/login")))))
+    (next)
+    (-> res (.redirect "/login"))))
 
 ;; app gets redefined on reload
 (def app (express))
 
-(def session-secret (-> fs (.readFileSync (str home "/.rts/session-secret"))))
+(def session-secret (-> fs (.readFileSync (str home "/.rts/session-secret") "utf8")))
 (-> app (.use (cookie-parser session-secret)))
 (-> app (.use (session #js 
                        { 
