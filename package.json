@@ -18,7 +18,8 @@
     "browserify": "*",
     "babelify": "*",
     "three": "*",
-    "stacktrace-js": "*"
+    "stacktrace-js": "*",
+    "socket.io": "1.3.7"
   },
   "devDependencies": {
     "jslint": "*",
