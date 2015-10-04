@@ -84,7 +84,7 @@
     (socket/initSocket @mstate mstate-chan)
     ))
 
-(js/$ main)
+(defonce initial-call-to-main (js/$ main))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
