@@ -10,6 +10,9 @@
               [clojure.string :refer [join]]
               ))
  
+(defn new-game
+  [mstate mstate-chan]
+  )
 
 (defn initSocket
   [mstate mstate-chan]
