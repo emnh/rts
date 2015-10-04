@@ -2,6 +2,7 @@
     (:require [om.core :as om :include-macros true]
               [om.dom :as dom :include-macros true]
               [game.scene :as scene]
+              [game.ground :as ground]
               [jayq.core :as jayq :refer [$]]))
 
 (enable-console-print!)
@@ -57,8 +58,10 @@
     (.bind "resize.gameResize" #(swap! mstate scene/onResize)))
   (swap! mstate scene/onResize)
   (println "mstate" @mstate)
-  (swap! mstate scene/initScene)
   (swap! mstate scene/initStats)
+  (swap! mstate scene/initScene)
+  (swap! mstate scene/initLight)
+  (swap! mstate ground/initGround)
   )
 
 (defn on-js-reload []
