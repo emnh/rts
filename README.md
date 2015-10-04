@@ -28,6 +28,20 @@ All credits to flowtsohg for decoding the M3 format in JavaScript.
 
 Now you can open index.html from a web server serving the page.
 
+# Getting started with next generation (currently alpha)
+
+ - First of all follow steps under "Getting started"
+ - Then open 3 terminals and run the following:
+
+    cd ng/server/game; lein figwheel
+    cd ng/server/game; npm install; node figwheel.js
+    cd ng/game;lein figwheel
+
+ - Now you can open [the dev page](http://localhost:3449)
+ - Write a file to push files to browser (only happens on reload):
+
+    touch ng/game/src/game/core.clj
+
 # Resources
  - [Three.js](http://threejs.org/)
  - [Three.js model editor](http://threejs.org/editor/) Can import .obj and export to .json.
