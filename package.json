@@ -26,7 +26,7 @@
     "babel-eslint": "*"
   },
   "engines": {
-    "node": "0.12.x",
+    "node": "4.1.1",
     "npm": "2.x.x"
   },
   "scripts": {
