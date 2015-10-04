@@ -52,13 +52,14 @@
 
 (defn main
   []
-  (do
-    (-> ($ js/window)
-      (.unbind "resize.gameResize")
-      (.bind "resize.gameResize" #(swap! mstate scene/onResize)))
-    (swap! mstate scene/onResize)
-    (println "mstate" @mstate)
-    (swap! mstate scene/initScene)))
+  (-> ($ js/window)
+    (.unbind "resize.gameResize")
+    (.bind "resize.gameResize" #(swap! mstate scene/onResize)))
+  (swap! mstate scene/onResize)
+  (println "mstate" @mstate)
+  (swap! mstate scene/initScene)
+  (swap! mstate scene/initStats)
+  )
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on
