@@ -41,9 +41,6 @@ Now you can open index.html from a web server serving the page.
  - Server figwheel runs on 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
  - Now you can open [the dev page](http://localhost:3449)
- - Write a file to push files to browser (only happens on reload):
-
-    touch ng/game/src/game/core.clj
 
 # Resources
  - [Three.js](http://threejs.org/)

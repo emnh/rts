@@ -31,9 +31,11 @@
                          :source-map-timestamp true }}
              {:id "min"
               :source-paths ["src"]
-              :compiler {:output-to "resources/public/js/compiled/game.js"
+              :compiler {:output-to "resources/public/js/compiled/game-min3.js"
                          :main game.core
-                         :optimizations :advanced
+                         :asset-path "/rts/ng/game/target/cljsbuild-compiler-1"
+                         ;:optimizations :advanced
+                         :optimizations :none
                          :pretty-print false}}]}
 
   :figwheel {
