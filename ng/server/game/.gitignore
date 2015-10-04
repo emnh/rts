@@ -1,0 +1,12 @@
+/classes/
+/lib/
+/node_modules/
+/out.dev/
+/out.prod/
+/target/
+*.jar
+.lein-deps-sum
+.lein-repl-history
+.lein-plugins/
+figwheel_server.log
+pom.xml
