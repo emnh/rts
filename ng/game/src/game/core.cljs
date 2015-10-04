@@ -1,9 +1,12 @@
 (ns ^:figwheel-always game.core
-    (:require [om.core :as om :include-macros true]
-              [om.dom :as dom :include-macros true]
-              [game.scene :as scene]
-              [game.ground :as ground]
-              [jayq.core :as jayq :refer [$]]))
+  (:require-macros [cljs.core.async.macros :refer [go]])
+  (:require [om.core :as om :include-macros true]
+            [om.dom :as dom :include-macros true]
+            [game.scene :as scene]
+            [game.ground :as ground]
+            [game.socket :as socket]
+            [cljs.core.async :refer [<! put! chan]]
+            [jayq.core :as jayq :refer [$]]))
 
 (enable-console-print!)
 
@@ -39,7 +42,11 @@
 (defonce
   mstate
     (atom
-      {:scene {}}))
+      {
+       :socket {}
+       :scene {}
+       :units {}
+       }))
 
 ;(om/root
 ;  (fn [data owner]
@@ -56,13 +63,26 @@
   (-> ($ js/window)
     (.unbind "resize.gameResize")
     (.bind "resize.gameResize" #(swap! mstate scene/onResize)))
-  (swap! mstate scene/onResize)
-  (println "mstate" @mstate)
-  (swap! mstate scene/initStats)
-  (swap! mstate scene/initScene)
-  (swap! mstate scene/initLight)
-  (swap! mstate ground/initGround)
-  )
+  (let
+    [mstate-chan (chan)]
+    ; TODO: close/reestablish channel on reload
+    (go
+      (while true
+        (let
+          [{:keys [path value]} (<! mstate-chan)
+           swapit #(assoc-in % path value)
+           ]
+          (println ["mstate change" path value])
+          (swap! mstate swapit)
+        )))
+    (swap! mstate scene/onResize)
+    (println "mstate" @mstate)
+    (swap! mstate scene/initStats)
+    (swap! mstate scene/initScene)
+    (swap! mstate scene/initLight)
+    (ground/initGround @mstate mstate-chan)
+    (socket/initSocket @mstate mstate-chan)
+    ))
 
 (defn on-js-reload []
   ;; optionally touch your app-state to force rerendering depending on

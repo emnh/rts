@@ -104,7 +104,7 @@
 
 (defn initScene
   [mstate]
-  (pprint/pprint ["mstate" mstate])
+  ;(pprint/pprint ["mstate :scene" (:scene mstate)])
   (let
      [
       [renderer mstate]
