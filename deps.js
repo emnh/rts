@@ -7,3 +7,4 @@ window.kdtree = require('static-kdtree');
 window.TWEEN = require('tween.js');
 window.howler = require('howler');
 window.StackTrace = require('stacktrace-js');
+window.socket = require('socket.io');
