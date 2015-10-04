@@ -29,10 +29,11 @@
              {:id "prod"
               :source-paths ["src"]
               :compiler {
-                :output-to "server.js"
+                :output-to "out.prod/game.js"
                 :output-dir "out.prod"
                 :target :nodejs
-                :optimizations :simple}}]}
+                ;:optimizations :simple}}]}
+                :optimizations :none}}]}
   :figwheel {
              :server-port 3450
              }
