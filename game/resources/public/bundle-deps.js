@@ -1,1 +1,1 @@
-../../../../../bundle-deps.js
+../../../bundle-deps.js
