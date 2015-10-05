@@ -1,11 +1,11 @@
-(ns ^:figwheel-always game.dev
+(ns ^:figwheel-always game.server.dev
   (:require [figwheel.client :as fw]
             [figwheel.client.utils :as utils]
-            [game.core]))
+            [game.server.core :as core]))
 
 (defn on-js-reload
   []
-  (game.core/reload))
+  (core/reload))
 
 (defn -main []
   (figwheel.client/start
@@ -15,6 +15,6 @@
                       "/figwheel-ws")
      :on-jsload on-js-reload
      })
-  (game.core/-main))
+  (core/-main))
 
 (set! *main-cli-fn* -main)

@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.core
+(ns ^:figwheel-always game.server.core
   (:require-macros [hiccups.core :as hiccups :refer [html]])
   (:require
     [cljs.nodejs :as nodejs]
