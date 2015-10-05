@@ -18,7 +18,9 @@
   :source-paths ["src"]
 
   :clean-targets ["out.dev"
+                  "out.dev.client"
                   "out.prod"
+                  "out.prod.client"
                   ]
 
   :cljsbuild {
@@ -30,6 +32,13 @@
                 :target :nodejs
                 :optimizations :none
                 :source-map true}}
+             {:id "dev-client"
+              :source-paths ["src" "src.dev"]
+              :compiler {
+                :output-to "out.dev.client/game.js"
+                :output-dir "out.dev.client"
+                :optimizations :none
+                :source-map true}}
              {:id "prod"
               :source-paths ["src"]
               :compiler {
@@ -38,8 +47,18 @@
                 :target :nodejs
                 ; compiling with optimizations takes too much memory
                 ;:optimizations :simple}}]}
-                :optimizations :none}}]}
+                :optimizations :none}}
+             {:id "prod-client"
+              :source-paths ["src"]
+              :compiler {
+                :output-to "out.prod.client/game.js"
+                :output-dir "out.prod.client"
+                ; compiling with optimizations takes too much memory
+                ;:optimizations :simple}}]}
+                :optimizations :none}}
+             ]}
   :figwheel {
              :server-port 3450
+             :css-dirs ["resources/public/css"] ;; watch and update CSS
              }
             )

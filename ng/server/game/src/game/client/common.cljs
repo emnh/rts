@@ -1,8 +1,8 @@
-(ns ^:figwheel-always game.common
+(ns ^:figwheel-always game.client.common
     (:require 
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
-              [game.config :as config]
+              [game.client.config :as config]
               ))
 
 (defn get-idempotent

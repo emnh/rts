@@ -21,16 +21,30 @@
 (def home
     (-> process .-env .-HOME))
 
+(def config
+  (let
+    [config-data (-> js/global .-rtsconfig)]
+    (-> config-data (js->clj :keywordize-keys true))))
+
+(println "config" config)
+
+(defn production?
+  []
+  (:production config))
 
 (-> passport (.serializeUser (fn [user done] (done nil user))))
 (-> passport (.deserializeUser (fn [obj done] (done nil obj))))
 
 (let
-  [
+  [facebook-path 
+     (if 
+       (production?)
+       "/.rts/facebook"
+       "/.rts/facebook-test.json")
    facebook-data
-    (-> fs (.readFileSync (str home "/.rts/facebook-test.json")))
+     (-> fs (.readFileSync (str home facebook-path)))
    { :keys [ :FACEBOOK_APP_ID :FACEBOOK_APP_SECRET ]}
-    (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
+     (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
    facebook-function
     (fn
       [accessToken refreshToken profile done]
@@ -74,6 +88,13 @@
   (fn [req res] (. res (send (clj->js req.user))))))
 
 (. app (use (serve-static "resources/public" #js {:index "index.html"})))
+
+(if
+  (production?)
+  (. app (use (serve-static "out.prod.client")))
+  (do
+    (. app (use (serve-static "out.dev")))
+    (. app (use (serve-static "out.dev.client")))))
 
 (. app 
    (get

@@ -1,18 +1,16 @@
-(ns ^:figwheel-always game.core
+(ns ^:figwheel-always game.client.core
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [game.scene :as scene]
-            [game.ground :as ground]
-            [game.socket :as socket]
+            [game.client.scene :as scene]
+            [game.client.ground :as ground]
+            [game.client.socket :as socket]
             [cljs.core.async :refer [<! put! chan]]
             [jayq.core :as jayq :refer [$]]))
 
 (enable-console-print!)
 
-(println "Edits to this text should show up in your developer console: test.")
-
-;; define your app data so that it doesn't get over-written on reload
+(println "Reloaded client core")
 
 (defrecord unit 
   [index matrix]
@@ -48,16 +46,6 @@
        :units {}
        }))
 
-;(om/root
-;  (fn [data owner]
-;    (reify om/IRender
-;      (render [_]
-;        (apply dom/ul #js {:className "units"}
-;               (map #(dom/li nil (:index %)) (:units data))
-;                     ))))
-;  app-state
-;  {:target (. js/document (getElementById "app"))})
-
 (defn main
   []
   (-> ($ js/window)
@@ -84,9 +72,10 @@
     (socket/initSocket @mstate mstate-chan)
     ))
 
-(defonce initial-call-to-main (js/$ main))
+(defonce initial-call-to-main 
+  (if (exists? js/$) (js/$ main)))
 
-(defn on-js-reload []
+(defn js-reload []
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ; (swap! app-state update-in [:__figwheel_counter] inc)

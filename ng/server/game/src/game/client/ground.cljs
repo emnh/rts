@@ -1,8 +1,8 @@
-(ns ^:figwheel-always game.ground
+(ns ^:figwheel-always game.client.ground
     (:require 
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
-              [game.config :as config]
+              [game.client.config :as config]
               ))
 
 (defn initGround

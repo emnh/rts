@@ -1,11 +1,11 @@
-(ns ^:figwheel-always game.socket
+(ns ^:figwheel-always game.client.socket
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require 
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
               [cljs.pprint :as pprint]
-              [game.config :as config]
-              [game.common :as common :refer [get-idempotent]]
+              [game.client.config :as config]
+              [game.client.common :as common :refer [get-idempotent]]
               [cljs.core.async :refer [<! put! chan]]
               [clojure.string :refer [join]]
               ))

@@ -1,13 +1,11 @@
-(ns ^:figwheel-always game.scene
+(ns ^:figwheel-always game.client.scene
   (:require [om.core :as om :include-macros true]
               [om.dom :as dom :include-macros true]
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
-              [game.config :as config]
-              [game.common :as common]
-              )
-  (:use
-    [game.common :only (get-idempotent)]))
+              [game.client.config :as config]
+              [game.client.common :as common :refer [get-idempotent]]
+              ))
 
 (defn onResize
   [mstate]

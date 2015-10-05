@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.config)
+(ns ^:figwheel-always game.client.config)
 
 ;const config = {
 ;  audio: {

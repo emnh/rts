@@ -2,7 +2,9 @@
 /lib/
 /node_modules/
 /out.dev/
+/out.dev.client/
 /out.prod/
+/out.prod.client/
 /target/
 *.jar
 .lein-deps-sum
