@@ -33,7 +33,7 @@
                 :optimizations :none
                 :source-map true}}
              {:id "dev-client"
-              :source-paths ["src" "src.dev"]
+              :source-paths ["src.client" "src.dev.client"]
               :compiler {
                 :output-to "out.dev.client/game.js"
                 :output-dir "out.dev.client"
@@ -49,7 +49,7 @@
                 ;:optimizations :simple}}]}
                 :optimizations :none}}
              {:id "prod-client"
-              :source-paths ["src"]
+              :source-paths ["src.client"]
               :compiler {
                 :output-to "out.prod.client/game.js"
                 :output-dir "out.prod.client"
