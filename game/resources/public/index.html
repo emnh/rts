@@ -39,8 +39,10 @@ ga('send', 'pageview');
   <body>
     <script>
     if (document.location.hostname == 'localhost') {
+      console.log("dev mode");
       goog.require('game.client.dev');
     } else {
+      console.log("prod mode");
       goog.require('game.client.core');
     }
     </script>

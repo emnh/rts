@@ -10,7 +10,7 @@
 
 (enable-console-print!)
 
-(println "Reloaded client core3")
+(println "Reloaded client core")
 
 (defrecord unit 
   [index matrix]
@@ -50,7 +50,7 @@
   []
   (-> ($ js/window)
     (.unbind "resize.gameResize")
-    (.bind "resize.gameResize" #(swap! mstate scene/onResize)))
+    (.bind "resize.gameResize" #(swap! mstate scene/on-resize)))
   (let
     [mstate-chan (chan)]
     ; TODO: close/reestablish channel on reload
@@ -63,20 +63,22 @@
           (println ["mstate change" path value])
           (swap! mstate swapit)
         )))
-    (swap! mstate scene/onResize)
+    (swap! mstate scene/on-resize)
     (println "mstate" @mstate)
     (swap! mstate scene/initStats)
-    (swap! mstate scene/initScene)
+    (scene/initScene)
     (swap! mstate scene/initLight)
     (ground/initGround @mstate mstate-chan)
     (socket/initSocket @mstate mstate-chan)
     ))
 
-(defonce initial-call-to-main 
-  (if (exists? js/$) (js/$ main)))
+;(defonce initial-call-to-main 
+;  (if (exists? js/$) (js/$ main)))
+(main)
 
 (defn js-reload []
   ;; optionally touch your app-state to force rerendering depending on
   ;; your application
   ; (swap! app-state update-in [:__figwheel_counter] inc)
+  (println "js-reload")
   (main))

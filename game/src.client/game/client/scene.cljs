@@ -5,17 +5,16 @@
               [jayq.core :as jayq :refer [$]]
               [game.client.config :as config]
               [game.client.common :as common :refer [get-idempotent]]
-              ))
+              )
+  (:require-macros [game.client.macros :as macros]))
 
-(defn onResize
+(defn on-resize
   [mstate]
   (println "Resize called")
   (let
     [width (.-innerWidth js/window)
      height (.-innerHeight js/window)]
-    (-> mstate
-      (assoc-in [:scene :width] width)
-      (assoc-in [:scene :height] height))))
+    ))
 
 (defn initStats
   [mstate]
@@ -48,6 +47,84 @@
        })
     mstate))
 
+(defn get-width
+  []
+  (.-innerWidth js/window))
+(defn get-height
+  []
+  (.-innerHeight js/window))
+
+(defn-
+  get-camera-internal2
+  []
+  (let 
+    [
+      width (get-width)
+      height (get-height)
+      FOV 35
+      frustumFar 1000000
+      frustumNear 1
+      ]
+      (new js/THREE.PerspectiveCamera FOV (/ width height) frustumNear frustumFar)))
+
+(macros/with-memoized-def (do
+  (def get-renderer 
+    #(new js/THREE.WebGLRenderer #js { :antialias true }))
+  (def get-scene
+    #(new js/THREE.Scene))
+  (def get-$overlay
+    #($ "<canvas/>"))
+  (def get-raycaster
+    #(new js/THREE.Raycaster))
+  (def get-camera
+    #(get-camera-internal2))
+    ))
+
+(println (macroexpand '(macros/with-memoized-def (do
+  (def get-renderer 
+    #(new js/THREE.WebGLRenderer #js { :antialias true }))
+  (def get-scene
+    #(new js/THREE.Scene))
+  (def get-$overlay
+    #($ "<canvas/>"))
+  (def get-raycaster
+    #(new js/THREE.Raycaster))
+  (def get-camera
+    #(get-camera-internal2))
+    ))))
+
+(defn add-to-scene
+  [item]
+  (.add (get-scene) item))
+
+(defn initScene
+  []
+  (println "initscene")
+  (doto
+    (get-renderer)
+    (#(println "renderer" %))
+    (.setSize (get-width) (get-height))
+    (-> .-shadowMap .-enabled (set! true))
+    (-> .-shadowMap .-soft (set! true))
+    (#(.append ($ "body") (-> % .-domElement)))
+    (#(jayq/css
+      ($ (-> % .-domElement))
+      {:position "absolute"
+       :top 0
+       :left 0
+       :z-index 0
+       })))
+  (doto
+    (get-$overlay)
+    (#(.append ($ "body") %))
+    (jayq/css
+      {
+       :position "absolute"
+       :top 0
+       :left 0
+       :z-index 1
+       })))
+
 (defn initLight
   [mstate]
   (let
@@ -55,18 +132,19 @@
      [light1 mstate]
        (get-idempotent mstate [:scene :light1]
          #(new js/THREE.DirectionalLight))
-    [light2 mstate]
+     [light2 mstate]
        (get-idempotent mstate [:scene :light2]
          #(new js/THREE.DirectionalLight))
-    [light3 mstate]
+     [light3 mstate]
        (get-idempotent mstate [:scene :light3]
          #(new js/THREE.DirectionalLight))
-    [light4 mstate]
+     [light4 mstate]
        (get-idempotent mstate [:scene :light4]
          #(new js/THREE.DirectionalLight))
-    addToScene (-> mstate :scene :addToScene)
-    origin (-> mstate :scene :scene3 .-position)
+     origin (-> mstate (get-scene) .-position)
+     blah nil
      ]
+    ;(blah)
     (-> light1 .-position (.set 5 10 -4))
     (-> light2 .-position (.set 5 0 -4))
     (-> light3 .-position (.set -10 10 10))
@@ -83,16 +161,16 @@
     (-> light1 .-shadowCameraTop (set! (- (config/getTerrainHeight))))
     (-> light1 .-shadowCameraRight (set! (+ (config/getTerrainWidth))))
     (-> light1 .-shadowCameraBottom (set! (+ (config/getTerrainHeight))))
-    (-> light1 .-shadowCameraNear (set! (-> mstate :scene :camera .-near)))
-    (-> light1 .-shadowCameraFar (set! (-> mstate :scene :camera .-far)))
+    (-> light1 .-shadowCameraNear (set! (-> (get-camera) .-near)))
+    (-> light1 .-shadowCameraFar (set! (-> (get-camera) .-far)))
     (-> light1 .-shadowBias (set! -0.0001))
     (-> light1 .-shadowMapWidth (set! 2048))
     (-> light1 .-shadowMapHeight (set! 2048))
     (-> light1 .-shadowDarkness (set! 1.0))
-    (addToScene light1)
-    (addToScene light2)
-    (addToScene light3)
-    (addToScene light4)
+    (add-to-scene light1)
+    (add-to-scene light2)
+    (add-to-scene light3)
+    (add-to-scene light4)
     (-> light1 (.lookAt origin))
     (-> light2 (.lookAt origin))
     (-> light3 (.lookAt origin))
@@ -100,53 +178,4 @@
     mstate
     ))
 
-(defn initScene
-  [mstate]
-  ;(pprint/pprint ["mstate :scene" (:scene mstate)])
-  (let
-     [
-      [renderer mstate]
-        (get-idempotent mstate [:scene :renderer]
-          #(new js/THREE.WebGLRenderer #js { :antialias true }))
-      [scene mstate]
-        (get-idempotent mstate [:scene :scene3]
-          #(new js/THREE.Scene))
-      [$overlay mstate]
-        (get-idempotent mstate [:scene :$overlay]
-          #($ "<canvas/>"))
-      [raycaster mstate]
-        (get-idempotent mstate [:scene :raycaster]
-          #(new js/THREE.Raycaster))
-      width (-> mstate :scene :width)
-      height (-> mstate :scene :height)
-      FOV 35
-      frustumFar 1000000
-      frustumNear 1
-      [camera mstate]
-        (get-idempotent mstate [:scene :camera]
-          #(new js/THREE.PerspectiveCamera FOV width / height frustumNear frustumFar))
-      addToScene #(.add scene %)
-      mstate (assoc-in mstate [:scene :addToScene] addToScene)
-      ]
-    (.setSize renderer width height)
-    (-> renderer .-shadowMap .-enabled (set! true))
-    (-> renderer .-shadowMap .-soft (set! true))
-    (.append ($ "body") (-> renderer .-domElement))
-    (jayq/css
-      ($ (-> renderer .-domElement))
-      {:position "absolute"
-       :top 0
-       :left 0
-       :z-index 0
-       })
-    (.append ($ "body") $overlay)
-    (jayq/css
-      $overlay
-      {
-       :position "absolute"
-       :top 0
-       :left 0
-       :z-index 1
-       })
-    (addToScene camera)
-    mstate))
+

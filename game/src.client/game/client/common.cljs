@@ -16,5 +16,3 @@
      mstate (assoc-in mstate path newVal)
      ]
     [newVal mstate]))
-
-

@@ -3,8 +3,11 @@
             [figwheel.client.utils :as utils]
             [game.client.core :as core]))
 
+(enable-console-print!)
+
 (defn on-js-reload
   []
+  (println "on-js-reload")
   (core/js-reload))
 
 (defn main []
