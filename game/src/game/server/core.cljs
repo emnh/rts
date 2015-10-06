@@ -26,7 +26,7 @@
     [config-data (-> js/global .-rtsconfig)]
     (-> config-data (js->clj :keywordize-keys true))))
 
-(println "config" config)
+(println "config2" config)
 
 (defn production?
   []
@@ -92,9 +92,7 @@
 (if
   (production?)
   (. app (use (serve-static "out.prod.client")))
-  (do
-    (. app (use (serve-static "out.dev")))
-    (. app (use (serve-static "out.dev.client")))))
+  (. app (use (serve-static "out.dev.client"))))
 
 (. app 
    (get

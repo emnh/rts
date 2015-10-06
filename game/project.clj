@@ -26,6 +26,7 @@
   :cljsbuild {
     :builds [{:id "dev"
               :source-paths ["src" "src.dev"]
+              :figwheel true
               :compiler {
                 :output-to "out.dev/game.js"
                 :output-dir "out.dev"
@@ -34,6 +35,7 @@
                 :source-map true}}
              {:id "dev-client"
               :source-paths ["src.client" "src.dev.client"]
+              :figwheel true
               :compiler {
                 :output-to "out.dev.client/game.js"
                 :output-dir "out.dev.client"

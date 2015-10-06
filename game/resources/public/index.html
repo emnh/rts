@@ -28,11 +28,6 @@ ga('send', 'pageview');
     <script type="text/javascript" src="goog/base.js"></script>
     <script type="text/javascript" src="game.js"></script>
     <script>
-    if (document.location.hostname == 'localhost') {
-      goog.require('game.client.dev');
-    } else {
-      goog.require('game.client.core');
-    }
      var socket = io.connect('http://' + window.location.host);
      socket.emit("startup", { my: 'startupdata' });
      socket.on('news', function (data) {
@@ -42,5 +37,12 @@ ga('send', 'pageview');
     </script>
   </head>
   <body>
+    <script>
+    if (document.location.hostname == 'localhost') {
+      goog.require('game.client.dev');
+    } else {
+      goog.require('game.client.core');
+    }
+    </script>
   </body>
 </html>

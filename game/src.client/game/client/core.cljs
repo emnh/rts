@@ -10,7 +10,7 @@
 
 (enable-console-print!)
 
-(println "Reloaded client core")
+(println "Reloaded client core3")
 
 (defrecord unit 
   [index matrix]
