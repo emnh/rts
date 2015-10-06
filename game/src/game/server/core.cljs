@@ -3,6 +3,7 @@
   (:require
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
+    [game.server.db :as db]
     ))
 
 (nodejs/enable-util-print!)
@@ -127,11 +128,19 @@
        (-> req .logout)
        (-> res (.redirect "/")))))
 
-(defonce app-state
+; pure data state
+(defonce state
   (atom 
     {:games []
      :players []
     }))
+
+; modifiable state like DB connection etc
+(defonce mstate
+  (atom
+    {
+     :db {}
+     }))
 
 (defn new-player
   [state]
