@@ -106,6 +106,10 @@
   :init-light
     (scene/new-init-light))
 
+(add-component
+  :socket
+    (socket/new-init-socket))
+
 (defn main
   []
   (-> ($ js/window)
@@ -132,7 +136,6 @@
     (println "mstate" @mstate)
     (swap! mstate scene/initStats)
     (ground/initGround @mstate mstate-chan)
-    (socket/initSocket @mstate mstate-chan)
     ))
 
 ;(defonce initial-call-to-main 

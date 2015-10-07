@@ -20,7 +20,13 @@
 
 (defrecord JSObj [initializer data]
   component/Lifecycle
-  (start [component] (assoc component :data (initializer)))
+  (start [component] 
+    (if 
+      (= data nil)
+      (do
+        (println "Allocating JSObj")
+        (assoc component :data (initializer)))
+      component))
   (stop [component] (assoc component :data nil)))
 
 (defn new-jsobj [initializer]
