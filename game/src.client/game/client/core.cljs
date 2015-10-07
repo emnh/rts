@@ -2,11 +2,14 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
+            [game.client.common :as common]
             [game.client.scene :as scene]
             [game.client.ground :as ground]
             [game.client.socket :as socket]
             [cljs.core.async :refer [<! put! chan]]
-            [jayq.core :as jayq :refer [$]]))
+            [jayq.core :as jayq :refer [$]]
+            [com.stuartsierra.component :as component]
+            ))
 
 (enable-console-print!)
 
@@ -46,11 +49,73 @@
        :units {}
        }))
 
+(defonce system (atom {}))
+
+(defn add-component
+  [k v]
+  (if 
+    (not (k @system))
+    (swap! system #(assoc % k v))))
+
+(defn readd-component
+  [k v]
+  (swap! system #(assoc % k v)))
+
+(add-component 
+  :renderer 
+  (common/new-jsobj 
+    #(new js/THREE.WebGLRenderer #js { :antialias true })))
+
+(add-component
+  :scene (common/new-jsobj #(new js/THREE.Scene)))
+
+(add-component
+  :$overlay (common/new-jsobj #($ "<canvas/>")))
+
+(add-component
+  :raycaster (common/new-jsobj #(new js/THREE.Raycaster)))
+
+(add-component
+  :camera (common/new-jsobj scene/get-camera))
+
+(add-component
+  :add-to-scene
+    (scene/new-add-to-scene))
+
+(add-component
+  :init-scene
+    (scene/new-init-scene))
+
+(add-component
+  :light1
+    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+
+(add-component
+  :light2
+    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+
+(add-component
+  :light3
+    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+
+(add-component
+  :light4
+    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+
+(add-component
+  :init-light
+    (scene/new-init-light))
+
 (defn main
   []
   (-> ($ js/window)
     (.unbind "resize.gameResize")
     (.bind "resize.gameResize" #(swap! mstate scene/on-resize)))
+  ;(try
+  (swap! system component/start-system)
+  ;  (catch js/Object e
+  ;    (println (:message e))
+  ;    (throw (:cause e))))
   (let
     [mstate-chan (chan)]
     ; TODO: close/reestablish channel on reload
@@ -66,8 +131,6 @@
     (swap! mstate scene/on-resize)
     (println "mstate" @mstate)
     (swap! mstate scene/initStats)
-    (scene/initScene)
-    (swap! mstate scene/initLight)
     (ground/initGround @mstate mstate-chan)
     (socket/initSocket @mstate mstate-chan)
     ))
