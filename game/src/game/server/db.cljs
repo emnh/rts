@@ -9,11 +9,12 @@
 (defonce mongo-client (nodejs/require "mongodb"))
 
 (defrecord InitDB
-  [dbp]
+  [config dbp]
   component/Lifecycle
   (start [component]
     (let
-      [dbp
+      [url (get-in config [:db :url])
+       dbp
         (p/promise
           (fn [resolve reject]
             (-> 

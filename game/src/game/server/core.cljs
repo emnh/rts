@@ -4,8 +4,11 @@
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
-    [game.server.db :as db]
+    [game.server.app :as app]
     [game.server.config :as config]
+    [game.server.db :as db]
+    [game.server.passport :as passport]
+    [game.server.server :as server]
     [game.shared.state
      :as state
      :refer [add-component readd-component system]]
@@ -13,157 +16,45 @@
 
 (nodejs/enable-util-print!)
 
-(defonce express (nodejs/require "express"))
-(defonce session (nodejs/require "express-session"))
-(defonce serve-static (nodejs/require "serve-static"))
-(defonce http (nodejs/require "http"))
-(defonce io-lib (nodejs/require "socket.io"))
-(defonce passport (nodejs/require "passport"))
-(defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
-(defonce cookie-parser (nodejs/require "cookie-parser"))
-(defonce fs (js/require "fs"))
-(defonce process (js/require "process"))
+(add-component
+  :config
+  config/config)
 
-(def home
-    (-> process .-env .-HOME))
+(add-component
+  :app
+  (app/new-app))
 
-(def config
-  (let
-    [config-data (-> js/global .-rtsconfig)]
-    (-> config-data (js->clj :keywordize-keys true))))
+(add-component
+  :passport
+  (passport/new-passport))
 
-(println "config2" config)
+(add-component
+  :server 
+  (server/new-server))
 
-(defn production?
+(defn debug
   []
-  (:production config))
+  (let 
+    [app (app/new-app)
+     passport (passport/new-passport)
+     passport
+      (->
+        passport
+        (assoc :config config/config)
+        component/start)
+     ]
+    (->
+      app
+      (assoc :config config/config)
+      (assoc :passport passport)
+      component/start)))
 
-(-> passport (.serializeUser (fn [user done] (done nil user))))
-(-> passport (.deserializeUser (fn [obj done] (done nil obj))))
-
-(let
-  [facebook-path 
-     (if 
-       (production?)
-       "/.rts/facebook"
-       "/.rts/facebook-test.json")
-   facebook-data
-     (-> fs (.readFileSync (str home facebook-path)))
-   { :keys [ :FACEBOOK_APP_ID :FACEBOOK_APP_SECRET ]}
-     (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
-   facebook-function
-    (fn
-      [accessToken refreshToken profile done]
-      (done nil profile))
-   facebook-strategy
-    (new FacebookStrategy #js {
-      :clientID FACEBOOK_APP_ID,
-      :clientSecret FACEBOOK_APP_SECRET,
-      :callbackURL "http://localhost:3451/auth/facebook/callback",
-      :enableProof false
-    } facebook-function)
-   ]
-  (-> passport (.use facebook-strategy)))
-
-(defn ensureAuthenticated
-  [req res next]
-  (if
-    (-> req .isAuthenticated)
-    (next)
-    (-> res (.redirect "/login"))))
-
-;; app gets redefined on reload
-(def app (express))
-
-(def session-secret (-> fs (.readFileSync (str home "/.rts/session-secret") "utf8")))
-(-> app (.use (cookie-parser session-secret)))
-(-> app (.use (session #js 
-                       { 
-                        :secret session-secret 
-                        :resave false
-                        :saveUninitialized false
-                        })))
-(-> app (.use (-> passport .initialize)))
-(-> app (.use (-> passport .session)))
-
-;; routes get redefined on each reload
-(. app (get "/hello" 
-  (fn [req res] (. res (send "Hello world")))))
-
-(. app (get "/account" ensureAuthenticated
-  (fn [req res] (. res (send (clj->js req.user))))))
-
-(. app (use (serve-static "resources/public" #js {:index "index.html"})))
-
-(. app (use (serve-static "..")))
-
-(if
-  (production?)
-  (. app (use (serve-static "out.prod.client")))
-  (. app (use (serve-static "out.dev.client"))))
-
-(. app 
-   (get
-     "/login"
-     (fn [req res]
-       (. res
-          (send 
-            (html [:a 
-              {:href "/auth/facebook"}
-              [:img {:src "http://i.stack.imgur.com/pZzc4.png"}]]))))))
-
-(. app 
-  (get
-    "/auth/facebook"
-    (-> passport (.authenticate "facebook"))
-    (fn [req res]
-  ;    // The request will be redirected to Facebook for authentication, so this
-  ;    // function will not be called.
-      nil)))
-
-(. app
-   (get
-     "/auth/facebook/callback" 
-     (-> passport (.authenticate "facebook" #js { :failureRedirect "/login" }))
-     (fn [req res]
-       (-> res (.redirect "/account")))))
-
-(. app
-   (get
-     "/logout"
-     (fn [req res]
-       (-> req .logout)
-       (-> res (.redirect "/")))))
-
-(defn io-connection
-  [socket]
-  (println "io-connection")
-  (.emit socket "news" #js { :hello "world" })
-  (.on socket "my other event"
-       (fn [data]
-         (println data)))
-  (.on socket "get-map"
-       (fn [data]
-         (println ["get-map" data])
-         (.emit socket "get-map" (clj->js { :mapdata 2 } )))))
-
-(def -main 
-  (fn []
-    ;; This is the secret sauce. you want to capture a reference to 
-    ;; the app function (don't use it directly) this allows it to be redefined on each reload
-    ;; this allows you to change routes and have them hot loaded as you
-    ;; code.
-    (println "Hello world!")
-    (let 
-      [server (.createServer http #(app %1 %2))
-       io (io-lib server)
-       ]
-      (-> server (.listen 3451))
-      (-> io (.on "connection" #(io-connection %)))
-      )))
-
-(defn reload
+(defn -main 
   []
-  (println "reload"))
-
+  (println "Main")
+  (swap! system component/stop-system)
+  (swap! system component/start-system)
+  )
+  
+(-main)
 (set! *main-cli-fn* -main)
