@@ -3,7 +3,12 @@
   (:require
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
+    [com.stuartsierra.component :as component]
     [game.server.db :as db]
+    [game.server.config :as config]
+    [game.shared.state
+     :as state
+     :refer [add-component readd-component system]]
     ))
 
 (nodejs/enable-util-print!)
@@ -130,22 +135,9 @@
        (-> req .logout)
        (-> res (.redirect "/")))))
 
-; pure data state
-(defonce state
-  (atom 
-    {:games []
-     :players []
-    }))
-
-(defn new-player
-  [state]
-  state
-  )
-
 (defn io-connection
   [socket]
   (println "io-connection")
-  (swap! state new-player)
   (.emit socket "news" #js { :hello "world" })
   (.on socket "my other event"
        (fn [data]
@@ -153,7 +145,7 @@
   (.on socket "get-map"
        (fn [data]
          (println ["get-map" data])
-         (.emit socket "get-map" #js { :hello "world" }); (clj->js { :mapdata 2 } )))))
+         (.emit socket "get-map" (clj->js { :mapdata 2 } )))))
 
 (def -main 
   (fn []

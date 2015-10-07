@@ -14,58 +14,15 @@
     [game.client.socket :as socket]
     [game.client.config :as config]
     [game.client.renderer :as renderer]
+    [game.shared.state
+     :as state
+     :refer [add-component readd-component system]]
     )
   )
 
 (enable-console-print!)
 
 (println "Reloaded client core")
-
-(defrecord unit 
-  [index matrix]
-  )
-
-(defn new-clj-matrix
-  []
-  (let [
-        mat (js-obj (. Matrix4 js/THREE))
-        ]
-    (js->clj (.-elements mat))))
-
-(defn init-units []
-  [
-   (unit. 0 (new-clj-matrix))
-   (unit. 1 (new-clj-matrix))
-   (unit. 2 (new-clj-matrix))
-          ])
-
-(defonce
-  app-state
-    (atom 
-      {
-       :units (init-units)
-       }))
-
-(defonce
-  mstate
-    (atom
-      {
-       :socket {}
-       :scene {}
-       :units {}
-       }))
-
-(defonce system (atom {}))
-
-(defn add-component
-  [k v]
-  (if 
-    (not (k @system))
-    (swap! system #(assoc % k v))))
-
-(defn readd-component
-  [k v]
-  (swap! system #(assoc % k v)))
 
 (add-component 
   :renderer 
