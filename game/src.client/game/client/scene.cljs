@@ -22,7 +22,16 @@
      scene (data (:renderer onresize))
      scene (data (:scene onresize))
      camera (data (:camera onresize))
+     renderer (data (:renderer onresize))
+     $overlay (data (:$overlay onresize))
      ]
+    (-> ($ (-> renderer .-domElement)) (.width width))
+    (-> ($ (-> renderer .-domElement)) (.height height))
+    (-> camera .-aspect (set! (/ width height)))
+    (-> camera .updateProjectionMatrix)
+    (-> renderer (.setSize width height))
+    (-> $overlay .-width (set! width))
+    (-> $overlay .-height (set! height))
     ))
 
 (defrecord OnResize
@@ -43,7 +52,7 @@
   []
   (component/using
     (map->OnResize {})
-    [:config :scene :camera :renderer]))
+    [:config :scene :camera :renderer :$overlay]))
 
 (defrecord InitStats [render-stats physics-stats]
   component/Lifecycle
