@@ -1,17 +1,21 @@
 (ns ^:figwheel-always game.client.core
-  (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require [om.core :as om :include-macros true]
-            [om.dom :as dom :include-macros true]
-            [game.client.common :as common :refer [new-jsobj]]
-            [game.client.scene :as scene]
-            [game.client.ground :as ground]
-            [game.client.socket :as socket]
-            [game.client.config :as config]
-            [game.client.renderer :as renderer]
-            [cljs.core.async :refer [<! put! chan]]
-            [jayq.core :as jayq :refer [$]]
-            [com.stuartsierra.component :as component]
-            ))
+  (:require-macros 
+    [cljs.core.async.macros :refer [go]]
+    )
+  (:require 
+    [cljs.core.async :refer [<! put! chan]]
+    [com.stuartsierra.component :as component]
+    [jayq.core :as jayq :refer [$]]
+    [promesa.core :as p]
+    [cats.core :as m]
+    [game.client.common :as common :refer [new-jsobj]]
+    [game.client.scene :as scene]
+    [game.client.ground :as ground]
+    [game.client.socket :as socket]
+    [game.client.config :as config]
+    [game.client.renderer :as renderer]
+    )
+  )
 
 (enable-console-print!)
 
@@ -148,6 +152,9 @@
   (println "main")
   (swap! system component/stop-system)
   (swap! system component/start-system)
+;  (m/mlet
+;        [mapdata (socket/rpc (:socket @system) "get-map" :data 2)]
+;        (println "get-map" mapdata))
   )
 
 (if @ran (main) (js/$ (main)))

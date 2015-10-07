@@ -147,9 +147,13 @@
   (println "io-connection")
   (swap! state new-player)
   (.emit socket "news" #js { :hello "world" })
-  (.on socket "my other event" 
-    (fn [data]
-      (println data))))
+  (.on socket "my other event"
+       (fn [data]
+         (println data)))
+  (.on socket "get-map"
+       (fn [data]
+         (println ["get-map" data])
+         (.emit socket "get-map" #js { :hello "world" }); (clj->js { :mapdata 2 } )))))
 
 (def -main 
   (fn []

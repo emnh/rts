@@ -15,7 +15,7 @@
      :websocket-url (str "ws://" "localhost:3450" "/figwheel-ws")
      :on-jsload on-js-reload
      })
-  (core/main))
+  );(core/main))
 
 (if 
   (exists? js/jQuery)
