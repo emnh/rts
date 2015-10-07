@@ -90,6 +90,8 @@
 
 (. app (use (serve-static "resources/public" #js {:index "index.html"})))
 
+(. app (use (serve-static "..")))
+
 (if
   (production?)
   (. app (use (serve-static "out.prod.client")))
