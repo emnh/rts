@@ -1,13 +1,13 @@
 (ns ^:figwheel-always game.client.scene
-  (:require [om.core :as om :include-macros true]
-              [om.dom :as dom :include-macros true]
-              [cljs.pprint :as pprint]
-              [jayq.core :as jayq :refer [$]]
-              [game.client.config :as config]
-              [game.client.common :as common :refer [get-idempotent data]]
-              [com.stuartsierra.component :as component]
-              )
-  (:require-macros [game.client.macros :as macros :refer [defm]]))
+  (:require 
+    [cljs.pprint :as pprint]
+    [jayq.core :as jayq :refer [$]]
+    [game.client.common :as common :refer [data]]
+    [game.client.config :as config]
+    [com.stuartsierra.component :as component]
+    )
+  (:require-macros [game.client.macros :as macros :refer [defm]])
+  (:refer-clojure :exclude [remove]))
 
 (enable-console-print!)
 
@@ -46,7 +46,7 @@
   (stop [component]
     (-> ($ js/window)
       (.unbind "resize.gameResize"))
-    (component)))
+    component))
 
 (defn new-on-resize
   []
@@ -96,21 +96,15 @@
   []
   (.-innerHeight js/window))
 
-; TODO: generalize and shorten
-(defrecord AddToScene [scene]
-  component/Lifecycle
-  (start [component] component)
-  (stop [component] component)
-  cljs.core/IFn
-  (-invoke [_ item] #(.add (data scene) item)))
+(defn add
+  [scene item]
+  (.add (data scene) item))
 
-(defn new-add-to-scene
-  []
-  (component/using
-    (map->AddToScene {})
-    [:scene]))
+(defn remove
+  [scene item]
+  (.remove (data scene) item))
 
-(defrecord InitScene [renderer $overlay camera add-to-scene]
+(defrecord InitScene [renderer $overlay camera scene]
   component/Lifecycle
   (start [component] 
     (doto
@@ -138,17 +132,24 @@
          :left 0
          :z-index 1
          }))
-    ((add-to-scene (data camera)))
+    (add scene (data camera))
+    (-> (data camera) .-position (.set 330 300 0))
+    (let
+      [x (-> (data scene) .-position .-x)
+       y (-> (data scene) .-position .-y)
+       z (-> (data scene) .-position .-z)
+       pos (new THREE.Vector3 x y z)]
+      (-> (data camera) (.lookAt pos)))
     component)
   (stop [component]
-    (-> ($ "body") (.remove $(".page-game")))
+    (-> ($ "body") (.remove ".page-game"))
     component)
   )
 
 (defn new-init-scene []
   (component/using
     (map->InitScene {})
-    [:renderer :$overlay :camera :add-to-scene]))
+    [:renderer :$overlay :camera :scene]))
 
 ; TODO
 ;(defconstructor new-initscene map->InitScene)
@@ -165,7 +166,7 @@
       ]
       (new js/THREE.PerspectiveCamera FOV (/ width height) frustumNear frustumFar)))
 
-(defrecord InitLight [scene add-to-scene light1 light2 light3 light4]
+(defrecord InitLight [config scene light1 light2 light3 light4]
   component/Lifecycle
   (start [component]
     (let
@@ -176,6 +177,10 @@
        light4 (data light4)
        origin (-> (data scene) .-position)
        ]
+      (-> light1 .-color (set! (new js/THREE.Color 0xAAAAAA)))
+      (-> light2 .-color (set! (new js/THREE.Color 0x00FF00)))
+      (-> light3 .-color (set! (new js/THREE.Color 0x0000FF)))
+      (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
       (-> light1 .-position (.set 5 10 -4))
       (-> light2 .-position (.set 5 0 -4))
       (-> light3 .-position (.set -10 10 10))
@@ -188,20 +193,20 @@
       (-> light2 .-castShadow (set! true))
       (-> light3 .-castShadow (set! true))
       (-> light4 .-castShadow (set! true))
-      (-> light1 .-shadowCameraLeft (set! (- (config/getTerrainWidth))))
-      (-> light1 .-shadowCameraTop (set! (- (config/getTerrainHeight))))
-      (-> light1 .-shadowCameraRight (set! (+ (config/getTerrainWidth))))
-      (-> light1 .-shadowCameraBottom (set! (+ (config/getTerrainHeight))))
+      (-> light1 .-shadowCameraLeft (set! (- (config/get-terrain-width config))))
+      (-> light1 .-shadowCameraTop (set! (- (config/get-terrain-height config))))
+      (-> light1 .-shadowCameraRight (set! (+ (config/get-terrain-width config))))
+      (-> light1 .-shadowCameraBottom (set! (+ (config/get-terrain-height config))))
       (-> light1 .-shadowCameraNear (set! (-> (get-camera) .-near)))
       (-> light1 .-shadowCameraFar (set! (-> (get-camera) .-far)))
       (-> light1 .-shadowBias (set! -0.0001))
       (-> light1 .-shadowMapWidth (set! 2048))
       (-> light1 .-shadowMapHeight (set! 2048))
       (-> light1 .-shadowDarkness (set! 1.0))
-      (add-to-scene light1)
-      (add-to-scene light2)
-      (add-to-scene light3)
-      (add-to-scene light4)
+      (add scene light1)
+      (add scene light2)
+      (add scene light3)
+      (add scene light4)
       (-> light1 (.lookAt origin))
       (-> light2 (.lookAt origin))
       (-> light3 (.lookAt origin))
@@ -209,16 +214,17 @@
       )
     component)
   (stop [component]
-    (let
-      [scene (data scene)]
-      (.remove scene light1)
-      (.remove scene light2)
-      (.remove scene light3)
-      (.remove scene light4))
+    (if
+      (not= (data scene) nil)
+      (do
+        (remove scene light1)
+        (remove scene light2)
+        (remove scene light3)
+        (remove scene light4)))
     component))
 
 (defn new-init-light
   []
   (component/using
     (map->InitLight {})
-    [:scene :add-to-scene :light1 :light2 :light3 :light4]))
+    [:config :scene :light1 :light2 :light3 :light4]))

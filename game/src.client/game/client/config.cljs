@@ -63,18 +63,18 @@
            :collision-bounce 0.2
            }
    :terrain {
-             :seaLevel 0
-             :minElevation 10
-             :maxElevation 48
-             :xFaces 200
-             :yFaces 200
+             :sea-level 0
+             :min-elevation 10
+             :max-elevation 48
+             :x-faces 200
+             :y-faces 200
              :width 4000
              :height 4000
              }
    })
 
-(defn getTerrainWidth []
+(defn get-terrain-width [config]
   (-> config :terrain :width))
 
-(defn getTerrainHeight []
+(defn get-terrain-height [config]
   (-> config :terrain :height))

@@ -7,6 +7,7 @@
             [game.client.ground :as ground]
             [game.client.socket :as socket]
             [game.client.config :as config]
+            [game.client.renderer :as renderer]
             [cljs.core.async :refer [<! put! chan]]
             [jayq.core :as jayq :refer [$]]
             [com.stuartsierra.component :as component]
@@ -80,10 +81,6 @@
   :camera (new-jsobj scene/get-camera))
 
 (add-component
-  :add-to-scene
-    (scene/new-add-to-scene))
-
-(add-component
   :init-scene
     (scene/new-init-scene))
 
@@ -131,9 +128,26 @@
   :on-resize
     (scene/new-on-resize))
 
+(add-component
+  :simplex
+    (new-jsobj #(new js/SimplexNoise)))
+
+(add-component
+  :ground
+  (ground/new-init-ground))
+
+(add-component 
+  :init-renderer
+  (renderer/new-init-renderer))
+
+(def ran (atom false))
+
 (defn main
   []
+  (reset! ran true)
   (println "main")
-  (swap! system component/start-system))
+  (swap! system component/stop-system)
+  (swap! system component/start-system)
+  )
 
-;(main)
+(if @ran (main) (js/$ (main)))

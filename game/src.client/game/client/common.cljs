@@ -6,18 +6,6 @@
               [com.stuartsierra.component :as component]
               ))
 
-(defn get-idempotent
-  [mstate path f]
-  (let
-    [newVal
-     (if-let
-      [oldVal (get-in mstate path)]
-      oldVal
-      (f))
-     mstate (assoc-in mstate path newVal)
-     ]
-    [newVal mstate]))
-
 (defrecord JSObj [initializer data]
   component/Lifecycle
   (start [component] 
@@ -27,7 +15,8 @@
         (println "Allocating JSObj")
         (assoc component :data (initializer)))
       component))
-  (stop [component] (assoc component :data nil)))
+  ;(stop [component] (assoc component :data nil)))
+  (stop [component] component))
 
 (defn new-jsobj [initializer]
   (map->JSObj {:initializer initializer}))
