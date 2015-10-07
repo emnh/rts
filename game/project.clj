@@ -29,7 +29,7 @@
 
   :cljsbuild {
     :builds [{:id "dev"
-              :source-paths ["src" "src.dev"]
+              :source-paths ["src" "src.shared" "src.dev"]
               :figwheel true
               :compiler {
                 :output-to "out.dev/game.js"
@@ -38,7 +38,7 @@
                 :optimizations :none
                 :source-map true}}
              {:id "dev-client"
-              :source-paths ["src.client" "src.dev.client"]
+              :source-paths ["src.client" "src.shared" "src.dev.client"]
               :figwheel true
               :compiler {
                 :output-to "out.dev.client/game.js"
@@ -46,7 +46,7 @@
                 :optimizations :none
                 :source-map true}}
              {:id "prod"
-              :source-paths ["src"]
+              :source-paths ["src" "src.shared"]
               :compiler {
                 :output-to "out.prod/game.js"
                 :output-dir "out.prod"
@@ -55,7 +55,7 @@
                 ;:optimizations :simple}}]}
                 :optimizations :none}}
              {:id "prod-client"
-              :source-paths ["src.client"]
+              :source-paths ["src.client" "src.shared"]
               :compiler {
                 :output-to "out.prod.client/game.js"
                 :output-dir "out.prod.client"
