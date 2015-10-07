@@ -9,6 +9,7 @@
     [game.server.db :as db]
     [game.server.passport :as passport]
     [game.server.server :as server]
+    [game.server.socket :as socket]
     [game.shared.state
      :as state
      :refer [add-component readd-component system]]
@@ -31,6 +32,10 @@
 (add-component
   :server 
   (server/new-server))
+
+(add-component
+  :socket
+  (socket/new-socket))
 
 (defn debug
   []
@@ -56,5 +61,5 @@
   (swap! system component/start-system)
   )
   
-(-main)
+;(-main)
 (set! *main-cli-fn* -main)

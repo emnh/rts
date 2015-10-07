@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.server.core
+(ns ^:figwheel-always game.server.socket
   (:require-macros [hiccups.core :as hiccups :refer [html]])
   (:require
     [cljs.nodejs :as nodejs]
@@ -22,11 +22,13 @@
   [server]
   component/Lifecycle
   (start [component]
-      (-> io (.on "connection" #(io-connection %))))
+    (let
+      [io (:io server)]
+      (-> io (.on "connection" #(io-connection %)))))
   (stop [component] component)
   )
 
-(defn new-server
+(defn new-socket
   []
   (component/using
     (map->InitSocket {})

@@ -35,7 +35,7 @@
        rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
        ]
       (m/mlet
-        [mapdata (socket/rpc socket "get-map")]
+        [mapdata (socket/rpc socket "get-map" :name "default")]
         (println mapdata))
       (-> material .-map .-wrapS (set! wrapping))
       (-> material .-map .-wrapT (set! wrapping))

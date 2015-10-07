@@ -103,15 +103,19 @@
 
 (def ran (atom false))
 
+(defn debug
+  []
+  (m/mlet
+    [mapdata (socket/rpc (:socket @system) "get-map" :data 2)]
+    (println "get-map" mapdata))
+  )
+
 (defn main
   []
   (reset! ran true)
   (println "main")
   (swap! system component/stop-system)
   (swap! system component/start-system)
-;  (m/mlet
-;        [mapdata (socket/rpc (:socket @system) "get-map" :data 2)]
-;        (println "get-map" mapdata))
   )
 
 (if @ran (main) (js/$ (main)))
