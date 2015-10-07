@@ -2,10 +2,11 @@
   (:require-macros [cljs.core.async.macros :refer [go]])
   (:require [om.core :as om :include-macros true]
             [om.dom :as dom :include-macros true]
-            [game.client.common :as common]
+            [game.client.common :as common :refer [new-jsobj]]
             [game.client.scene :as scene]
             [game.client.ground :as ground]
             [game.client.socket :as socket]
+            [game.client.config :as config]
             [cljs.core.async :refer [<! put! chan]]
             [jayq.core :as jayq :refer [$]]
             [com.stuartsierra.component :as component]
@@ -63,20 +64,20 @@
 
 (add-component 
   :renderer 
-  (common/new-jsobj 
+  (new-jsobj 
     #(new js/THREE.WebGLRenderer #js { :antialias true })))
 
 (add-component
-  :scene (common/new-jsobj #(new js/THREE.Scene)))
+  :scene (new-jsobj #(new js/THREE.Scene)))
 
 (add-component
-  :$overlay (common/new-jsobj #($ "<canvas/>")))
+  :$overlay (new-jsobj #($ "<canvas/>")))
 
 (add-component
-  :raycaster (common/new-jsobj #(new js/THREE.Raycaster)))
+  :raycaster (new-jsobj #(new js/THREE.Raycaster)))
 
 (add-component
-  :camera (common/new-jsobj scene/get-camera))
+  :camera (new-jsobj scene/get-camera))
 
 (add-component
   :add-to-scene
@@ -88,19 +89,19 @@
 
 (add-component
   :light1
-    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+    (new-jsobj #(new js/THREE.DirectionalLight)))
 
 (add-component
   :light2
-    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+    (new-jsobj #(new js/THREE.DirectionalLight)))
 
 (add-component
   :light3
-    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+    (new-jsobj #(new js/THREE.DirectionalLight)))
 
 (add-component
   :light4
-    (common/new-jsobj #(new js/THREE.DirectionalLight)))
+    (new-jsobj #(new js/THREE.DirectionalLight)))
 
 (add-component
   :init-light
@@ -110,41 +111,29 @@
   :socket
     (socket/new-init-socket))
 
+(add-component
+  :render-stats
+    (new-jsobj #(new js/Stats)))
+
+(add-component
+  :physics-stats
+    (new-jsobj #(new js/Stats)))
+
+(add-component
+  :init-stats
+    (scene/new-init-stats))
+
+(add-component
+  :config
+    config/config)
+
+(add-component
+  :on-resize
+    (scene/new-on-resize))
+
 (defn main
   []
-  (-> ($ js/window)
-    (.unbind "resize.gameResize")
-    (.bind "resize.gameResize" #(swap! mstate scene/on-resize)))
-  ;(try
-  (swap! system component/start-system)
-  ;  (catch js/Object e
-  ;    (println (:message e))
-  ;    (throw (:cause e))))
-  (let
-    [mstate-chan (chan)]
-    ; TODO: close/reestablish channel on reload
-    (go
-      (while true
-        (let
-          [{:keys [path value]} (<! mstate-chan)
-           swapit #(assoc-in % path value)
-           ]
-          (println ["mstate change" path value])
-          (swap! mstate swapit)
-        )))
-    (swap! mstate scene/on-resize)
-    (println "mstate" @mstate)
-    (swap! mstate scene/initStats)
-    (ground/initGround @mstate mstate-chan)
-    ))
+  (println "main")
+  (swap! system component/start-system))
 
-;(defonce initial-call-to-main 
-;  (if (exists? js/$) (js/$ main)))
-(main)
-
-(defn js-reload []
-  ;; optionally touch your app-state to force rerendering depending on
-  ;; your application
-  ; (swap! app-state update-in [:__figwheel_counter] inc)
-  (println "js-reload")
-  (main))
+;(main)

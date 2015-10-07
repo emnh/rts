@@ -12,43 +12,73 @@
 (enable-console-print!)
 
 (defn on-resize
-  [mstate]
+  [onresize event]
   (println "Resize called")
   (let
-    [width (.-innerWidth js/window)
-     height (.-innerHeight js/window)]
+    [
+     config (:config onresize)
+     width (.-innerWidth js/window)
+     height (- (.-innerHeight js/window) (get-in config [:dom :controls-height]))
+     scene (data (:renderer onresize))
+     scene (data (:scene onresize))
+     camera (data (:camera onresize))
+     ]
     ))
 
-(defn initStats
-  [mstate]
-  (let
-    [
-     [renderStats mstate]
-       (get-idempotent mstate [:scene :renderStats]
-         #(new js/Stats))
-     $renderStats ($ (-> renderStats .-domElement))
-     [physicsStats mstate]
-       (get-idempotent mstate [:scene :physicsStats]
-         #(new js/Stats))
-     $physicsStats ($ (-> physicsStats .-domElement))
-     ]
-    (.append ($ "body") $renderStats)
-    (jayq/css
-      $renderStats
-      {
-       :position "absolute"
-       :top 0
-       :z-index 100
-       })
-    (.append ($ "body") $physicsStats)
-    (jayq/css
-      $physicsStats
-      {
-       :position "absolute"
-       :top 50
-       :z-index 100
-       })
-    mstate))
+(defrecord OnResize
+  [config scene camera renderer]
+  component/Lifecycle
+  (start [component]
+    (on-resize component nil)
+    (-> ($ js/window)
+      (.unbind "resize.gameResize")
+      (.bind "resize.gameResize" (partial on-resize component)))
+    component)
+  (stop [component]
+    (-> ($ js/window)
+      (.unbind "resize.gameResize"))
+    (component)))
+
+(defn new-on-resize
+  []
+  (component/using
+    (map->OnResize {})
+    [:config :scene :camera :renderer]))
+
+(defrecord InitStats [render-stats physics-stats]
+  component/Lifecycle
+  (start [component]
+    (let
+      [
+       render-stats (data render-stats)
+       physics-stats (data physics-stats)
+       $render-stats ($ (-> render-stats .-domElement))
+       $physics-stats ($ (-> physics-stats .-domElement))
+       ]
+      (.append ($ "body") $render-stats)
+      (jayq/css
+        $render-stats
+        {
+         :position "absolute"
+         :top 0
+         :z-index 100
+         })
+      (.append ($ "body") $physics-stats)
+      (jayq/css
+        $physics-stats
+        {
+         :position "absolute"
+         :top 50
+         :z-index 100
+         })
+      component))
+  (stop [component] component))
+
+(defn new-init-stats
+  []
+  (component/using
+    (map->InitStats {})
+    [:render-stats :physics-stats]))
 
 (defn get-width
   []

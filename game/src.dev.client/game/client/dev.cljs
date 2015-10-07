@@ -7,11 +7,9 @@
 
 (defn on-js-reload
   []
-  (println "on-js-reload")
-  (core/js-reload))
+  (println "on-js-reload"))
 
 (defn main []
-  (println "body" (-> js/document .-body))
   (figwheel.client/start
     {
      :websocket-url (str "ws://" "localhost:3450" "/figwheel-ws")

@@ -5,6 +5,4 @@
               [game.client.config :as config]
               ))
 
-(defn initGround
-  [mstate mstate-chan]
-   )
+

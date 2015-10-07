@@ -5,9 +5,6 @@
 ;    sounds: false,
 ;    music: false
 ;  },
-;  dom: {
-;    controlsHeight: 250,
-;  },
 ;  effects: {
 ;    explosionPool: 20,
 ;    missilePool: 2000,
@@ -52,15 +49,18 @@
 
 (def config
   {
+   :dom {
+         :controls-height 250
+         }
    :units {
-           :maxUnits (* 40 40)
+           :max-units (* 40 40)
            :count 40
            :m3count 20
            :speed 50
-           :randomLocation true
-           :airAltitude 40
+           :random-location true
+           :air-altitude 40
            :animated true
-           :collisionBounce 0.2
+           :collision-bounce 0.2
            }
    :terrain {
              :seaLevel 0
