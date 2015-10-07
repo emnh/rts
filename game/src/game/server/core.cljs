@@ -135,13 +135,6 @@
      :players []
     }))
 
-; modifiable state like DB connection etc
-(defonce mstate
-  (atom
-    {
-     :db {}
-     }))
-
 (defn new-player
   [state]
   state
@@ -150,7 +143,7 @@
 (defn io-connection
   [socket]
   (println "io-connection")
-  (swap! app-state new-player)
+  (swap! state new-player)
   (.emit socket "news" #js { :hello "world" })
   (.on socket "my other event" 
     (fn [data]
