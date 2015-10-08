@@ -71,6 +71,9 @@
              :width 4000
              :height 4000
              }
+   :controls {
+              :zoom-speed (/ 50 1000)
+              }
    })
 
 (defn get-terrain-width [config]

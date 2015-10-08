@@ -2,8 +2,8 @@
   (:require 
     [cljs.pprint :as pprint]
     [jayq.core :as jayq :refer [$]]
-    [game.client.common :as common :refer [data]]
     [game.client.config :as config]
+    [game.client.common :as common :refer [data]]
     [com.stuartsierra.component :as component]
     )
   (:require-macros [game.client.macros :as macros :refer [defm]])
@@ -228,3 +228,8 @@
   (component/using
     (map->InitLight {})
     [:config :scene :light1 :light2 :light3 :light4]))
+
+(defn get-view-element
+  [renderer]
+  (-> (data renderer) .-domElement)
+  )

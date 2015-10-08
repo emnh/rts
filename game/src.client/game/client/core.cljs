@@ -9,6 +9,7 @@
     [promesa.core :as p]
     [cats.core :as m]
     [game.client.common :as common :refer [new-jsobj]]
+    [game.client.controls :as controls]
     [game.client.scene :as scene]
     [game.client.ground :as ground]
     [game.client.socket :as socket]
@@ -81,7 +82,7 @@
   :init-stats
     (scene/new-init-stats))
 
-(add-component
+(readd-component
   :config
     config/config)
 
@@ -93,9 +94,13 @@
   :simplex
     (new-jsobj #(new js/SimplexNoise)))
 
-(readd-component
+(add-component
   :ground
   (ground/new-init-ground))
+
+(readd-component
+  :controls
+  (controls/new-controls))
 
 (add-component 
   :init-renderer
