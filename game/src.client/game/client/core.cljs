@@ -93,7 +93,7 @@
   :simplex
     (new-jsobj #(new js/SimplexNoise)))
 
-(add-component
+(readd-component
   :ground
   (ground/new-init-ground))
 

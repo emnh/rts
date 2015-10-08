@@ -33,6 +33,17 @@
 
 (def config
   { 
+   :default-map
+   {
+    :min-elevation 10
+    :max-elevation 48
+    ;:x-faces 2
+    ;:y-faces 2
+    :x-faces 200
+    :y-faces 200
+    :width 4000
+    :height 4000
+    }
    :production (production?)
    :session
    {

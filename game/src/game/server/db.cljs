@@ -28,7 +28,7 @@
   (stop [component] 
     component))
 
-(defn new-initdb
+(defn new-db
   []
   (component/using
    (map->InitDB {}) 

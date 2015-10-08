@@ -4,10 +4,11 @@
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
+    ;[game.server.map :as map_]
     ))
 
 (defn io-connection
-  [socket]
+  [socket config map]
   (println "io-connection")
   (.emit socket "news" #js { :hello "world" })
   (.on socket "my other event"
@@ -16,15 +17,15 @@
   (.on socket "get-map"
        (fn [data]
          (println ["get-map" data])
-         (.emit socket "get-map" (clj->js { :mapdata 2 } )))))
+         (.emit socket "get-map" (clj->js (:map map) config)))))
 
 (defrecord InitSocket
-  [server]
+  [server config map]
   component/Lifecycle
   (start [component]
     (let
       [io (:io server)]
-      (-> io (.on "connection" #(io-connection %)))))
+      (-> io (.on "connection" #(io-connection % config map)))))
   (stop [component] component)
   )
 
@@ -32,4 +33,4 @@
   []
   (component/using
     (map->InitSocket {})
-    [:server]))
+    [:server :config :map]))

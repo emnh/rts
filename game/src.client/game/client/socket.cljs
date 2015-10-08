@@ -23,6 +23,7 @@
            socket-io-URL (-> js/window .-location)
            socket (-> js/io (.connect socket-io-URL))]
           (println (str "Created socket on " socket-io-URL))
+          (-> socket .-binaryType (set! "arraybuffer"))
           (-> component
             (assoc :socket socket)
             (assoc :listeners (atom {}))))
@@ -46,8 +47,8 @@
   (p/promise
     (fn [resolve reject]
       (let
-        [resolve #(resolve (js->clj %))]
+        [resolve #(resolve (js->clj % :keywordize-keys true))]
+        ;[resolve #(resolve %)]
         (swap! (:listeners socket) #(assoc % call [resolve reject]))
         (-> (:socket socket) (.on call resolve))
         (-> (:socket socket) (.emit call (clj->js args)))))))
-  

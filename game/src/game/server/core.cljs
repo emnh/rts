@@ -7,6 +7,7 @@
     [game.server.app :as app]
     [game.server.config :as config]
     [game.server.db :as db]
+    [game.server.map :as map]
     [game.server.passport :as passport]
     [game.server.server :as server]
     [game.server.socket :as socket]
@@ -16,8 +17,9 @@
     ))
 
 (nodejs/enable-util-print!)
+(println "")
 
-(add-component
+(readd-component
   :config
   config/config)
 
@@ -34,8 +36,20 @@
   (server/new-server))
 
 (add-component
+  :noise
+  (map/new-noise))
+
+(readd-component
+  :map
+  (map/new-map))
+
+(add-component
   :socket
   (socket/new-socket))
+
+(add-component
+  :db
+  (db/new-db))
 
 (defn debug
   []
@@ -61,5 +75,5 @@
   (swap! system component/start-system)
   )
   
-;(-main)
+(-main)
 (set! *main-cli-fn* -main)
