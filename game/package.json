@@ -14,7 +14,8 @@
     "passport": "0.3.0",
     "passport-facebook": "2.0.0",
     "mongodb": "2.0.45",
-    "simplex-noise": "2.2.0"
+    "simplex-noise": "2.2.0",
+    "three.js": "missingdays/three.js-node#master"
   },
   "devDependencies": {
     "source-map-support": "0.2.8",
