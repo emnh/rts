@@ -7,6 +7,7 @@
       (-> req .isAuthenticated)
       (= (-> req .-path) "/login")
       (= (-> req .-path) "/bundle-deps.js")
+      (re-matches #"/auth/.*" (-> req .-path))
       )
     (next)
     (-> res (.redirect "/login"))))

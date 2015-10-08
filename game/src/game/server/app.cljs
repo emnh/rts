@@ -31,7 +31,7 @@
 
 (defn init-static
   [app config]
-  (. app (use "/" security/ensureAuthenticated))
+  (. app (use "/" (fn [req res next] (security/ensureAuthenticated req res next))))
   (. app (use (serve-static "resources/public" #js {:index "index.html"})))
   (. app (use (serve-static "..")))
   (. app (use (serve-static (get-in config [:paths :src]))))
@@ -43,7 +43,7 @@
   (. app (get "/hello" 
     (fn [req res] (. res (send "Hello world")))))
 
-  (. app (get "/account" security/ensureAuthenticated
+  (. app (get "/account"
     (fn [req res] (. res (send (clj->js req.user))))))
   )
 
