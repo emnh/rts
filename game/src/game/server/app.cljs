@@ -6,6 +6,7 @@
     [com.stuartsierra.component :as component]
     [game.server.config :as config]
     [game.server.security :as security]
+    [game.server.views :as views]
     ))
 
 (defonce express (nodejs/require "express"))
@@ -30,6 +31,7 @@
 
 (defn init-static
   [app config]
+  (. app (use "/" security/ensureAuthenticated))
   (. app (use (serve-static "resources/public" #js {:index "index.html"})))
   (. app (use (serve-static "..")))
   (. app (use (serve-static (get-in config [:paths :src]))))
@@ -48,16 +50,8 @@
 (defn init-auth-routes
   [app config passport]
 
-  (. app 
-     (get
-       "/login"
-       (fn [req res]
-         (. res
-            (send 
-              (html [:a 
-                {:href "/auth/facebook"}
-                [:img {:src "http://i.stack.imgur.com/pZzc4.png"}]]))))))
-
+  (. app (get "/login" #(views/login-page %1 %2)))
+       
   (. app 
     (get
       "/auth/facebook"
@@ -72,7 +66,7 @@
        "/auth/facebook/callback" 
        (-> passport (.authenticate "facebook" #js { :failureRedirect "/login" }))
        (fn [req res]
-         (-> res (.redirect "/account")))))
+         (-> res (.redirect "/")))))
 
   (. app
      (get
@@ -87,6 +81,7 @@
 (defn init-app
   [app config passport]
 
+  (-> app .-locals .-pretty (set! true))
   (init-session app config passport)
   (init-static app config)
   (init-routes app config)
@@ -98,7 +93,7 @@
   component/Lifecycle
   (start [component] 
     (let
-      [app (express)]
+      [app (or app (express))]
       (init-app app config (:passport passport))
       (assoc component :app app)))
   (stop [component] 

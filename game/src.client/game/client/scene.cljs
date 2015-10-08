@@ -11,6 +11,8 @@
 
 (enable-console-print!)
 
+(def page-class "page-game")
+
 (defn on-resize
   [onresize event]
   (println "Resize called")
@@ -63,8 +65,10 @@
        physics-stats (data physics-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $physics-stats ($ (-> physics-stats .-domElement))
+       $body ($ "body")
        ]
-      (.append ($ "body") $render-stats)
+      (-> $body (.append $render-stats))
+      (-> $render-stats (.addClass page-class))
       (jayq/css
         $render-stats
         {
@@ -72,7 +76,8 @@
          :top 0
          :z-index 100
          })
-      (.append ($ "body") $physics-stats)
+      (-> $body (.append $physics-stats))
+      (-> $physics-stats (.addClass page-class))
       (jayq/css
         $physics-stats
         {
@@ -81,7 +86,9 @@
          :z-index 100
          })
       component))
-  (stop [component] component))
+  (stop [component] 
+    (-> ($ (str "." page-class)) .remove)
+    component))
 
 (defn new-init-stats
   []
@@ -116,7 +123,7 @@
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
           (#(.append ($ "body") (-> % .-domElement)))
-          (#(-> ($ (-> % .-domElement)) (.addClass "page-game")))
+          (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(jayq/css
             ($ (-> % .-domElement))
             {:position "absolute"
@@ -127,7 +134,7 @@
         (doto
           (data $overlay)
           (#(.append ($ "body") %))
-          (.addClass "page-game")
+          (.addClass page-class)
           (jayq/css
             {
              :position "absolute"
@@ -146,8 +153,9 @@
         (assoc component :done true))
       component))
   (stop [component]
-    (-> ($ "body") (.remove ".page-game"))
-    component)
+    (-> ($ (str "." page-class)) .remove)
+    (assoc component :done false)
+    )
   )
 
 (defn new-init-scene []

@@ -3,6 +3,10 @@
 (defn ensureAuthenticated
   [req res next]
   (if
-    (-> req .isAuthenticated)
+    (or 
+      (-> req .isAuthenticated)
+      (= (-> req .-path) "/login")
+      (= (-> req .-path) "/bundle-deps.js")
+      )
     (next)
     (-> res (.redirect "/login"))))

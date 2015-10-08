@@ -28,17 +28,12 @@ ga('send', 'pageview');
     <script type="text/javascript" src="goog/base.js"></script>
     <script type="text/javascript" src="js/Keys.js"></script>
     <script type="text/javascript" src="game.js"></script>
-    <script>
-     var socket = io.connect('http://' + window.location.host);
-     socket.emit("startup", { my: 'startupdata' });
-     socket.on('news', function (data) {
-       console.log("data", data);
-       socket.emit('my other event', { my: 'data' });
-     }); 
-    </script>
   </head>
   <body>
     <script>
+    if (window.location.hash && window.location.hash == '#_=_') {
+        window.location.hash = '';
+    }
     if (document.location.hostname == 'localhost') {
       console.log("dev mode");
       goog.require('game.client.dev');
