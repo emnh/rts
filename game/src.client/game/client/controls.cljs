@@ -5,6 +5,7 @@
               [game.client.config :as config]
               [game.client.common :as common :refer [data]]
               [game.client.scene :as scene]
+              [game.client.math :as math :refer [square sin cos pi atan2 sqrt]]
               [com.stuartsierra.component :as component]
               ))
 
@@ -30,6 +31,75 @@
     (-> camera .-position (.add delta))
     )
   )
+
+(defn arc-ball-rotation-left-right
+  [state sign]
+  (let
+    [camera (:camera state)
+     focus (scene/get-camera-focus camera 0 0)
+     axis (-> camera .-position .clone)
+     _ (-> axis (.sub focus))
+     _ (-> axis .-y (set! 0))
+     _ (-> axis .normalize)
+     old (-> camera .-position .clone)
+     config (:config state)
+     rotate-speed (get-in config [:controls :rotate-speed])
+     rotate-speed (* sign rotate-speed)
+     ]
+    (-> camera .-position (.applyAxisAngle axis rotate-speed))
+    (-> camera .-position .-y (set! (-> old .-y)))
+    (-> camera (.lookAt focus)))
+  )
+
+(defn arc-ball-rotation-up-down
+  [state sign]
+  (let
+    [camera (:camera state)
+     focus (scene/get-camera-focus camera 0 0)
+     axis (-> camera .-position .clone)
+     _ (-> axis (.sub focus))
+     offset axis
+     config (:config state)
+     rotate-speed (get-in config [:controls :rotate-speed])
+     rotate-speed (* sign rotate-speed)
+     theta (atan2 (-> offset .-x) (-> offset .-z))
+     xzlen (sqrt (+ (square (-> offset .-x)) (square (-> offset .-z))))
+     min-polar-angle 0.1
+     max-polar-angle (- (/ pi 2) (/ pi 16))
+     phi (atan2 xzlen (-> offset .-y))
+     phi (+ phi rotate-speed)
+     phi (min max-polar-angle phi)
+     phi (max min-polar-angle phi)
+     radius (-> offset .length)
+     x (* radius (sin phi) (sin theta))
+     y (* radius (cos phi))
+     z (* radius (sin phi) (cos theta))
+     _ (-> offset (.set x y z))
+     ]
+    (-> camera .-position (.copy focus))
+    (-> camera .-position (.add offset))
+    (-> camera (.lookAt focus)))
+  )
+
+(defn
+  rotate-left
+  [state]
+  (arc-ball-rotation-left-right state 1))
+
+(defn
+  rotate-right
+  [state]
+  (arc-ball-rotation-left-right state -1))
+
+(defn
+  rotate-up
+  [state]
+  (arc-ball-rotation-up-down state -1))
+
+(defn
+  rotate-down
+  [state]
+  (arc-ball-rotation-up-down state 1))
 
 (defn
   scroll-left
@@ -88,9 +158,11 @@
   (let
     [camera (:camera state)
      config (:config state)
+     scene (:scene state)
      origin (get-in config [:controls :origin])
      ]
     (-> camera .-position (.copy origin))
+    (-> camera (.lookAt (-> scene .-position)))
     )
   )
 
@@ -103,6 +175,10 @@
    (-> js/KeyEvent .-DOM_VK_PAGE_UP) zoom-in
    (-> js/KeyEvent .-DOM_VK_PAGE_DOWN) zoom-out
    (-> js/KeyEvent .-DOM_VK_HOME) reset-camera
+   [:ctrl (-> js/KeyEvent .-DOM_VK_LEFT)] rotate-left
+   [:ctrl (-> js/KeyEvent .-DOM_VK_RIGHT)] rotate-right
+   [:ctrl (-> js/KeyEvent .-DOM_VK_UP)] rotate-up
+   [:ctrl (-> js/KeyEvent .-DOM_VK_DOWN)] rotate-down
    }
   )
 
@@ -116,29 +192,31 @@
     )
   )
 
+(defn
+  handle-key
+  [keys-pressed event active]
+  (let
+    [action (if active #(assoc %1 %2 true) dissoc)
+     key-code (-> event .-keyCode)
+     combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
+    (if 
+      (contains? handled-keys combination)
+      (do
+        (prevent-default event)
+        (swap! keys-pressed #(action % combination))
+        ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
+        (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
+        false
+        )
+      true)))
+
 (defn key-down
   [keys-pressed event]
-  (if 
-    (contains? handled-keys (-> event .-keyCode)) 
-    (do
-      (prevent-default event)
-      (swap! keys-pressed #(assoc % (-> event .-keyCode) true))
-      false
-      )
-    true)
-  )
+  (handle-key keys-pressed event true))
 
 (defn key-up
   [keys-pressed event]
-  (if 
-    (contains? handled-keys (-> event .-keyCode)) 
-    (do
-      (prevent-default event)
-      (swap! keys-pressed #(dissoc % (-> event .-keyCode)))
-      false
-      )
-    true)
-  )
+  (handle-key keys-pressed event false))
 
 (defn rebind
   [$element eventname handler]
@@ -148,7 +226,7 @@
 
 (defn
   init-controls
-  [component element config camera]
+  [component element config camera scene]
   (let
     [$body ($ "body")
      $element ($ element)
@@ -160,6 +238,7 @@
      state
      {
       :camera (data camera)
+      :scene (data scene)
       :config config
       }
      interval-handler (partial scroll-handler keys-pressed state)
@@ -174,13 +253,13 @@
     ))
 
 (defrecord Controls
-  [config renderer camera]
+  [config renderer camera scene]
   component/Lifecycle
   (start [component] 
     (let
       [element (scene/get-view-element renderer)
        ]
-      (init-controls component element config camera))
+      (init-controls component element config camera scene))
     component)
   (stop [component] component)
   )
@@ -189,5 +268,5 @@
   []
   (component/using
     (map->Controls {})
-    [:renderer :config :camera]
+    [:renderer :config :camera :scene]
     ))

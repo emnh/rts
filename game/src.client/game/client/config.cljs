@@ -74,6 +74,7 @@
    :controls {
               :zoom-speed (/ 50 1000)
               :scroll-speed 10
+              :rotate-speed 0.03
               :origin (new js/THREE.Vector3 330 300 0)
               }
    })
