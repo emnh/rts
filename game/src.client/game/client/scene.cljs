@@ -104,7 +104,8 @@
   [scene item]
   (.remove (data scene) item))
 
-(defrecord InitScene [renderer $overlay camera scene]
+(defrecord InitScene
+  [renderer $overlay camera scene config]
   component/Lifecycle
   (start [component] 
     (doto
@@ -133,7 +134,7 @@
          :z-index 1
          }))
     (add scene (data camera))
-    (-> (data camera) .-position (.set 330 300 0))
+    (-> (data camera) .-position (.copy (get-in config [:controls :origin])))
     (let
       [x (-> (data scene) .-position .-x)
        y (-> (data scene) .-position .-y)
@@ -149,7 +150,7 @@
 (defn new-init-scene []
   (component/using
     (map->InitScene {})
-    [:renderer :$overlay :camera :scene]))
+    [:renderer :$overlay :camera :scene :config]))
 
 ; TODO
 ;(defconstructor new-initscene map->InitScene)
@@ -233,3 +234,14 @@
   [renderer]
   (-> (data renderer) .-domElement)
   )
+
+(defn get-camera-focus
+  [camera x y]
+  (let
+    [v (new js/THREE.Vector3 x y (-> camera .-near))
+     _ (-> v (.unproject camera))
+     dir (-> v (.sub (-> camera .-position)) .normalize)
+     distance (/ (- (-> camera .-position .-y)) (-> dir .-y))
+     pos (-> (-> camera .-position .clone) (.add (-> dir (.multiplyScalar distance))))
+     ]
+    pos))

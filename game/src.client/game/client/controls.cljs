@@ -14,23 +14,45 @@
   false)
 
 (defn
+  scroll
+  [delta state]
+  (let
+    [camera (:camera state)
+     config (:config state)
+     speed (get-in config [:controls :scroll-speed])
+     speed (* speed (-> camera .-position .-y))
+     speed (/ speed (-> (get-in config [:controls :origin]) .-y))
+     _ (-> delta (.applyQuaternion (-> camera .-quaternion)))
+     _ (-> delta .-y (set! 0))
+     _ (-> delta .normalize)
+     _ (-> delta (.multiplyScalar speed))
+     ]
+    (-> camera .-position (.add delta))
+    )
+  )
+
+(defn
   scroll-left
   [state]
+  (scroll (new js/THREE.Vector3 -1 0 0) state)
   )
 
 (defn
   scroll-right
   [state]
+  (scroll (new js/THREE.Vector3 1 0 0) state)
   )
 
 (defn
   scroll-up
   [state]
+  (scroll (new js/THREE.Vector3 0 1 0) state)
   )
 
 (defn
   scroll-down
   [state]
+  (scroll (new js/THREE.Vector3 0 -1 0) state)
   )
 
 (defn zoom
@@ -60,6 +82,18 @@
   (zoom (:camera state) (get-in (:config state) [:controls :zoom-speed]))
   )
 
+(defn
+  reset-camera
+  [state]
+  (let
+    [camera (:camera state)
+     config (:config state)
+     origin (get-in config [:controls :origin])
+     ]
+    (-> camera .-position (.copy origin))
+    )
+  )
+
 (def handled-keys
   {
    (-> js/KeyEvent .-DOM_VK_LEFT) scroll-left
@@ -68,12 +102,12 @@
    (-> js/KeyEvent .-DOM_VK_DOWN) scroll-down
    (-> js/KeyEvent .-DOM_VK_PAGE_UP) zoom-in
    (-> js/KeyEvent .-DOM_VK_PAGE_DOWN) zoom-out
+   (-> js/KeyEvent .-DOM_VK_HOME) reset-camera
    }
   )
 
-(defn scroll
+(defn scroll-handler
   [keys-pressed state]
-  ;(println "scroll" keys-pressed state)
   (doseq
     [k (keys @keys-pressed)]
     (if-let
@@ -82,7 +116,6 @@
     )
   )
 
-
 (defn key-down
   [keys-pressed event]
   (if 
@@ -90,9 +123,9 @@
     (do
       (prevent-default event)
       (swap! keys-pressed #(assoc % (-> event .-keyCode) true))
-      true
+      false
       )
-    false)
+    true)
   )
 
 (defn key-up
@@ -102,9 +135,9 @@
     (do
       (prevent-default event)
       (swap! keys-pressed #(dissoc % (-> event .-keyCode)))
-      true
+      false
       )
-    false)
+    true)
   )
 
 (defn rebind
@@ -129,7 +162,7 @@
       :camera (data camera)
       :config config
       }
-     interval-handler (partial scroll keys-pressed state)
+     interval-handler (partial scroll-handler keys-pressed state)
      interval-handler-name "scroll-interval"
      ]
     (rebind $element contextevt prevent-default)
