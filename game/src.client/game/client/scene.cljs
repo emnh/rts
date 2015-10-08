@@ -105,43 +105,46 @@
   (.remove (data scene) item))
 
 (defrecord InitScene
-  [renderer $overlay camera scene config]
+  [renderer $overlay camera scene config done]
   component/Lifecycle
   (start [component] 
-    (doto
-      (data renderer)
-      (.setSize (get-width) (get-height))
-      (-> .-shadowMap .-enabled (set! true))
-      (-> .-shadowMap .-soft (set! true))
-      (#(.append ($ "body") (-> % .-domElement)))
-      (#(-> ($ (-> % .-domElement)) (.addClass "page-game")))
-      (#(jayq/css
-        ($ (-> % .-domElement))
-        {:position "absolute"
-         :top 0
-         :left 0
-         :z-index 0
-         })))
-    (doto
-      (data $overlay)
-      (#(.append ($ "body") %))
-      (.addClass "page-game")
-      (jayq/css
-        {
-         :position "absolute"
-         :top 0
-         :left 0
-         :z-index 1
-         }))
-    (add scene (data camera))
-    (-> (data camera) .-position (.copy (get-in config [:controls :origin])))
-    (let
-      [x (-> (data scene) .-position .-x)
-       y (-> (data scene) .-position .-y)
-       z (-> (data scene) .-position .-z)
-       pos (new THREE.Vector3 x y z)]
-      (-> (data camera) (.lookAt pos)))
-    component)
+    (if-not done
+      (do
+        (doto
+          (data renderer)
+          (.setSize (get-width) (get-height))
+          (-> .-shadowMap .-enabled (set! true))
+          (-> .-shadowMap .-soft (set! true))
+          (#(.append ($ "body") (-> % .-domElement)))
+          (#(-> ($ (-> % .-domElement)) (.addClass "page-game")))
+          (#(jayq/css
+            ($ (-> % .-domElement))
+            {:position "absolute"
+             :top 0
+             :left 0
+             :z-index 0
+             })))
+        (doto
+          (data $overlay)
+          (#(.append ($ "body") %))
+          (.addClass "page-game")
+          (jayq/css
+            {
+             :position "absolute"
+             :top 0
+             :left 0
+             :z-index 1
+             }))
+        (add scene (data camera))
+        (-> (data camera) .-position (.copy (get-in config [:controls :origin])))
+        (let
+          [x (-> (data scene) .-position .-x)
+           y (-> (data scene) .-position .-y)
+           z (-> (data scene) .-position .-z)
+           pos (new THREE.Vector3 x y z)]
+          (-> (data camera) (.lookAt pos)))
+        (assoc component :done true))
+      component))
   (stop [component]
     (-> ($ "body") (.remove ".page-game"))
     component)
