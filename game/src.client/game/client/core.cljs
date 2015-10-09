@@ -12,8 +12,9 @@
     [game.client.config :as config]
     [game.client.controls :as controls]
     [game.client.ground :as ground]
-    [game.client.page :as page]
+    [game.client.lobby :as lobby]
     [game.client.renderer :as renderer]
+    [game.client.routing :as routing]
     [game.client.scene :as scene]
     [game.client.socket :as socket]
     [game.shared.state :as state :refer [add-component readd-component system]]
@@ -104,6 +105,14 @@
 (add-component 
   :init-renderer
   (renderer/new-init-renderer))
+
+(add-component
+  :routing
+  (routing/new-router))
+
+(add-component
+  :lobby
+  (lobby/new-lobby))
 
 (def ran (atom false))
 

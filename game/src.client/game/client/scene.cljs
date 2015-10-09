@@ -4,13 +4,15 @@
     [jayq.core :as jayq :refer [$]]
     [game.client.config :as config]
     [game.client.common :as common :refer [data]]
+    [game.client.routing :as routing]
     [com.stuartsierra.component :as component]
     )
-  (:require-macros [game.client.macros :as macros :refer [defm defcom]])
+  (:require-macros [game.client.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove]))
 
 (enable-console-print!)
 
+(def page-id (str "#" (routing/get-page-element-id :game)))
 (def page-class "page-game")
 
 (defn on-resize
@@ -65,9 +67,9 @@
        physics-stats (data physics-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $physics-stats ($ (-> physics-stats .-domElement))
-       $body ($ "body")
+       $container ($ page-id)
        ]
-      (-> $body (.append $render-stats))
+      (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
       (jayq/css
         $render-stats
@@ -76,7 +78,7 @@
          :top 0
          :z-index 100
          })
-      (-> $body (.append $physics-stats))
+      (-> $container (.append $physics-stats))
       (-> $physics-stats (.addClass page-class))
       (jayq/css
         $physics-stats
@@ -94,7 +96,7 @@
   []
   (component/using
     (map->InitStats {})
-    [:render-stats :physics-stats]))
+    [:render-stats :physics-stats :routing]))
 
 (defn get-width
   []
@@ -120,7 +122,7 @@
 
 (defcom 
   new-init-scene 
-  [renderer $overlay camera scene config]
+  [renderer $overlay camera scene config routing]
   [done]
   (fn [component]
     (if-not done
@@ -129,7 +131,7 @@
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
-          (#(.append ($ "body") (-> % .-domElement)))
+          (#(.append ($ page-id) (-> % .-domElement)))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(jayq/css
             ($ (-> % .-domElement))
@@ -140,7 +142,7 @@
              })))
         (doto
           (data $overlay)
-          (#(.append ($ "body") %))
+          (#(.append ($ page-id) %))
           (.addClass page-class)
           (jayq/css
             {

@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.client.page
+(ns ^:figwheel-always game.client.lobby
   (:require 
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
@@ -6,9 +6,12 @@
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
+    [game.client.routing :as routing]
     )
   (:require-macros [game.client.macros :as macros :refer [defcom]])
   )
+
+(def page-id (routing/get-page-selector :lobby))
 
 (rum/defc 
   user-list < rum/static
@@ -27,7 +30,8 @@
 
 (defn start
   [component]
-  (rum/mount (lobby) js/document.body)
+  (println "page-id" (aget ($ page-id) 0))
+  (rum/mount (lobby) (aget ($ page-id) 0))
   component)
 
 (defn stop [component] component)
