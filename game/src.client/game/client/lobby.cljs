@@ -17,27 +17,74 @@
 (rum/defc 
   user-list < rum/reactive
   [state]
-  (println "rum-list" (get (:user-list (rum/react state)) 0))
-  [:ul (for 
-          [user (:user-list (rum/react state))]
-          [:li user])])
-  ;[:ul (str (:user-list (rum/react state)))])
+  [:ul 
+   (for 
+      [user (:user-list (rum/react state))]
+      [:li user])])
+
+(rum/defc
+  message-list < rum/reactive
+  [state]
+  [:ul 
+   (for 
+      [user (identity (:message-list (rum/react state)))]
+      [:li user])])
+
+(defn
+  input-handler
+  [component event]
+  (let
+    [keyCode (-> event .-nativeEvent .-keyCode)]
+    (if
+      (= keyCode (-> js/KeyEvent .-DOM_VK_RETURN))
+      (let
+        [socket (get-in component [:socket :socket])]
+        (-> socket (.emit "chat-message" (clj->js (-> ($ "#chat-input") .val))))
+        (-> ($ "#chat-input") (.val ""))))))
+
+(rum/defc
+  chat-input < rum/static
+  [component]
+  [:input {:type "text"
+           :id "chat-input"
+           :name "chat-input"
+           :on-key-down (partial input-handler component)
+           }]
+  )
 
 (rum/defc 
   lobby < rum/static 
-  [state]
+  [component state]
   (let 
     [
-     div-user-list [:div (user-list state)]
-     content [:div [:h1 "Lobby Chat"] div-user-list]
+     div-user-list [:div { :class "col-md-3" } [:h3 "Users" ] (user-list state)]
+     div-message-list [:div { :class "col-md-9" } (message-list state) (chat-input component)]
+     header [:div [:h1 { :class "page-header" } "Lobby Chat"]]
+     div [:div { :class "col-md-9" } header div-message-list div-user-list]
+     row [:div { :class "row" } div]
+     content [:div { :class "container" } row]
      ]
     content))
 
 (defn
   update-user-list
   [state message]
-  (println "user-list" message)
   (swap! state #(assoc-in % [:user-list] message)))
+
+(defn
+  update-message-list
+  [state message]
+  (swap! 
+    state 
+    (fn [state]
+      (update-in 
+        state 
+        [:message-list]
+        (fn
+          [mlist]
+          (conj 
+            (subvec mlist (max 0 (- (count mlist) 20)))
+            (str (:user message) "> " (:message message))))))))
 
 (defn start
   [component]
@@ -47,14 +94,17 @@
         (:state component)
         (atom {
                :user-list []
+               :message-list []
                }))
      done (:done component)
      socket (:socket component)
      ]
     (if-not 
       done 
-      (socket/on socket "user-list" (partial update-user-list state)))
-    (rum/mount (lobby state) (aget ($ page-id) 0))
+      (do
+        (socket/on socket "user-list" (partial update-user-list state))
+        (socket/on socket "chat-message" (partial update-message-list state))))
+    (rum/mount (lobby component state) (aget ($ page-id) 0))
     (->
       component
       (assoc :state state)

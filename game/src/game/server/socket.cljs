@@ -23,22 +23,29 @@
   [component socket config map]
   (println "io-connection with session: " (-> socket .-handshake .-session))
   (println "io-connection from user: " (-> socket .-handshake .-session .-user .-displayName))
-  (.emit socket "news" #js { :hello "world" })
-  (.on 
-    socket "my other event"
-     (fn [data]
-       (println data)))
-  (.on 
-    socket "get-map"
-     (fn [data]
-       (println ["get-map" data])
-       (.emit socket "get-map" (clj->js (:map map)))))
-  (.on
-    socket "disconnect"
-    (fn []
-      (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))
-      (println "brodcasting disconnect" (user-list-c component))
-      (-> (get-in component [:server :io]) (.emit "user-list" (user-list-c component))))))
+  (let
+    [displayName (-> socket .-handshake .-session .-user .-displayName)]
+    (.emit socket "news" #js { :hello "world" })
+    (.on 
+      socket "my other event"
+       (fn [data]
+         (println data)))
+    (.on 
+      socket "get-map"
+       (fn [data]
+         (println ["get-map" data])
+         (.emit socket "get-map" (clj->js (:map map)))))
+    (.on
+      socket "chat-message"
+      (fn [data]
+        (->
+          (get-in component [:server :io]) 
+          (.emit "chat-message" (clj->js { :user displayName :message (js->clj data) })))))
+    (.on
+      socket "disconnect"
+      (fn []
+        (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))
+        (-> (get-in component [:server :io]) (.emit "user-list" (user-list-c component)))))))
 
 (defn handler
   [component socket]

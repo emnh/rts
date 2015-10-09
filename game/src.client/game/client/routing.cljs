@@ -90,3 +90,6 @@
   stop-router
   )
 
+(defn game-active
+  []
+  (= window.location.hash "#game"))

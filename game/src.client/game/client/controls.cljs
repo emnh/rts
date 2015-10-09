@@ -5,6 +5,7 @@
               [game.client.config :as config]
               [game.client.common :as common :refer [data]]
               [game.client.scene :as scene]
+              [game.client.routing :as routing]
               [game.client.math :as math :refer [square sin cos pi atan2 sqrt]]
               [com.stuartsierra.component :as component]
               ))
@@ -197,22 +198,25 @@
 (defn
   handle-key
   [keys-pressed event active]
-  (let
-    [action (if active #(assoc %1 %2 true) dissoc)
-     key-code (-> event .-keyCode)
-     combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
-    (if 
-      (contains? handled-keys combination)
-      (do
-        (prevent-default event)
-        (swap! keys-pressed #(action % combination))
-        ; E.g. a sequence of left down, ctrl down, left up, left down, left up should stop action
-        (if-not active (swap! keys-pressed #(action % key-code)))
-        ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
-        (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
-        false
-        )
-      true)))
+  (if
+    (routing/game-active)
+    (let
+      [action (if active #(assoc %1 %2 true) dissoc)
+       key-code (-> event .-keyCode)
+       combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
+      (if 
+        (contains? handled-keys combination)
+        (do
+          (prevent-default event)
+          (swap! keys-pressed #(action % combination))
+          ; E.g. a sequence of left down, ctrl down, left up, left down, left up should stop action
+          (if-not active (swap! keys-pressed #(action % key-code)))
+          ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
+          (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
+          false
+          )
+        true)))
+    true)
 
 (defn key-down
   [keys-pressed event]
