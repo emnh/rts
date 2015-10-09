@@ -9,5 +9,7 @@
       (= (-> req .-path) "/bundle-deps.js")
       (re-matches #"/auth/.*" (-> req .-path))
       )
-    (next)
+    (do
+      (set! (-> req .-session .-user) (-> req .-user))
+      (next))
     (-> res (.redirect "/login"))))

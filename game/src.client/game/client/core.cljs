@@ -1,7 +1,4 @@
 (ns ^:figwheel-always game.client.core
-  (:require-macros 
-    [cljs.core.async.macros :refer [go]]
-    )
   (:require 
     [cljs.core.async :refer [<! put! chan]]
     [com.stuartsierra.component :as component]

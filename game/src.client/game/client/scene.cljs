@@ -7,7 +7,7 @@
     [game.client.routing :as routing]
     [com.stuartsierra.component :as component]
     )
-  (:require-macros [game.client.macros :as macros :refer [defcom]])
+  (:require-macros [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove]))
 
 (enable-console-print!)

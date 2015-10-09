@@ -10,7 +10,7 @@
     [goog.history.EventType :as EventType]
     [rum.core :as rum]
     )
-  (:require-macros [game.client.macros :as macros :refer [defcom]])
+  (:require-macros [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove])
   (:import goog.History))
 

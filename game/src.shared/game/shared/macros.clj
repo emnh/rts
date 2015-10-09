@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.client.macros
+(ns ^:figwheel-always game.shared.macros
   (:require 
     [cljs.pprint :as pprint]
     [clojure.pprint :as pprint2]

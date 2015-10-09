@@ -1,11 +1,15 @@
 (ns ^:figwheel-always game.server.dev
-  (:require [figwheel.client :as fw]
-            [figwheel.client.utils :as utils]
-            [game.server.core :as core]))
+  (:require 
+    [cljs.nodejs :as nodejs]
+    [figwheel.client :as fw]
+    [figwheel.client.utils :as utils]
+    [game.server.core :as core]))
+
+(nodejs/enable-util-print!)
 
 (defn on-js-reload
   []
-  (core/reload))
+  (println "reload"))
 
 (defn -main []
   (figwheel.client/start
@@ -15,6 +19,6 @@
                       "/figwheel-ws")
      :on-jsload on-js-reload
      })
-  (core/-main))
+  );(core/-main))
 
 (set! *main-cli-fn* -main)

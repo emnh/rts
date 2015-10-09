@@ -10,21 +10,15 @@
     ))
 
 (defonce express (nodejs/require "express"))
-(defonce session (nodejs/require "express-session"))
 (defonce cookie-parser (nodejs/require "cookie-parser"))
 (defonce serve-static (nodejs/require "serve-static"))
 
 (defn init-session
-  [app config passport]
+  [app config passport session]
   (let
     [session-secret (get-in config [:session :secret])]
     (-> app (.use (cookie-parser session-secret)))
-    (-> app (.use (session #js 
-                           { 
-                            :secret session-secret 
-                            :resave false
-                            :saveUninitialized false
-                            }))))
+    (-> app (.use session )))
   (-> app (.use (-> passport .initialize)))
   (-> app (.use (-> passport .session)))
   )
@@ -79,22 +73,22 @@
   )
 
 (defn init-app
-  [app config passport]
+  [app config passport session]
 
   (-> app .-locals .-pretty (set! true))
-  (init-session app config passport)
+  (init-session app config passport session)
   (init-static app config)
   (init-routes app config)
   (init-auth-routes app config passport)
   )
   
 (defrecord App
-  [app config passport]
+  [app config passport session]
   component/Lifecycle
   (start [component] 
     (let
       [app (or app (express))]
-      (init-app app config (:passport passport))
+      (init-app app config (:passport passport) (:session session))
       (assoc component :app app)))
   (stop [component] 
     component)
@@ -104,4 +98,4 @@
   []
   (component/using
     (map->App {})
-    [:config :passport]))
+    [:config :passport :session]))

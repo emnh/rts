@@ -52,3 +52,14 @@
         (swap! (:listeners socket) #(assoc % call [resolve reject]))
         (-> (:socket socket) (.on call resolve))
         (-> (:socket socket) (.emit call (clj->js args)))))))
+
+(defn
+  on
+  [socket event]
+  (p/promise
+    (fn [resolve reject]
+      (let
+        [resolve #(resolve 
+                    (do
+                      (js->clj % :keywordize-keys true)))]
+        (-> (:socket socket) (.on event resolve))))))

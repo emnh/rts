@@ -19,7 +19,7 @@
   new-game
   []
   (component/using
-    (map->InitMap {})
+    (map->InitGame {})
     [:config]
     )
   )

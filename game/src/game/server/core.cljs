@@ -10,6 +10,7 @@
     [game.server.map :as map]
     [game.server.passport :as passport]
     [game.server.server :as server]
+    [game.server.session :as session]
     [game.server.socket :as socket]
     [game.shared.state
      :as state
@@ -51,6 +52,10 @@
   :db
   (db/new-db))
 
+(add-component
+  :session
+  (session/new-session))
+
 (defn debug
   []
   (let 
@@ -72,8 +77,14 @@
   []
   (println "Main")
   (swap! system component/stop-system)
-  (swap! system component/start-system)
-  )
-  
+  (try
+    (swap! system component/start-system)
+    (catch js/Object e
+      (let
+        [simple-e (component/ex-without-components e)]
+        (.log js/console simple-e)
+        (.log js/console (aget simple-e "cause"))
+        (throw (aget simple-e "cause"))
+        ))))
 (-main)
 (set! *main-cli-fn* -main)
