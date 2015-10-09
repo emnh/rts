@@ -39,6 +39,7 @@ Now you can open index.html from a web server serving the page.
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
  - Now you can open [the dev page](http://localhost:3451)
+ - See [README.md for ng](../blob/master/game/README.md)
 
 # Resources
  - [Three.js](http://threejs.org/)
