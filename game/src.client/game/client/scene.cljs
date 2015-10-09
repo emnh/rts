@@ -27,11 +27,11 @@
      renderer (data (:renderer onresize))
      $overlay (data (:$overlay onresize))
      ]
+    (-> renderer (.setSize width height))
     (-> ($ (-> renderer .-domElement)) (.width width))
     (-> ($ (-> renderer .-domElement)) (.height height))
     (-> camera .-aspect (set! (/ width height)))
     (-> camera .updateProjectionMatrix)
-    (-> renderer (.setSize width height))
     (-> $overlay .-width (set! width))
     (-> $overlay .-height (set! height))
     ))
@@ -54,7 +54,7 @@
   []
   (component/using
     (map->OnResize {})
-    [:config :scene :camera :renderer :$overlay]))
+    [:config :scene :camera :renderer :$overlay :init-scene]))
 
 (defrecord InitStats [render-stats physics-stats]
   component/Lifecycle
@@ -99,6 +99,7 @@
 (defn get-width
   []
   (.-innerWidth js/window))
+
 (defn get-height
   []
   (.-innerHeight js/window))
@@ -126,7 +127,6 @@
       (do
         (doto
           (data renderer)
-          (.setSize (get-width) (get-height))
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
           (#(.append ($ "body") (-> % .-domElement)))

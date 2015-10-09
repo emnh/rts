@@ -119,7 +119,6 @@
   (reset! ran true)
   (println "main")
   (swap! system component/stop-system)
-  ;(page/start)
   (try
     (swap! system component/start-system)
     (catch js/Object e

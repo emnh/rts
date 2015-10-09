@@ -32,5 +32,4 @@
 
 (defn stop [component] component)
 
-;(pprint/pprint (macroexpand '(defcom new-lobby [config] [state] start stop)))
 (defcom new-lobby [config] [state] start stop)
