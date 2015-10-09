@@ -9,15 +9,14 @@
     [promesa.core :as p]
     [cats.core :as m]
     [game.client.common :as common :refer [new-jsobj]]
-    [game.client.controls :as controls]
-    [game.client.scene :as scene]
-    [game.client.ground :as ground]
-    [game.client.socket :as socket]
     [game.client.config :as config]
+    [game.client.controls :as controls]
+    [game.client.ground :as ground]
+    [game.client.page :as page]
     [game.client.renderer :as renderer]
-    [game.shared.state
-     :as state
-     :refer [add-component readd-component system]]
+    [game.client.scene :as scene]
+    [game.client.socket :as socket]
+    [game.shared.state :as state :refer [add-component readd-component system]]
     )
   )
 
@@ -120,7 +119,13 @@
   (reset! ran true)
   (println "main")
   (swap! system component/stop-system)
-  (swap! system component/start-system)
-  )
+  ;(page/start)
+  (try
+    (swap! system component/start-system)
+    (catch js/Object e
+      (let
+        [simple-e (component/ex-without-components e)]
+        (.log js/console simple-e)
+        (.log js/console (aget simple-e "cause"))))))
 
 (if @ran (main) (js/$ (main)))

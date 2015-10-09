@@ -183,13 +183,15 @@
   )
 
 (defn scroll-handler
-  [keys-pressed state]
+  [enabled keys-pressed state]
   (doseq
     [k (keys @keys-pressed)]
     (if-let
       [handler (get handled-keys k)]
       (handler state))
     )
+  (if @enabled
+    (js/requestAnimationFrame #(scroll-handler enabled keys-pressed state)))
   )
 
 (defn
@@ -204,6 +206,8 @@
       (do
         (prevent-default event)
         (swap! keys-pressed #(action % combination))
+        ; E.g. a sequence of left down, ctrl down, left up, left down, left up should stop action
+        (if-not active (swap! keys-pressed #(action % key-code)))
         ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
         (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
         false
@@ -241,26 +245,28 @@
       :scene (data scene)
       :config config
       }
-     interval-handler (partial scroll-handler keys-pressed state)
+     interval-handler-enabled (atom true)
+     interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)
      interval-handler-name "scroll-interval"
      ]
     (rebind $element contextevt prevent-default)
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
     (js/clearInterval (aget js/window interval-handler-name))
-    (aset js/window interval-handler-name (js/setInterval interval-handler 10))
-    component
+    (js/requestAnimationFrame interval-handler)
+    ;(aset js/window interval-handler-name (js/setInterval interval-handler 10))
+    (assoc component :old-interval-handler-enabled interval-handler-enabled)
     ))
 
 (defrecord Controls
-  [config renderer camera scene]
+  [config renderer camera scene old-interval-handler-enabled]
   component/Lifecycle
   (start [component] 
     (let
       [element (scene/get-view-element renderer)
        ]
-      (init-controls component element config camera scene))
-    component)
+      (if old-interval-handler-enabled (reset! old-interval-handler-enabled false))
+      (init-controls component element config camera scene)))
   (stop [component] component)
   )
 
