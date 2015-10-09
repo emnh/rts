@@ -53,9 +53,7 @@
      ]
     (if-not 
       done 
-      (-> 
-        (socket/on socket "user-list")
-        (p/then (partial update-user-list state))))
+      (socket/on socket "user-list" (partial update-user-list state)))
     (rum/mount (lobby state) (aget ($ page-id) 0))
     (->
       component

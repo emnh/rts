@@ -55,11 +55,7 @@
 
 (defn
   on
-  [socket event]
-  (p/promise
-    (fn [resolve reject]
-      (let
-        [resolve #(resolve 
-                    (do
-                      (js->clj % :keywordize-keys true)))]
-        (-> (:socket socket) (.on event resolve))))))
+  [socket event f]
+  (let
+    [resolve #(f (js->clj % :keywordize-keys true))]
+    (-> (:socket socket) (.on event resolve))))

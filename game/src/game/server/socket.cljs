@@ -14,12 +14,16 @@
   [sockets]
   (vec (map #(-> % .-handshake .-session .-user .-displayName) sockets)))
 
+(defn
+  user-list-c
+  [component]
+  (clj->js (user-list @(:sockets component))))
+
 (defn io-connection
   [component socket config map]
   (println "io-connection with session: " (-> socket .-handshake .-session))
   (println "io-connection from user: " (-> socket .-handshake .-session .-user .-displayName))
   (.emit socket "news" #js { :hello "world" })
-  (.emit socket "user-list" (clj->js (user-list @(:sockets component))))
   (.on 
     socket "my other event"
      (fn [data]
@@ -32,14 +36,16 @@
   (.on
     socket "disconnect"
     (fn []
-      (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets))))))
+      (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))
+      (println "brodcasting disconnect" (user-list-c component))
+      (-> (get-in component [:server :io]) (.emit "user-list" (user-list-c component))))))
 
 (defn handler
   [component socket]
   (let
     [io (get-in component [:server :io])]
       (swap! (:sockets component) #(conj % socket))
-      (-> io (.emit "user-list" (clj->js (user-list @(:sockets component)))))
+      (-> io (.emit "user-list" (user-list-c component)))
       (io-connection component socket (:config component) (:map component))))
 
 (defrecord InitSocket
@@ -58,7 +64,7 @@
             component
             (assoc :sockets sockets)
             (assoc :done true))
-         handler (partial handler component)
+         handler #(handler component %)
          ]
         (-> io (.use (iosession session)))
         (-> io (.on "connection" handler))
