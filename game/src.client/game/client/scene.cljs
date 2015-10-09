@@ -6,7 +6,7 @@
     [game.client.common :as common :refer [data]]
     [com.stuartsierra.component :as component]
     )
-  (:require-macros [game.client.macros :as macros :refer [defm]])
+  (:require-macros [game.client.macros :as macros :refer [defm defcom]])
   (:refer-clojure :exclude [remove]))
 
 (enable-console-print!)
@@ -111,10 +111,17 @@
   [scene item]
   (.remove (data scene) item))
 
-(defrecord InitScene
-  [renderer $overlay camera scene config done]
-  component/Lifecycle
-  (start [component] 
+(defn stop-scene
+  [component]
+  (-> ($ (str "." page-class)) .remove)
+  (assoc component :done false)
+  )
+
+(defcom 
+  new-init-scene 
+  [renderer $overlay camera scene config]
+  [done]
+  (fn [component]
     (if-not done
       (do
         (doto
@@ -152,19 +159,9 @@
           (-> (data camera) (.lookAt pos)))
         (assoc component :done true))
       component))
-  (stop [component]
+  (fn [component]
     (-> ($ (str "." page-class)) .remove)
-    (assoc component :done false)
-    )
-  )
-
-(defn new-init-scene []
-  (component/using
-    (map->InitScene {})
-    [:renderer :$overlay :camera :scene :config]))
-
-; TODO
-;(defconstructor new-initscene map->InitScene)
+    (assoc component :done false)))
 
 (defn get-camera
   []

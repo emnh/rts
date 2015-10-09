@@ -1,16 +1,14 @@
 (ns ^:figwheel-always game.client.page
   (:require 
+    [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
-  ))
-
-(rum/defc label < rum/static [n text]
-            (do
-              (println "label" text)
-              [:.label (repeat n text)]))
+    )
+  (:require-macros [game.client.macros :as macros :refer [defcom]])
+  )
 
 (rum/defc 
   user-list < rum/static
@@ -28,8 +26,11 @@
     content))
 
 (defn start
-  []
-  (rum/mount (label 1 "abc") js/document.body)
-  (rum/mount (label 1 "abc") js/document.body)
-  (rum/mount (label 1 "xyz") js/document.body)
-  (rum/mount (lobby) js/document.body))
+  [component]
+  (rum/mount (lobby) js/document.body)
+  component)
+
+(defn stop [component] component)
+
+;(pprint/pprint (macroexpand '(defcom new-lobby [config] [state] start stop)))
+(defcom new-lobby [config] [state] start stop)

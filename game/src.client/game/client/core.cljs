@@ -126,6 +126,8 @@
       (let
         [simple-e (component/ex-without-components e)]
         (.log js/console simple-e)
-        (.log js/console (aget simple-e "cause"))))))
+        (.log js/console (aget simple-e "cause"))
+        (throw (aget simple-e "cause"))
+        ))))
 
 (if @ran (main) (js/$ (main)))
