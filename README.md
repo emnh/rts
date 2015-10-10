@@ -33,8 +33,10 @@ Now you can open index.html from a web server serving the page.
  - First of all follow steps under "Getting started"
  - Then open 2 terminals and run the following:
 
-      cd game; lein figwheel
-      cd game; npm install; node figwheel.js
+```bash
+cd game; lein figwheel
+cd game; npm install; node figwheel.js
+```
 
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
