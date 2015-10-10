@@ -56,7 +56,8 @@
 (rum/defc
   chat-input < rum/static
   [component]
-  [:input {:type "text"
+  [:input {:class "col-md-12"
+           :type "text"
            :id "chat-input"
            :name "chat-input"
            :on-key-down (partial input-handler component)
