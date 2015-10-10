@@ -4,7 +4,9 @@
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
-    ;[game.server.map :as map_]
+    [promesa.core :as p]
+    [cats.core :as m]
+    [game.server.db :as db]
     ))
 
 (defonce iosession (nodejs/require "socket.io-express-session"))
@@ -26,6 +28,12 @@
   (let
     [displayName (-> socket .-handshake .-session .-user .-displayName)]
     (.emit socket "news" #js { :hello "world" })
+    ; Initially send n last chat messages
+    (p/then
+      (db/find-messages (:db component))
+      (fn [docs]
+        (doseq [d docs]
+          (.emit socket "chat-message" d))))
     (.on 
       socket "my other event"
        (fn [data]
@@ -38,9 +46,17 @@
     (.on
       socket "chat-message"
       (fn [data]
-        (->
-          (get-in component [:server :io]) 
-          (.emit "chat-message" (clj->js { :user displayName :message (js->clj data) })))))
+        (let
+          [doc (clj->js 
+                 {
+                  :user displayName
+                  :message (js->clj data) 
+                  :date (db/timestamp)
+                  })]
+          (->
+            (get-in component [:server :io]) 
+            (.emit "chat-message" doc))
+          (db/insert (:db component) "messages" doc))))
     (.on
       socket "disconnect"
       (fn []
@@ -83,4 +99,4 @@
   []
   (component/using
     (map->InitSocket {})
-    [:server :config :map :session]))
+    [:server :config :map :session :db]))
