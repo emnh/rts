@@ -8,27 +8,38 @@
     [rum.core :as rum]
     [game.client.routing :as routing]
     [game.client.socket :as socket]
+    [sablono.core :as sablono :refer-macros [html]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
 (def page-id (routing/get-page-selector :lobby))
 
+(rum/defc
+  user
+  [name]
+  [:li name])
+
 (rum/defc 
   user-list < rum/reactive
   [state]
   [:ul 
    (for 
-      [user (:user-list (rum/react state))]
-      [:li user])])
+      [u (:user-list (rum/react state))]
+      (rum/with-key (user u) u))])
+
+(rum/defc
+  message
+  [msg]
+  [:li msg])
 
 (rum/defc
   message-list < rum/reactive
   [state]
   [:ul 
    (for 
-      [user (identity (:message-list (rum/react state)))]
-      [:li user])])
+      [msg (:message-list (rum/react state))]
+      (rum/with-key (message msg) msg))])
 
 (defn
   input-handler
@@ -52,15 +63,29 @@
            }]
   )
 
+(rum/defc
+  header < rum/static
+  [h]
+  [:div [:h1 { :class "page-header" } h]])
+
 (rum/defc 
   lobby < rum/static 
   [component state]
   (let 
     [
-     div-user-list [:div { :class "col-md-3" } [:h3 "Users" ] (user-list state)]
-     div-message-list [:div { :class "col-md-9" } (message-list state) (chat-input component)]
-     header [:div [:h1 { :class "page-header" } "Lobby Chat"]]
-     div [:div { :class "col-md-9" } header div-message-list div-user-list]
+     div-user-list (html
+                     [:div { :class "col-md-3" }
+                      [:h3 "Users" ]
+                      (user-list state)])
+     div-message-list (html
+                        [:div { :class "col-md-9" } 
+                         (message-list state)
+                         (chat-input component)])
+     div (html
+           [:div { :class "col-md-9" }
+            (header "Lobby Chat")
+            div-message-list
+            div-user-list])
      row [:div { :class "row" } div]
      content [:div { :class "container" } row]
      ]

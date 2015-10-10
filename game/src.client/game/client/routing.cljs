@@ -31,14 +31,13 @@
 (rum/defc
   page < rum/static
   [pagekey]
-  [:div {:id (get-page-element-id pagekey) :key (name pagekey)}]
-  )
+  [:div {:id (get-page-element-id pagekey) :key (name pagekey)}])
 
 (rum/defc pages
   []
   [:div 
      (for [pagekey (keys routing-table)]
-        (page pagekey))
+        (rum/with-key (page pagekey) (name pagekey)))
    ]
   )
 
