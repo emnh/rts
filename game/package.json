@@ -18,7 +18,8 @@
     "three.js": "missingdays/three.js-node#master",
     "js-beautify": "1.5.10",
     "socket.io-express-session": "xpepermint/socket.io-express-session#master",
-    "connect-mongodb-session": "1.0.5"
+    "connect-mongodb-session": "1.0.5",
+    "peerjs": "0.3.14"
   },
   "devDependencies": {
     "source-map-support": "0.2.8",
