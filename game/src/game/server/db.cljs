@@ -93,12 +93,19 @@
         (.insert
           coll
           doc 
-          (fn [err db]
+          (fn [err docs]
             (if err
-              (reject)
-              (resolve))))))))
+              (reject err)
+              (resolve docs))))))))
 
 (def Timestamp (-> mongo-client .-Timestamp))
 (defn timestamp
   []
   (new Timestamp))
+
+(defn get-id
+  [objectid]
+  ; TODO: After version 2.2 this needs to be changed to .-str instead of .toString
+  ; see http://docs.mongodb.org/manual/reference/object-id/
+  (-> objectid .toString))
+

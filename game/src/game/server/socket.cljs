@@ -1,5 +1,4 @@
 (ns ^:figwheel-always game.server.socket
-  (:require-macros [hiccups.core :as hiccups :refer [html]])
   (:require
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
@@ -7,7 +6,10 @@
     [promesa.core :as p]
     [cats.core :as m]
     [game.server.db :as db]
-    ))
+    [game.server.games :as games]
+    )
+  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  )
 
 (defonce iosession (nodejs/require "socket.io-express-session"))
 
@@ -35,10 +37,6 @@
         (doseq [d docs]
           (.emit socket "chat-message" d))))
     (.on 
-      socket "my other event"
-       (fn [data]
-         (println data)))
-    (.on 
       socket "get-map"
        (fn [data]
          (println ["get-map" data])
@@ -58,6 +56,13 @@
             (.emit "chat-message" doc))
           (db/insert (:db component) "messages" doc))))
     (.on
+      socket "new-game"
+      (fn [data]
+        (games/new-game
+          (:games component)
+          (-> socket .-handshake .-session .-user)
+          (-> (get-in component [:server :io])))))
+    (.on
       socket "disconnect"
       (fn []
         (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))
@@ -71,10 +76,11 @@
       (-> io (.emit "user-list" (user-list-c component)))
       (io-connection component socket (:config component) (:map component))))
 
-(defrecord InitSocket
-  [server config map sockets session done]
-  component/Lifecycle
-  (start [component]
+(defcom 
+  new-socket
+  [server config map session db games]
+  [sockets done]
+  (fn [component]
     (if
       done
       component
@@ -92,11 +98,4 @@
         (-> io (.use (iosession session)))
         (-> io (.on "connection" handler))
         component)))
-  (stop [component] component)
-  )
-
-(defn new-socket
-  []
-  (component/using
-    (map->InitSocket {})
-    [:server :config :map :session :db]))
+  (fn [component] component))

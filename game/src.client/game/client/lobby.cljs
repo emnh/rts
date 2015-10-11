@@ -9,6 +9,7 @@
     [game.client.routing :as routing]
     [game.client.socket :as socket]
     [sablono.core :as sablono :refer-macros [html]]
+    [clojure.string :as string :refer [join]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
@@ -16,9 +17,27 @@
 (def page-id (routing/get-page-selector :lobby))
 
 (rum/defc
-  user
+  list-item
   [name]
   [:li name])
+
+(rum/defc 
+  game-list < rum/reactive
+  [state]
+  (let
+    [game-list (:game-list (rum/react state))]
+    (if
+      game-list
+      [:select 
+       (for 
+         [gameid (keys game-list)]
+         (let
+           [g (get game-list gameid)]
+           [:option
+             { :value (:id g) }
+             (str (:name g) ": " (join "," (vals (:display-names g))))
+             ]))]
+      [:div "No active games"])))
 
 (rum/defc 
   user-list < rum/reactive
@@ -26,20 +45,17 @@
   [:ul 
    (for 
       [u (:user-list (rum/react state))]
-      (rum/with-key (user u) u))])
-
-(rum/defc
-  message
-  [msg]
-  [:li msg])
+      (rum/with-key (list-item u) u))])
 
 (rum/defc
   message-list < rum/reactive
   [state]
   [:ul 
    (for 
-      [msg (:message-list (rum/react state))]
-      (rum/with-key (message msg) msg))])
+     [[i msg] (map-indexed vector (:message-list (rum/react state)))]
+     (let
+       [msg (str (:user msg) "> " (:message msg))]
+       (rum/with-key (list-item msg) i)))])
 
 (defn
   input-handler
@@ -64,6 +80,33 @@
            }]
   )
 
+(defn new-game-handler
+  [component event]
+  (let
+    [socket (get-in component [:socket :socket])]
+    (-> socket (.emit "new-game"))))
+
+(rum/defc
+  new-game < rum/static
+  [component]
+  [:input 
+   {:type "button" 
+    :value "New Game"
+    :on-click (partial new-game-handler component)
+    }])
+
+(defn join-game-handler
+  [event]
+  )
+
+(rum/defc
+  join-game < rum/static
+  [component]
+  [:input 
+   {:type "button" 
+    :value "Join Game"
+    :on-click (partial join-game-handler component)}])
+
 (rum/defc
   header < rum/static
   [h]
@@ -73,6 +116,8 @@
   lobby < rum/static 
   [component state]
   (let 
+    ; calling html on each list item as workaround
+    ; see https://github.com/r0man/sablono/issues/57
     [
      div-user-list (html
                      [:div { :class "col-md-3" }
@@ -82,13 +127,21 @@
                         [:div { :class "col-md-9" } 
                          (message-list state)
                          (chat-input component)])
-     div (html
-           [:div { :class "col-md-9" }
+     div-game-list (html
+                     [:div { :class "col-md-12" }
+                      (header "Games")
+                      (game-list state)
+                      (new-game component)
+                      (join-game component)
+                      ])
+     div-lobby-chat (html
+           [:div { :class "col-md-12" }
             (header "Lobby Chat")
             div-message-list
             div-user-list])
-     row [:div { :class "row" } div]
-     content [:div { :class "container" } row]
+     row1 [:div { :class "row" } div-game-list]
+     row2 [:div { :class "row" } div-lobby-chat]
+     content (html [:div { :class "container" } row1 row2])
      ]
     content))
 
@@ -96,6 +149,12 @@
   update-user-list
   [state message]
   (swap! state #(assoc-in % [:user-list] message)))
+
+(defn
+  update-game-list
+  [state message]
+  (println "update-game-list" message)
+  (swap! state #(assoc-in % [:game-list] message)))
 
 (defn
   update-message-list
@@ -110,7 +169,7 @@
           [mlist]
           (conj 
             (subvec mlist (max 0 (- (count mlist) 20)))
-            (str (:user message) "> " (:message message))))))))
+            message))))))
 
 (defn start
   [component]
@@ -129,6 +188,7 @@
       done 
       (do
         (socket/on socket "user-list" (partial update-user-list state))
+        (socket/on socket "game-list" (partial update-game-list state))
         (socket/on socket "chat-message" (partial update-message-list state))))
     (rum/mount (lobby component state) (aget ($ page-id) 0))
     (->

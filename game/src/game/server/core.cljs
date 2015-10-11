@@ -2,11 +2,13 @@
   (:require-macros [hiccups.core :as hiccups :refer [html]])
   (:require
     [cljs.nodejs :as nodejs]
+    [cljs.pprint :as pprint]
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
     [game.server.app :as app]
     [game.server.config :as config]
     [game.server.db :as db]
+    [game.server.games :as games]
     [game.server.map :as map]
     [game.server.passport :as passport]
     [game.server.server :as server]
@@ -55,6 +57,10 @@
 (add-component
   :session
   (session/new-session))
+
+(readd-component
+  :games
+  (games/new-games))
 
 (defn debug
   []
