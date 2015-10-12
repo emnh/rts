@@ -28,7 +28,7 @@
     [game-list (:game-list (rum/react state))]
     (if
       game-list
-      [:select 
+      [:select { :size 20 }
        (for 
          [gameid (keys game-list)]
          (let
@@ -44,8 +44,8 @@
   [state]
   [:ul 
    (for 
-      [u (:user-list (rum/react state))]
-      (rum/with-key (list-item u) u))])
+      [[i u] (map-indexed vector (:user-list (rum/react state)))]
+      (rum/with-key (list-item u) i))])
 
 (rum/defc
   message-list < rum/reactive
@@ -127,12 +127,15 @@
                         [:div { :class "col-md-9" } 
                          (message-list state)
                          (chat-input component)])
+     div-game-buttons (html
+                        [:div 
+                         (new-game component)
+                         (join-game component)])
      div-game-list (html
                      [:div { :class "col-md-12" }
                       (header "Games")
                       (game-list state)
-                      (new-game component)
-                      (join-game component)
+                      div-game-buttons
                       ])
      div-lobby-chat (html
            [:div { :class "col-md-12" }
@@ -153,7 +156,6 @@
 (defn
   update-game-list
   [state message]
-  (println "update-game-list" message)
   (swap! state #(assoc-in % [:game-list] message)))
 
 (defn

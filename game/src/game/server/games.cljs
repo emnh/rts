@@ -16,9 +16,32 @@
 (defcom
   new-games
   [config db]
-  [games]
+  [games dbread]
   (fn [component]
-    (assoc component :games (atom {})))
+    (if 
+      games
+      component
+      (let
+        [games (atom {})
+         component (assoc component :games games)
+         component
+           (assoc component
+             :db-read
+             (m/mlet
+               [docs (db/find-joinable-games (:db component))]
+               (let
+                 [docs (js->clj docs :keywordize-keys true)
+                  f #(assoc %1 (:id %2) %2)
+                  docs (reduce 
+                         f 
+                         {}
+                         (for [game docs]
+                           (do
+                             (-> game
+                               (assoc :id (db/get-id (:_id game)))))))]
+                  (swap! games #(merge % docs)))
+               games))]
+      component)))
   (fn [component]
     component))
 
@@ -46,11 +69,22 @@
       (let
         [docs (js->clj docs :keywordize-keys true)
          game (get (:ops docs) 0)
-         id (-> (:_id game) db/get-id)
+         _id (:_id game)
+         id (db/get-id _id)
          game (assoc game :id id)
          game (assoc game :name id)
          ]
+        (let 
+          [update-promise
+            (db/update 
+              (:db games)
+              "games" 
+              #js {:_id _id}
+              (clj->js (dissoc game :_id)))]
+          ;(p/then update-promise (fn [success] (println "success updating game" success)))
+          ;(p/catch update-promise (fn [error] (println "error updating game: " error))))
+          )
         (swap! (:games games) #(assoc % id game))
-        (pprint/pprint @(:games games))
+        ;(pprint/pprint @(:games games))
         (-> broadcast-socket 
           (.emit "game-list" (clj->js @(:games games))))))))

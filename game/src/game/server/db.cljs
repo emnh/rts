@@ -1,4 +1,5 @@
 (ns ^:figwheel-always game.server.db
+  (:refer-clojure :exclude [update])
   (:require
     [cljs.nodejs :as nodejs]
     [com.stuartsierra.component :as component]
@@ -25,6 +26,24 @@
             (if err
               (reject err)
               (resolve (reverse docs))))))))))
+
+(defn find-joinable-games
+  [db]
+  (m/mlet
+    [db (:dbp db)
+     coll (p/promise "games")
+     coll (p/promise (.collection db coll))
+     ]
+    (p/promise
+      (fn [resolve reject]
+        (-> coll
+          (.find #js {:active true :started false})
+          (.sort #js { :_id -1 })
+          (.toArray (fn [err docs]
+            (if err
+              (reject err)
+              (resolve (reverse docs))))))))))
+
 
 (defn create-index
   [db coll spec options]
@@ -93,6 +112,23 @@
         (.insert
           coll
           doc 
+          (fn [err docs]
+            (if err
+              (reject err)
+              (resolve docs))))))))
+
+(defn update
+  [db coll query ops]
+  (m/mlet
+    [db (:dbp db)
+     coll (p/promise (.collection db coll))
+     ]
+    (p/promise
+      (fn [resolve reject]
+        (.update
+          coll
+          query 
+          ops
           (fn [err docs]
             (if err
               (reject err)

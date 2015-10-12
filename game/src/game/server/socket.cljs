@@ -36,6 +36,11 @@
       (fn [docs]
         (doseq [d docs]
           (.emit socket "chat-message" d))))
+    ; Initially send active games
+    (p/then
+      (get-in component [:games :db-read])
+      (fn [games]
+        (-> socket (.emit "game-list" (clj->js  @games)))))
     (.on 
       socket "get-map"
        (fn [data]
