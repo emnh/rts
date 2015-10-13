@@ -1,4 +1,5 @@
 (ns ^:figwheel-always game.server.session
+  (:refer-clojure :exclude [assert])
   (:require
     [cljs.nodejs :as nodejs]
     [com.stuartsierra.component :as component]

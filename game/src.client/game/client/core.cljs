@@ -9,7 +9,8 @@
     [game.client.config :as config]
     [game.client.controls :as controls]
     [game.client.ground :as ground]
-    [game.client.lobby :as lobby]
+    [game.client.page-lobby :as lobby]
+    [game.client.page-not-found :as page-not-found]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
@@ -22,94 +23,30 @@
 
 (println "Reloaded client core")
 
-(add-component 
-  :renderer 
-  (new-jsobj 
-    #(new js/THREE.WebGLRenderer #js { :antialias true })))
-
-(add-component
-  :scene (new-jsobj #(new js/THREE.Scene)))
-
-(add-component
-  :$overlay (new-jsobj #($ "<canvas/>")))
-
-(add-component
-  :raycaster (new-jsobj #(new js/THREE.Raycaster)))
-
-(add-component
-  :camera (new-jsobj scene/get-camera))
-
-(add-component
-  :init-scene
-    (scene/new-init-scene))
-
-(add-component
-  :light1
-    (new-jsobj #(new js/THREE.DirectionalLight)))
-
-(add-component
-  :light2
-    (new-jsobj #(new js/THREE.DirectionalLight)))
-
-(add-component
-  :light3
-    (new-jsobj #(new js/THREE.DirectionalLight)))
-
-(add-component
-  :light4
-    (new-jsobj #(new js/THREE.DirectionalLight)))
-
-(add-component
-  :init-light
-    (scene/new-init-light))
-
-(add-component
-  :socket
-    (socket/new-init-socket))
-
-(add-component
-  :render-stats
-    (new-jsobj #(new js/Stats)))
-
-(add-component
-  :physics-stats
-    (new-jsobj #(new js/Stats)))
-
-(add-component
-  :init-stats
-    (scene/new-init-stats))
-
-(readd-component
-  :config
-    config/config)
-
-(add-component
-  :on-resize
-    (scene/new-on-resize))
-
-(add-component
-  :simplex
-    (new-jsobj #(new js/SimplexNoise)))
-
-(add-component
-  :ground
-  (ground/new-init-ground))
-
-(readd-component
-  :controls
-  (controls/new-controls))
-
-(add-component 
-  :init-renderer
-  (renderer/new-init-renderer))
-
-(add-component
-  :routing
-  (routing/new-router))
-
-(add-component
-  :lobby
-  (lobby/new-lobby))
+(add-component :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true })))
+(add-component :scene (new-jsobj #(new js/THREE.Scene)))
+(add-component :$overlay (new-jsobj #($ "<canvas/>")))
+(add-component :raycaster (new-jsobj #(new js/THREE.Raycaster)))
+(add-component :camera (new-jsobj scene/get-camera))
+(add-component :init-scene (scene/new-init-scene))
+(add-component :light1 (new-jsobj #(new js/THREE.DirectionalLight)))
+(add-component :light2 (new-jsobj #(new js/THREE.DirectionalLight)))
+(add-component :light3 (new-jsobj #(new js/THREE.DirectionalLight))) 
+(add-component :light4 (new-jsobj #(new js/THREE.DirectionalLight)))
+(add-component :init-light (scene/new-init-light))
+(add-component :socket (socket/new-init-socket))
+(add-component :render-stats (new-jsobj #(new js/Stats)))
+(add-component :physics-stats (new-jsobj #(new js/Stats)))
+(add-component :init-stats (scene/new-init-stats))
+(readd-component :config config/config)
+(add-component :on-resize (scene/new-on-resize))
+(add-component :simplex (new-jsobj #(new js/SimplexNoise)))
+(add-component :ground (ground/new-init-ground))
+(readd-component :controls (controls/new-controls))
+(add-component :init-renderer (renderer/new-init-renderer))
+(add-component :routing (routing/new-router))
+(add-component :lobby (lobby/new-lobby))
+(add-component :page-not-found (page-not-found/new-page-not-found))
 
 (def ran (atom false))
 

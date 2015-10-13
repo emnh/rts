@@ -1,4 +1,4 @@
-(ns ^:figwheel-always game.client.lobby
+(ns ^:figwheel-always game.client.page-lobby
   (:require 
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
@@ -18,31 +18,50 @@
 
 (rum/defc
   list-item
-  [name]
-  [:li name])
+  [content & [attrs] ]
+  (if 
+    attrs
+    [:li attrs content]
+    [:li content]))
+
+
+(defn
+  select-list-item
+  [event]
+  (let
+    [target (-> event .-target $)]
+    (-> 
+      target
+      .siblings
+      (.removeClass "selected"))
+    (-> target
+      (.toggleClass "selected"))))
 
 (rum/defc 
   game-list < rum/reactive
   [state]
-  (let
+  (if-let
     [game-list (:game-list (rum/react state))]
-    (if
-      game-list
-      [:select { :size 20 }
-       (for 
-         [gameid (keys game-list)]
-         (let
-           [g (get game-list gameid)]
-           [:option
-             { :value (:id g) }
-             (str (:name g) ": " (join "," (vals (:display-names g))))
-             ]))]
-      [:div "No active games"])))
+    [:ul { :class "game-list col-md-6" }
+     (for 
+       [gameid (keys game-list)]
+       (let
+         [g (get game-list gameid)
+          players (str "(" (count (:players g)) "/" (:max-player-count g) ")")]
+         (rum/with-key 
+           (list-item
+             (str players " " (:name g) ": " (join "," (vals (:display-names g))))
+             {:id (:id g) 
+              :on-click select-list-item
+              })
+           (:id g)
+           )))]
+    [:div "No active games"]))
 
 (rum/defc 
   user-list < rum/reactive
   [state]
-  [:ul 
+  [:ul { :class "user-list" }
    (for 
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
       (rum/with-key (list-item u) i))])
@@ -89,23 +108,30 @@
 (rum/defc
   new-game < rum/static
   [component]
-  [:input 
-   {:type "button" 
-    :value "New Game"
+  [:button
+   {:type "button"
+    :class "btn btn-default btn-lg btn-outline"
     :on-click (partial new-game-handler component)
-    }])
+    }
+   "New Game"])
 
 (defn join-game-handler
-  [event]
-  )
+  [component event]
+  (if-let
+    [game-id (-> ($ ".game-list .selected") (.attr "id"))]
+    (do
+      (println "game-id" game-id)
+      (routing/change-page (str "#game-lobby/" game-id "/")))))
 
 (rum/defc
   join-game < rum/static
   [component]
-  [:input 
-   {:type "button" 
-    :value "Join Game"
-    :on-click (partial join-game-handler component)}])
+  [:button 
+   {
+    :class "btn btn-default btn-lg btn-outline"
+    :type "button" 
+    :on-click (partial join-game-handler component)
+    } "Join Game"])
 
 (rum/defc
   header < rum/static
@@ -129,6 +155,10 @@
                          (chat-input component)])
      div-game-buttons (html
                         [:div 
+                         { 
+                          :class "btn-group game-buttons col-md-12"
+                          :role "group"
+                          }
                          (new-game component)
                          (join-game component)])
      div-game-list (html
@@ -193,6 +223,7 @@
         (socket/on socket "game-list" (partial update-game-list state))
         (socket/on socket "chat-message" (partial update-message-list state))))
     (rum/mount (lobby component state) (aget ($ page-id) 0))
+    (routing/init-page ($ page-id))
     (->
       component
       (assoc :state state)
@@ -203,7 +234,7 @@
 
 (defcom 
   new-lobby
-  [config socket]
+  [config socket routing]
   [state done]
   start
   stop)

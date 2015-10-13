@@ -9,6 +9,7 @@
     [goog.events :as events]
     [goog.history.EventType :as EventType]
     [rum.core :as rum]
+    [bidi.bidi :as bidi]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove])
@@ -22,40 +23,74 @@
   [page]
   (str "#" (get-page-element-id page)))
 
-(def routing-table
+(def page-list
   {
    :lobby true
    :game true
+   :game-lobby true
+   :not-found true
    })
+
+(def routes
+  ["" {
+       "lobby" :lobby
+       "game" :game
+       "game-lobby/"
+       {
+        [:id "/"] :game-lobby
+        }
+       }])
 
 (rum/defc
   page < rum/static
   [pagekey]
-  [:div {:id (get-page-element-id pagekey) :key (name pagekey)}])
+  [:div 
+   {:id (get-page-element-id pagekey) 
+    :class "top-page"}])
 
 (rum/defc pages
   []
   [:div 
-     (for [pagekey (keys routing-table)]
+     (for [pagekey (keys page-list)]
         (rum/with-key (page pagekey) (name pagekey)))
    ]
   )
 
 (defn
+  init-page
+  [$page]
+  $
+  (let
+    [page-width (-> $page (.find ".container") .width)
+     left (max 0 (/ (- (-> js/window .-innerWidth) page-width) 2))]
+    (-> $page (.css #js { :left left } ))))
+
+(defn
   handle-url
   [url]
   (doseq
-    [pagekey (keys routing-table)]
+    [pagekey (keys page-list)]
     (-> ($ (get-page-selector pagekey)) (.addClass "invisible")))
   (let
-    [kwurl (keyword url)]
+    [match (bidi/match-route routes url)
+     handler (if match (:handler match) :not-found)]
+    (println "handler" handler)
     (if 
-      (kwurl routing-table)
+      (handler page-list)
       (do
-        (-> ($ (get-page-selector kwurl)) (.removeClass "invisible"))
+        (let
+          [$page ($ (get-page-selector handler))
+           ]
+          (-> $page (.removeClass "invisible"))
+          )
         )
       ))
   (println "url" url))
+
+(defn
+  change-page
+  [new-page]
+  (-> js/window .-location .-hash (set! new-page)))
 
 (defn
   start-router
