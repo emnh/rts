@@ -12,6 +12,11 @@
 (defonce express (nodejs/require "express"))
 (defonce cookie-parser (nodejs/require "cookie-parser"))
 (defonce serve-static (nodejs/require "serve-static"))
+(defonce morgan (nodejs/require "morgan"))
+
+(defn init-logging
+  [app config]
+  (-> app (.use (morgan "combined"))))
 
 (defn init-session
   [app config passport session]
@@ -46,6 +51,42 @@
 
   (. app (get "/login" #(views/login-page %1 %2)))
 
+  (. app (get "/auth/github"
+              (-> passport
+                (.authenticate
+                  "github"))))
+
+  (. app (get "/auth/github/callback"
+              (-> passport
+                (.authenticate
+                  "github"
+                  #js { :failureRedirect "/login" }))
+              (fn [req res]
+                (println "github callback request")
+                (-> res (.redirect "/")))))
+
+  (. app (get "/auth/google" 
+              (-> passport
+                (.authenticate
+                  "google"
+                  #js
+                  {
+                   :scope "openid profile email https://www.googleapis.com/auth/plus.login https://www.googleapis.com/auth/plus.me"
+                   }))
+              (fn [req res]
+                ; The request will be redirected to Google for authentication, so this
+                ; function will not be called.
+                nil)))
+
+  (. app (get "/auth/google/callback"
+              (-> passport
+                (.authenticate
+                  "google"
+                  #js { :failureRedirect "/login" 
+                        :successRedirect "/" }))
+              (fn [req res]
+                (-> res (.redirect "/")))))
+
   (. app (get "/auth/twitter" (-> passport (.authenticate "twitter"))))
 
   (. app (get "/auth/twitter/callback" 
@@ -61,8 +102,8 @@
       "/auth/facebook"
       (-> passport (.authenticate "facebook"))
       (fn [req res]
-    ;    // The request will be redirected to Facebook for authentication, so this
-    ;    // function will not be called.
+        ; The request will be redirected to Facebook for authentication, so this
+        ; function will not be called.
         nil)))
 
   (. app
@@ -86,6 +127,7 @@
   [app config passport session]
 
   (-> app .-locals .-pretty (set! true))
+  (init-logging app config)
   (init-session app config passport session)
   (init-static app config)
   (init-routes app config)

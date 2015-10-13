@@ -15,11 +15,14 @@
 (defonce gpassport (nodejs/require "passport"))
 (defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
 (defonce TwitterStrategy (.-Strategy (nodejs/require "passport-twitter")))
+(defonce GoogleStrategy (.-OAuth2Strategy (nodejs/require "passport-google-oauth")))
+(defonce GitHubStrategy (.-Strategy (nodejs/require "passport-github")))
 
 (defn init-passport
   [config db]
   (-> gpassport 
     (.serializeUser 
+;      #(%2 nil %1)))
       (fn [user done] 
         (let
           [id-pair 
@@ -38,11 +41,10 @@
         ))))
   (-> gpassport
     (.deserializeUser 
+;      #(%2 nil %1))))
       (fn [id-pair done] 
-;        (done nil id-pair)))))
         (let
           [user-promise (db/find db "users" (js->clj id-pair :keywordize-keys true))]
-          ;(println "deserialize user" id-pair)
           (p/then user-promise #(done nil (first %)))
           (p/catch user-promise #(done % nil))
                   )))))
@@ -56,6 +58,7 @@
       (get-in config [:facebook :data])
      { :keys [ :FACEBOOK_APP_ID :FACEBOOK_APP_SECRET ]}
        (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
+     baseurl (get-in config [:server :url])
      facebook-function
       (fn
         [accessToken refreshToken profile done]
@@ -64,7 +67,7 @@
       (new FacebookStrategy #js {
         :clientID FACEBOOK_APP_ID,
         :clientSecret FACEBOOK_APP_SECRET,
-        :callbackURL "http://localhost:3451/auth/facebook/callback",
+        :callbackURL (str baseurl "auth/facebook/callback"),
         :enableProof false
       } facebook-function)
      ]
@@ -76,10 +79,9 @@
   (let
     [twitter-data
      (get-in config [:twitter :data])
+     baseurl (get-in config [:server :url])
      { :keys [ :TWITTER_CONSUMER_KEY :TWITTER_CONSUMER_SECRET ] }
       (-> js/JSON (.parse twitter-data) (js->clj :keywordize-keys true))
-     _ (println "TWC" TWITTER_CONSUMER_KEY)
-     _ (println "TWS" TWITTER_CONSUMER_SECRET)
      twitter-fn
       (fn
         [token tokenSecret profile done]
@@ -92,13 +94,66 @@
         {
          :consumerKey TWITTER_CONSUMER_KEY
          :consumerSecret TWITTER_CONSUMER_SECRET
-         :callbackURL "http://localhost:3451/auth/twitter/callback"
+         :callbackURL (str baseurl "auth/twitter/callback")
          }
         twitter-fn)
      ]
     (-> passport (.use twitter-strategy))
     )
   )
+
+(defn
+  init-google
+  [passport config]
+  (let
+    [google-data
+      (get-in config [:google :data])
+     { :keys [ :GOOGLE_CONSUMER_KEY :GOOGLE_CONSUMER_SECRET ] }
+      (-> js/JSON (.parse google-data) (js->clj :keywordize-keys true))
+     google-fn
+      (fn
+        [accessToken refreshToken profile done]
+        (done nil profile))
+     baseurl (get-in config [:server :url])
+     google-strategy
+      (new
+        GoogleStrategy
+        #js
+        {
+         :clientID GOOGLE_CONSUMER_KEY
+         :clientSecret GOOGLE_CONSUMER_SECRET
+         :callbackURL (str baseurl "auth/google/callback")
+         }
+        google-fn)]
+    (-> passport (.use google-strategy)))
+  )
+
+(defn
+  init-github
+  [passport config]
+  (let
+    [github-data
+      (get-in config [:github :data])
+     { :keys [ :GITHUB_CONSUMER_KEY :GITHUB_CONSUMER_SECRET ] }
+      (-> js/JSON (.parse github-data) (js->clj :keywordize-keys true))
+     github-fn
+      (fn
+        [accessToken refreshToken profile done]
+        (done nil profile))
+     baseurl (get-in config [:server :url])
+     github-strategy
+      (new
+        GitHubStrategy
+        #js
+        {
+         :clientID GITHUB_CONSUMER_KEY
+         :clientSecret GITHUB_CONSUMER_SECRET
+         :callbackURL (str baseurl "auth/github/callback")
+         }
+        github-fn)]
+    (-> passport (.use github-strategy)))
+  )
+
 
 (defcom
   new-passport
@@ -108,6 +163,8 @@
     (init-passport config db)
     (init-facebook gpassport config)
     (init-twitter gpassport config)
+    (init-google gpassport config)
+    (init-github gpassport config)
     (-> component
       (assoc :passport gpassport)))
   (fn [component] component))

@@ -35,8 +35,29 @@
     "/.rts/twitter.json"
     "/.rts/twitter-test.json"))
 
+(def google-path
+  (if
+    (production?)
+    "/.rts/google.json"
+    "/.rts/google-test.json"))
+
+(def github-path
+  (if
+    (production?)
+    "/.rts/github.json"
+    "/.rts/github-test.json"))
+
 (def facebook-data (-> fs (.readFileSync (str home facebook-path))))
 (def twitter-data (-> fs (.readFileSync (str home twitter-path))))
+(def google-data (-> fs (.readFileSync (str home google-path))))
+(def github-data (-> fs (.readFileSync (str home github-path))))
+
+(def url
+  (if
+    (production?)
+    "http://emh.lart.no:3551/"
+    "http://localhost:3451/"
+    ))
 
 (def config
   { 
@@ -64,6 +85,14 @@
    {
     :data twitter-data
     }
+   :google
+   {
+    :data google-data
+    }
+   :github
+   {
+    :data github-data
+    }
    :paths
    {
     :home home
@@ -71,7 +100,8 @@
     }
    :server 
    {
-    :port 3451
+    :port (if (production?) 3551 3451)
+    :url url
     }
    :db 
    {

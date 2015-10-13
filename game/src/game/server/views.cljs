@@ -54,7 +54,25 @@
            }
        [:i { :class "fa fa-twitter" }]
        "Sign in with Twitter"]
-     div3 [:div { :class "col-sm-4 social-buttons" } a-fb a-twitter]
+     a-google
+     [:a {
+           :href "/auth/google"
+           :class "btn btn-block btn-social btn-google"
+           }
+       [:i { :class "fa fa-google" }]
+       "Sign in with Google (doesn't work currently)"]
+     a-github
+     [:a {
+           :href "/auth/github"
+           :class "btn btn-block btn-social btn-github"
+           }
+       [:i { :class "fa fa-github" }]
+       "Sign in with GitHub"]
+     div3 [:div { :class "col-sm-4 social-buttons" }
+           a-fb
+           a-twitter
+           a-google
+           a-github]
      div2 [:div { :class "row" } div3]
      h1 [:h1 "Login Page"]
      div [:div { :class "container" } h1 div2]

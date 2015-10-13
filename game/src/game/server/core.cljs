@@ -19,6 +19,18 @@
      :refer [add-component readd-component system]]
     ))
 
+(defonce origlog (-> js/console .-log))
+
+(defonce logger (.colorConsole 
+                  (nodejs/require "tracer")
+                  #js
+                  {
+                   :transport #(origlog (.-output %))
+                   }
+                  ))
+
+(set! js/console.log (-> logger .-log))
+
 (nodejs/enable-util-print!)
 (println "")
 
