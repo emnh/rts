@@ -14,6 +14,7 @@
                  [com.stuartsierra/component "0.3.0"]
                  [funcool/promesa "0.5.1"]
                  [rum "0.4.2"]
+                 [bidi "1.20.3"]
                  ]
 
   :plugins [[lein-cljsbuild "1.0.4"]
