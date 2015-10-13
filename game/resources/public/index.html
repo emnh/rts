@@ -31,7 +31,7 @@ ga('send', 'pageview');
   </head>
   <body>
     <script>
-    if (window.location.hash && window.location.hash == "#") {
+    if (!window.location.hash || window.location.hash && window.location.hash == "#") {
         window.location.hash = '#lobby';
     }
     if (window.location.hash && window.location.hash == '#_=_') {
