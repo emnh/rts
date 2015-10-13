@@ -31,8 +31,11 @@ ga('send', 'pageview');
   </head>
   <body>
     <script>
+    if (window.location.hash && window.location.hash == "#") {
+        window.location.hash = '#lobby';
+    }
     if (window.location.hash && window.location.hash == '#_=_') {
-        window.location.hash = '';
+        window.location.hash = '#lobby';
     }
     if (document.location.hostname == 'localhost') {
       console.log("dev mode");
