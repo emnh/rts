@@ -1,4 +1,10 @@
-(ns ^:figwheel-always game.server.security)
+(ns ^:figwheel-always game.server.security
+  (:require
+    [cljs.nodejs :as nodejs]
+    [cljs.pprint :as pprint])
+  )
+
+(nodejs/enable-util-print!)
 
 (defn ensureAuthenticated
   [req res next]

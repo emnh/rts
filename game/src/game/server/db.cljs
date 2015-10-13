@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.server.db
-  (:refer-clojure :exclude [update])
+  (:refer-clojure :exclude [update find])
   (:require
     [cljs.nodejs :as nodejs]
     [com.stuartsierra.component :as component]
@@ -8,6 +8,22 @@
     ))
 
 (defonce mongo-client (nodejs/require "mongodb"))
+
+(defn find
+  [db coll query]
+  (m/mlet
+    [db (:dbp db)
+     coll (p/promise (.collection db coll))
+     ]
+    (p/promise
+      (fn [resolve reject]
+        (-> coll
+          (.find (clj->js query))
+          (.toArray 
+            (fn [err docs]
+              (if err
+                (reject err)
+                (resolve (reverse docs))))))))))
 
 (defn find-messages
   [db]
@@ -129,6 +145,24 @@
           coll
           query 
           ops
+          (fn [err docs]
+            (if err
+              (reject err)
+              (resolve docs))))))))
+
+(defn upsert
+  [db coll query ops]
+  (m/mlet
+    [db (:dbp db)
+     coll (p/promise (.collection db coll))
+     ]
+    (p/promise
+      (fn [resolve reject]
+        (.update
+          coll
+          query 
+          (clj->js ops)
+          #js { :upsert true }
           (fn [err docs]
             (if err
               (reject err)

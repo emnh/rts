@@ -1,20 +1,50 @@
 (ns ^:figwheel-always game.server.passport
-  (:require-macros [hiccups.core :as hiccups :refer [html]])
   (:require
     [cljs.nodejs :as nodejs]
+    [cljs.pprint :as pprint]
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
+    [promesa.core :as p]
+    [cats.core :as m]
     [game.server.config :as config]
-    ))
+    [game.server.db :as db]
+    )
+  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  )
 
 (defonce gpassport (nodejs/require "passport"))
 (defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
 
 (defn init-passport
-  [passport config]
-  (-> passport (.serializeUser (fn [user done] (done nil user))))
-  (-> passport (.deserializeUser (fn [obj done] (done nil obj))))
-  )
+  [config db]
+  (-> gpassport 
+    (.serializeUser 
+      (fn [user done] 
+        (let
+          [id-pair 
+           {
+            :id (aget user "id")
+            :provider (aget user "provider")
+            }
+           user-promise 
+           (db/upsert
+              db 
+              "users"
+              id-pair
+              user)]
+          (p/then user-promise #(done nil (clj->js id-pair)))
+          (p/catch user-promise #(done % nil))
+        ))))
+  (-> gpassport
+    (.deserializeUser 
+      (fn [id-pair done] 
+;        (done nil id-pair)))))
+        (let
+          [user-promise (db/find db "users" (js->clj id-pair :keywordize-keys true))]
+          ;(println "deserialize user" id-pair)
+          (p/then user-promise #(done nil (first %)))
+          (p/catch user-promise #(done % nil))
+                  )))))
 
 (defn
   init-facebook
@@ -39,21 +69,13 @@
      ]
     (-> passport (.use facebook-strategy))))
 
-(defrecord InitPassport
-  [passport config]
-  component/Lifecycle
-  (start [component]
-    (init-passport gpassport config)
+(defcom
+  new-passport
+  [config db]
+  [passport]
+  (fn [component]
+    (init-passport config db)
     (init-facebook gpassport config)
     (-> component
       (assoc :passport gpassport)))
-  (stop [component]
-    component
-    )
-  )
-
-(defn new-passport
-  []
-  (component/using
-    (map->InitPassport {})
-    [:config]))
+  (fn [component] component))
