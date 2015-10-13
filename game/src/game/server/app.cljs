@@ -45,6 +45,16 @@
   [app config passport]
 
   (. app (get "/login" #(views/login-page %1 %2)))
+
+  (. app (get "/auth/twitter" (-> passport (.authenticate "twitter"))))
+
+  (. app (get "/auth/twitter/callback" 
+              (-> passport 
+                (.authenticate "twitter"
+                  #js {
+                   :successRedirect "/"
+                   :failureRedirect "/login"
+                   }))))
        
   (. app 
     (get

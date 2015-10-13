@@ -26,10 +26,17 @@
 (def facebook-path 
   (if
     (production?)
-    "/.rts/facebook"
+    "/.rts/facebook.json"
     "/.rts/facebook-test.json"))
 
+(def twitter-path
+  (if
+    (production?)
+    "/.rts/twitter.json"
+    "/.rts/twitter-test.json"))
+
 (def facebook-data (-> fs (.readFileSync (str home facebook-path))))
+(def twitter-data (-> fs (.readFileSync (str home twitter-path))))
 
 (def config
   { 
@@ -52,6 +59,10 @@
    :facebook
    {
     :data facebook-data
+    }
+   :twitter
+   {
+    :data twitter-data
     }
    :paths
    {

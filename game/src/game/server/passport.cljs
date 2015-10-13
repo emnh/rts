@@ -14,6 +14,7 @@
 
 (defonce gpassport (nodejs/require "passport"))
 (defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
+(defonce TwitterStrategy (.-Strategy (nodejs/require "passport-twitter")))
 
 (defn init-passport
   [config db]
@@ -69,6 +70,36 @@
      ]
     (-> passport (.use facebook-strategy))))
 
+(defn
+  init-twitter
+  [passport config]
+  (let
+    [twitter-data
+     (get-in config [:twitter :data])
+     { :keys [ :TWITTER_CONSUMER_KEY :TWITTER_CONSUMER_SECRET ] }
+      (-> js/JSON (.parse twitter-data) (js->clj :keywordize-keys true))
+     _ (println "TWC" TWITTER_CONSUMER_KEY)
+     _ (println "TWS" TWITTER_CONSUMER_SECRET)
+     twitter-fn
+      (fn
+        [token tokenSecret profile done]
+        (done nil profile)
+        )
+     twitter-strategy
+      (new 
+        TwitterStrategy
+        #js 
+        {
+         :consumerKey TWITTER_CONSUMER_KEY
+         :consumerSecret TWITTER_CONSUMER_SECRET
+         :callbackURL "http://localhost:3451/auth/twitter/callback"
+         }
+        twitter-fn)
+     ]
+    (-> passport (.use twitter-strategy))
+    )
+  )
+
 (defcom
   new-passport
   [config db]
@@ -76,6 +107,7 @@
   (fn [component]
     (init-passport config db)
     (init-facebook gpassport config)
+    (init-twitter gpassport config)
     (-> component
       (assoc :passport gpassport)))
   (fn [component] component))

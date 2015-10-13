@@ -39,14 +39,22 @@
 (defn login-page
   [req res]
   (let
-    [i [:i { :class "fa fa-facebook" }]
-     sign "Sign in with Facebook"
-     a
+    [
+     a-fb
       [:a {
            :href "/auth/facebook"
            :class "btn btn-block btn-social btn-facebook"
-           } i sign]
-     div3 [:div { :class "col-sm-4 social-buttons" } a]
+           }
+       [:i { :class "fa fa-facebook" }]
+       "Sign in with Facebook"]
+     a-twitter
+      [:a {
+           :href "/auth/twitter"
+           :class "btn btn-block btn-social btn-twitter"
+           }
+       [:i { :class "fa fa-twitter" }]
+       "Sign in with Twitter"]
+     div3 [:div { :class "col-sm-4 social-buttons" } a-fb a-twitter]
      div2 [:div { :class "row" } div3]
      h1 [:h1 "Login Page"]
      div [:div { :class "container" } h1 div2]
