@@ -5,3 +5,4 @@
   speed when game (requestAnimationFrame) lags
 - Enforce limits on new-game and join-game, 1 per user
 - Enforce unique nicknames inside game, make user type one
+- Don't store multiple user copies (something wrong with query I suppose)
