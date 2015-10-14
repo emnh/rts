@@ -9,7 +9,8 @@
     [game.client.config :as config]
     [game.client.controls :as controls]
     [game.client.ground :as ground]
-    [game.client.page-lobby :as lobby]
+    [game.client.page-lobby :as page-lobby]
+    [game.client.page-game-lobby :as page-game-lobby]
     [game.client.page-not-found :as page-not-found]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
@@ -45,7 +46,8 @@
 (readd-component :controls (controls/new-controls))
 (add-component :init-renderer (renderer/new-init-renderer))
 (add-component :routing (routing/new-router))
-(add-component :lobby (lobby/new-lobby))
+(add-component :page-lobby (page-lobby/new-lobby))
+(add-component :page-game-lobby (page-game-lobby/new-game-lobby))
 (add-component :page-not-found (page-not-found/new-page-not-found))
 
 (def ran (atom false))

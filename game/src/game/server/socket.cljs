@@ -68,6 +68,19 @@
           (-> socket .-handshake .-session .-user)
           (-> (get-in component [:server :io])))))
     (.on
+      socket "join-game"
+      (fn [data]
+        (let
+          [data (js->clj data :keywordize-keys true)
+           game-id (:game-id data)
+           games (:games component)
+           user (-> socket .-handshake .-session .-user)]
+          (games/join-game
+            games
+            game-id
+            user
+            (-> (get-in component [:server :io]))))))
+    (.on
       socket "disconnect"
       (fn []
         (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))

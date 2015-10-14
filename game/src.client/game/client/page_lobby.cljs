@@ -6,6 +6,7 @@
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
+    [game.client.common :as common :refer [list-item]]
     [game.client.routing :as routing]
     [game.client.socket :as socket]
     [sablono.core :as sablono :refer-macros [html]]
@@ -15,15 +16,6 @@
   )
 
 (def page-id (routing/get-page-selector :lobby))
-
-(rum/defc
-  list-item
-  [content & [attrs] ]
-  (if 
-    attrs
-    [:li attrs content]
-    [:li content]))
-
 
 (defn
   select-list-item
@@ -50,7 +42,7 @@
           players (str "(" (count (:players g)) "/" (:max-player-count g) ")")]
          (rum/with-key 
            (list-item
-             (str players " " (:name g) ": " (join "," (vals (:display-names g))))
+             (str players " " (:name g) ": " (join "," (map #(get % :display-name) (vals (:players g)))))
              {:id (:id g) 
               :on-click select-list-item
               })
@@ -69,7 +61,7 @@
 (rum/defc
   message-list < rum/reactive
   [state]
-  [:ul 
+  [:ul { :class "message-list" }
    (for 
      [[i msg] (map-indexed vector (:message-list (rum/react state)))]
      (let
@@ -119,8 +111,13 @@
   [component event]
   (if-let
     [game-id (-> ($ ".game-list .selected") (.attr "id"))]
-    (do
-      (println "game-id" game-id)
+    (let
+      [socket (get-in component [:socket :socket])
+       data #js
+       {
+        :game-id game-id
+        }]
+      (-> socket (.emit "join-game" data))
       (routing/change-page (str "#game-lobby/" game-id "/")))))
 
 (rum/defc
@@ -147,7 +144,7 @@
     [
      div-user-list (html
                      [:div { :class "col-md-3" }
-                      [:h3 "Users" ]
+                      [:h3 "Players" ]
                       (user-list state)])
      div-message-list (html
                         [:div { :class "col-md-9" } 

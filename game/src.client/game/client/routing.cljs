@@ -67,13 +67,15 @@
 
 (defn
   handle-url
-  [url]
+  [component url]
   (doseq
     [pagekey (keys page-list)]
     (-> ($ (get-page-selector pagekey)) (.addClass "invisible")))
   (let
-    [match (bidi/match-route routes url)
+    [route-match (:route-match component)
+     match (bidi/match-route routes url)
      handler (if match (:handler match) :not-found)]
+    (reset! route-match match)
     (println "handler" handler)
     (if 
       (handler page-list)
@@ -96,17 +98,18 @@
   start-router
   [component]
   (let
-    [history 
+    [component (assoc component :route-match (atom {}))
+     history 
       (or
         (:history component) 
         (do
           (let 
             [history (History.)]
-            (goog.events/listen history EventType/NAVIGATE #(handle-url (.-token %)))
+            (goog.events/listen history EventType/NAVIGATE #(handle-url component (.-token %)))
             (doto history (.setEnabled true))
             )))]
     (rum/mount (pages) js/document.body)
-    (handle-url (string/replace-first window.location.hash "#" ""))
+    (handle-url component (string/replace-first window.location.hash "#" ""))
     (->
       component
       (assoc :history history)
@@ -119,7 +122,7 @@
 (defcom
   new-router
   [config]
-  [listen-key]
+  [listen-key route-match]
   start-router
   stop-router
   )

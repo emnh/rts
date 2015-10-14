@@ -46,20 +46,39 @@
     component))
 
 (defn
+  join-game
+  [games game-id user broadcast-socket]
+  (let
+    [userid (db/get-id (-> user .-_id))]
+    (swap!
+      (:games games)
+      (fn [games] 
+        (->
+          games
+          (assoc-in 
+            [game-id :players userid :display-name]
+            (-> user .-displayName)))))
+    (pprint/pprint ["join-game" @(:games games)])
+    (-> broadcast-socket
+      (.emit "game-list" (clj->js @(:games games))))))
+
+(defn
   new-game
   [games user broadcast-socket]
   (let
-    [userid (-> user .-id)
+    [userid (db/get-id (-> user .-_id))
      game
      {
       :host userid
       :started false
       :active true
       :max-player-count 2
-      :players [userid]
-      :display-names
+      :players
       {
-       userid (-> user .-displayName)
+       userid 
+         {
+          :display-name (-> user .-displayName)
+          }
        }
       }]
     (println "new-game" game)

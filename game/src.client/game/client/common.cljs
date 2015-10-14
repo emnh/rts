@@ -2,8 +2,9 @@
     (:require 
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
-              [game.client.config :as config]
+              [rum.core :as rum]
               [com.stuartsierra.component :as component]
+              [game.client.config :as config]
               ))
 
 (defrecord JSObj [initializer data]
@@ -23,3 +24,11 @@
 
 (defn data [component]
   (:data component))
+
+(rum/defc
+  list-item
+  [content & [attrs] ]
+  (if 
+    attrs
+    [:li attrs content]
+    [:li content]))
