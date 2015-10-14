@@ -12,7 +12,7 @@
     (if 
       (= data nil)
       (do
-        (println "Allocating JSObj")
+        ;(println "Allocating JSObj")
         (assoc component :data (initializer)))
       component))
   ;(stop [component] (assoc component :data nil)))

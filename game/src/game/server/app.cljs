@@ -127,7 +127,7 @@
   [app config passport session]
 
   (-> app .-locals .-pretty (set! true))
-  (init-logging app config)
+  ;(init-logging app config)
   (init-session app config passport session)
   (init-static app config)
   (init-routes app config)
