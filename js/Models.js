@@ -66,6 +66,15 @@ export const Models = [
     type: UnitType.Air,
   },
   {
+    name: 'mushroom',
+    path: 'models/3d/mushroom.json',
+    scale: 0.2,
+    texturePath: 'models/images/mushroom.jpg',
+    type: UnitType.Building,
+    canAttack: false,
+    canMove: false,
+  },
+  {
     name: 'farm',
     path: 'models/3d/farm.json',
     scale: 500,
