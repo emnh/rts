@@ -4,21 +4,18 @@
 
   :dependencies [[org.clojure/clojure "1.7.0"]
                  [org.clojure/clojurescript "1.7.122"]
-                 [sablono "0.3.6"]
-                 [hiccups "0.3.0"]
-                 [clojurewerkz/neocons "3.1.0"]
                  [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [sablono "0.3.6"]
-                 [org.omcljs/om "0.9.0"]
-                 [jayq/jayq "2.5.4"]
+                 [bidi "1.20.3"]
                  [com.stuartsierra/component "0.3.0"]
                  [funcool/promesa "0.5.1"]
+                 [hiccups "0.3.0"]
+                 [jayq/jayq "2.5.4"]
                  [rum "0.4.2"]
-                 [bidi "1.20.3"]
+                 [sablono "0.3.6"]
                  ]
 
-  :plugins [[lein-cljsbuild "1.0.4"]
-            [lein-figwheel "0.4.0"]]
+  :plugins [[lein-cljsbuild "1.1.0"]
+            [lein-figwheel "0.4.1"]]
 
   :source-paths ["src"]
 
