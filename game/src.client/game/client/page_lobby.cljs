@@ -34,7 +34,7 @@
   [state]
   (if-let
     [game-list (:game-list (rum/react state))]
-    [:ul { :class "game-list col-md-6" }
+    [:ul { :class "game-list col-md-9" }
      (for 
        [gameid (keys game-list)]
        (let
@@ -160,9 +160,15 @@
                          (join-game component)])
      div-game-list (html
                      [:div { :class "col-md-12" }
-                      (header "Games")
-                      (game-list state)
-                      div-game-buttons
+                       [:div { :class "col-md-9" }
+                        (header "Games")
+                        (game-list state)
+                        div-game-buttons
+                        ]
+                      [:div { :class "col-md-3" }
+                       (header "Profile")
+                       [:a { :href "/logout" } "Logout"]
+                       ]
                       ])
      div-lobby-chat (html
            [:div { :class "col-md-12" }
