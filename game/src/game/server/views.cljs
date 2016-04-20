@@ -60,7 +60,7 @@
            :class "btn btn-block btn-social btn-google"
            }
        [:i { :class "fa fa-google" }]
-       "Sign in with Google (doesn't work currently)"]
+       "Sign in with Google"]
      a-github
      [:a {
            :href "/auth/github"
