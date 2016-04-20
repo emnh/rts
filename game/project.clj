@@ -12,6 +12,7 @@
                  [jayq/jayq "2.5.4"]
                  [rum "0.4.2"]
                  [sablono "0.3.6"]
+                 [prismatic/schema "1.1.0"]
                  ]
 
   :plugins [[lein-cljsbuild "1.1.3"]
