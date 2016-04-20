@@ -10,10 +10,10 @@ cd game; npm install; node figwheel.js
  - Now you can open [the dev page](http://localhost:3451)
 
 # Source folder layout
- - src/game/server: Server code.
- - src.client/game/client: Client code.
- - src.dev/game/server: Small server load wrapper for dev environment.
- - src.client.dev/game/client: Small client load wrapper for dev environment.
+ - [src/game/server](src/game/server): Server code.
+ - [src.client/game/client](src.client/game/client): Client code.
+ - [src.dev/game/server](src.dev/game/server): Small server load wrapper for dev environment.
+ - [src.dev.client/game/client](src.dev.client/game/client): Small client load wrapper for dev environment.
 
 # Web page layout
 Not everything is linked up yet, so overview is here:
