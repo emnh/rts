@@ -2,7 +2,8 @@
  - First of all follow steps under "Getting started" in the main [README.md](../../master/README.md).
  - Then open 2 terminals and run the following:
 ```bash
-cd game; lein figwheel dev dev-client
+```bash
+cd game; ./run.sh
 cd game; npm install; node figwheel.js
 ```
  - Server figwheel runs on port 3450
