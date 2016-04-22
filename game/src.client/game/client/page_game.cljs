@@ -6,13 +6,14 @@
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
-    [game.client.common :as common :refer [new-jsobj list-item]]
+    [game.client.common :as common :refer [new-jsobj list-item data]]
     [game.client.config :as config]
     [game.client.controls :as controls]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
     [game.client.socket :as socket]
+    [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
@@ -46,6 +47,7 @@
       :init-renderer (renderer/new-init-renderer)
       :on-resize (scene/new-on-resize)
       :controls (controls/new-controls)
+      :ground (ground-local/new-init-ground)
       }]
     system
     ))
@@ -57,6 +59,7 @@
     [params 
      {
       :$container ($ page-id)
+      :simplex (data (:simplex component))
       }
      subsystem 
       (with-simple-cause
@@ -75,7 +78,7 @@
 
 (defcom
   new-game
-  []
+  [simplex]
   [subsystem]
   start
   stop
