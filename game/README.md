@@ -11,6 +11,7 @@ cd game; npm install; node figwheel.js
  - Now you can open [the dev page](http://localhost:3451)
 
 # Source folder layout
+ - [src.shared/game/shared](src.shared/game/shared): Code shared between server and client.
  - [src/game/server](src/game/server): Server code.
  - [src.client/game/client](src.client/game/client): Client code.
  - [src.dev/game/server](src.dev/game/server): Small server load wrapper for dev environment.
