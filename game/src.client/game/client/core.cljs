@@ -33,7 +33,7 @@
 (s-add-component system :camera (new-jsobj scene/get-camera))
 (s-add-component system :light1 (new-jsobj #(new js/THREE.DirectionalLight)))
 (s-add-component system :light2 (new-jsobj #(new js/THREE.DirectionalLight)))
-(s-add-component system :light3 (new-jsobj #(new js/THREE.DirectionalLight))) 
+(s-add-component system :light3 (new-jsobj #(new js/THREE.DirectionalLight)))
 (s-add-component system :light4 (new-jsobj #(new js/THREE.DirectionalLight)))
 (s-add-component system :render-stats (new-jsobj #(new js/Stats)))
 (s-add-component system :physics-stats (new-jsobj #(new js/Stats)))
