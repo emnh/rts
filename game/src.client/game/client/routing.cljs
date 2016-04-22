@@ -58,8 +58,8 @@
 
 (defn
   init-page
+  "Centers the page horizontally"
   [$page]
-  $
   (let
     [page-width (-> $page (.find ".container") .width)
      left (max 0 (/ (- (-> js/window .-innerWidth) page-width) 2))]
