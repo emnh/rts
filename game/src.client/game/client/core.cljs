@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.core
-  (:require 
+  (:require
     [cljs.core.async :refer [<! put! chan]]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]
