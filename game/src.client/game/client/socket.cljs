@@ -36,6 +36,7 @@
     (map->InitSocket {})
     []))
 
+; TODO: This rpc is no good. What happens with 2 simultaneous calls before return?
 (defn 
   rpc
   [socket call & {:as args}]
