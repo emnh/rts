@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.page-not-found
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]
@@ -16,12 +16,12 @@
 
 (def page-id (routing/get-page-selector :not-found))
 
-(rum/defc 
+(rum/defc
   content < rum/static
   []
   (html
     [:div
-     { :class "container" } 
+     { :class "container" }
      [:h1 "Page not found"]
      [:a { :href "#lobby" } "Go to Lobby"]]))
 

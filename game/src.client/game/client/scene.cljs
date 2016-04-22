@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.scene
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [jayq.core :as jayq :refer [$]]
     [game.client.config :as config]
@@ -88,7 +88,7 @@
          :z-index 100
          })
       component))
-  (stop [component] 
+  (stop [component]
     (-> ($ (str "." page-class)) .remove)
     component))
 
@@ -120,8 +120,8 @@
   (assoc component :done false)
   )
 
-(defcom 
-  new-init-scene 
+(defcom
+  new-init-scene
   [renderer $overlay camera scene config routing]
   [done]
   (fn [component]

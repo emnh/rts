@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.page_menu
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]

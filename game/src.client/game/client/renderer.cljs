@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.renderer
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [jayq.core :as jayq :refer [$]]
     [game.client.common :as common :refer [data]]
@@ -25,12 +25,12 @@
 (defrecord InitRenderer
   [running renderer camera scene render-stats]
   component/Lifecycle
-  (start [component] 
+  (start [component]
     (let
       [component (assoc component :running (atom true))]
       (render-loop component)
       component))
-  (stop [component] 
+  (stop [component]
     (if
       (not= running nil)
       (reset! running false))

@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.routing
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [clojure.string :as string]
     [jayq.core :as jayq :refer [$]]
@@ -44,13 +44,13 @@
 (rum/defc
   page < rum/static
   [pagekey]
-  [:div 
-   {:id (get-page-element-id pagekey) 
+  [:div
+   {:id (get-page-element-id pagekey)
     :class "top-page"}])
 
 (rum/defc pages
   []
-  [:div 
+  [:div
      (for [pagekey (keys page-list)]
         (rum/with-key (page pagekey) (name pagekey)))
    ]
@@ -77,7 +77,7 @@
      handler (if match (:handler match) :not-found)]
     (reset! route-match match)
     (println "handler" handler)
-    (if 
+    (if
       (handler page-list)
       (do
         (let
@@ -99,11 +99,11 @@
   [component]
   (let
     [component (assoc component :route-match (atom {}))
-     history 
+     history
       (or
-        (:history component) 
+        (:history component)
         (do
-          (let 
+          (let
             [history (History.)]
             (goog.events/listen history EventType/NAVIGATE #(handle-url component (.-token %)))
             (doto history (.setEnabled true))

@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.ground
-    (:require 
+    (:require
       [cljs.pprint :as pprint]
       [jayq.core :as jayq :refer [$]]
       [com.stuartsierra.component :as component]
@@ -48,13 +48,13 @@
 (defrecord InitGround
   [config socket scene mesh]
   component/Lifecycle
-  (start [component] 
+  (start [component]
     (if-not
       (and (data scene) mesh)
       (get-map component config socket scene mesh)
       component))
   (stop [component]
-    (if 
+    (if
       (and (data scene) mesh)
       (scene/remove scene mesh))
     component

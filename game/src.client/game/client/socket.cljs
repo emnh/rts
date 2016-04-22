@@ -1,6 +1,6 @@
 (ns ^:figwheel-always game.client.socket
   (:require-macros [cljs.core.async.macros :refer [go]])
-  (:require 
+  (:require
               [cljs.core.async :refer [<! put! chan]]
               [cljs.pprint :as pprint]
               [cljs.pprint :as pprint]
@@ -11,7 +11,7 @@
               [game.client.common :as common]
               [game.client.config :as config]
               ))
- 
+
 (defrecord InitSocket
   [socket listeners]
   component/Lifecycle
@@ -37,7 +37,7 @@
     []))
 
 ; TODO: This rpc is no good. What happens with 2 simultaneous calls before return?
-(defn 
+(defn
   rpc
   [socket call & {:as args}]
   (if-let

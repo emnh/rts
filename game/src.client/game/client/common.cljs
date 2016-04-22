@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.common
-    (:require 
+    (:require
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
               [rum.core :as rum]
@@ -9,8 +9,8 @@
 
 (defrecord JSObj [initializer data]
   component/Lifecycle
-  (start [component] 
-    (if 
+  (start [component]
+    (if
       (= data nil)
       (do
         ;(println "Allocating JSObj")
@@ -28,7 +28,7 @@
 (rum/defc
   list-item
   [content & [attrs] ]
-  (if 
+  (if
     attrs
     [:li attrs content]
     [:li content]))

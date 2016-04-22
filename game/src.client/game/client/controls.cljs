@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.controls
-    (:require 
+    (:require
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
               [game.client.config :as config]
@@ -204,7 +204,7 @@
       [action (if active #(assoc %1 %2 true) dissoc)
        key-code (-> event .-keyCode)
        combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
-      (if 
+      (if
         (contains? handled-keys combination)
         (do
           (prevent-default event)
@@ -265,7 +265,7 @@
 (defrecord Controls
   [config renderer camera scene old-interval-handler-enabled]
   component/Lifecycle
-  (start [component] 
+  (start [component]
     (let
       [element (scene/get-view-element renderer)
        ]

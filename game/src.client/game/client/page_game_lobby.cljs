@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.page-game-lobby
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]
@@ -40,11 +40,11 @@
            }]
   )
 
-(rum/defc 
+(rum/defc
   user-list < rum/reactive
   [state]
   [:ul { :class "user-list" }
-   (for 
+   (for
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
       (rum/with-key (list-item u) i))])
 
@@ -52,7 +52,7 @@
   message-list < rum/reactive
   [state]
   [:ul { :class "message-list" }
-   (for 
+   (for
      [[i msg] (map-indexed vector (:message-list (rum/react state)))]
      (let
        [msg (str (:user msg) "> " (:message msg))]
@@ -65,8 +65,8 @@
     [
      routing (:routing component)
      route-match (rum/react (:route-match routing))
-     game-id 
-      (if 
+     game-id
+      (if
         (and route-match (= (:handler route-match) :game-lobby))
         (do
           (println "route-match" route-match)
@@ -77,12 +77,12 @@
                       [:h3 "Players" ]
                       (user-list state)])
      div-message-list (html
-                        [:div { :class "col-md-9" } 
+                        [:div { :class "col-md-9" }
                          (message-list state)
                          (chat-input component)])
      div-game-lobby-chat (html
                            [:div { :class "col-md-12" }
-                            [:div [:h1 
+                            [:div [:h1
                                    { :class "page-header" }
                                    (str "Game Lobby Chat for " game-id)]]
                             div-message-list
