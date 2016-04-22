@@ -10,8 +10,8 @@
                  [funcool/promesa "0.5.1"]
                  [hiccups "0.3.0"]
                  [jayq/jayq "2.5.4"]
-                 [rum "0.4.2"]
-                 [sablono "0.3.6"]
+                 [rum "0.8.1"]
+                 [sablono "0.7.0"]
                  [prismatic/schema "1.1.0"]
                  ]
 
