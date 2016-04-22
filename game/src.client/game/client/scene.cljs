@@ -15,7 +15,7 @@
 
 (defn on-resize
   [onresize event]
-  (println "Resize called")
+  ; (println "Resize called")
   (let
     [
      config (:config onresize)
@@ -123,7 +123,6 @@
   [params renderer $overlay camera scene config]
   [done]
   (fn [component]
-    (.log js/console "appending" ($ (:container-id params)) (-> (data renderer) .-domElement))
     (.append ($ (:container-id params)) (-> (data renderer) .-domElement))
     (.append ($ (:container-id params)) (data $overlay))
     (if-not done

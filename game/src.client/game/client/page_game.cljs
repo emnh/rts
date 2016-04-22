@@ -54,7 +54,7 @@
 
 (defn start
   [component]
-  (println "starting game component")
+  ; (println "starting game component")
   (let
     [params 
      {

@@ -58,7 +58,7 @@
 (rum/defc
   pages
   []
-  (println "mounting pages")
+  ; (println "mounting pages")
   [:div
      (for [pagekey (get-pages)]
         (rum/with-key (page pagekey) (name pagekey)))
@@ -95,8 +95,7 @@
           (-> $page (.removeClass "invisible"))
           )
         )
-      ))
-  (println "url" url))
+      )))
 
 (defn
   change-page

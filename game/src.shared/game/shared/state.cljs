@@ -18,7 +18,7 @@
   [k v]
   (if 
     (k @system)
-    (println "stopping component" k)
+    ;(println "stopping component" k)
     (component/stop k)
     )
   (swap! system #(assoc % k v)))
