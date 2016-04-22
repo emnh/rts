@@ -37,3 +37,19 @@
     (component/stop k)
     )
   (swap! local-system #(assoc % k v)))
+
+(defn with-simple-cause
+  [f]
+  (try
+    (f)
+    (catch js/Object e
+      (let
+        [simple-e (component/ex-without-components e)]
+        (if
+          (boolean (re-find #"Missing dependency" (aget simple-e "message")))
+          (throw simple-e)
+          (do
+            (.log js/console simple-e)
+            (.log js/console (aget simple-e "cause"))
+            (throw (aget simple-e "cause"))
+            ))))))

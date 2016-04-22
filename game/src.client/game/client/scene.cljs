@@ -4,7 +4,6 @@
     [jayq.core :as jayq :refer [$]]
     [game.client.config :as config]
     [game.client.common :as common :refer [data]]
-    [game.client.routing :as routing]
     [com.stuartsierra.component :as component]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
@@ -12,7 +11,6 @@
 
 (enable-console-print!)
 
-(def page-id (str "#" (routing/get-page-element-id :game)))
 (def page-class "page-game")
 
 (defn on-resize
@@ -58,7 +56,7 @@
     (map->OnResize {})
     [:config :scene :camera :renderer :$overlay :init-scene]))
 
-(defrecord InitStats [render-stats physics-stats]
+(defrecord InitStats [params render-stats physics-stats]
   component/Lifecycle
   (start [component]
     (let
@@ -67,7 +65,7 @@
        physics-stats (data physics-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $physics-stats ($ (-> physics-stats .-domElement))
-       $container ($ page-id)
+       $container (:$container params)
        ]
       (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
@@ -96,7 +94,7 @@
   []
   (component/using
     (map->InitStats {})
-    [:render-stats :physics-stats :routing]))
+    [:params :render-stats :physics-stats]))
 
 (defn get-width
   []
@@ -122,7 +120,7 @@
 
 (defcom
   new-init-scene
-  [renderer $overlay camera scene config routing]
+  [params renderer $overlay camera scene config]
   [done]
   (fn [component]
     (if-not done
@@ -131,7 +129,7 @@
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
-          (#(.append ($ page-id) (-> % .-domElement)))
+          (#(.append (:$container params) (-> % .-domElement)))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(jayq/css
             ($ (-> % .-domElement))
@@ -142,7 +140,7 @@
              })))
         (doto
           (data $overlay)
-          (#(.append ($ page-id) %))
+          (#(.append (:$container params) %))
           (.addClass page-class)
           (jayq/css
             {
