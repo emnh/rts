@@ -31,3 +31,12 @@ Not everything is linked up yet, so overview is here:
 - Enforce limits on new-game and join-game, 1 per user
 - Enforce unique nicknames inside game, make user type one
 - Don't store multiple user copies (something wrong with query I suppose)
+
+## Component cleanup
+ - Pure functions first! The point is to be reusable.
+ - Add a prefix to allow multiple components or nest systems (which is recommended against).
+ - Pages: What to do? Lifecycle implementation with start-page and stop-page?
+   But this requires keeping the system and calling on it, plus dependencies are not really needed.
+   Perhaps register with router component. Yes. start-page and stop-page must
+   be called from routing component.
+
