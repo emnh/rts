@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.client.page-lobby
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
     [jayq.core :as jayq :refer [$]]
@@ -22,39 +22,39 @@
   [event]
   (let
     [target (-> event .-target $)]
-    (-> 
+    (->
       target
       .siblings
       (.removeClass "selected"))
     (-> target
       (.toggleClass "selected"))))
 
-(rum/defc 
+(rum/defc
   game-list < rum/reactive
   [state]
   (if-let
     [game-list (:game-list (rum/react state))]
     [:ul { :class "game-list col-md-9" }
-     (for 
+     (for
        [gameid (keys game-list)]
        (let
          [g (get game-list gameid)
           players (str "(" (count (:players g)) "/" (:max-player-count g) ")")]
-         (rum/with-key 
+         (rum/with-key
            (list-item
              (str players " " (:name g) ": " (join "," (map #(get % :display-name) (vals (:players g)))))
-             {:id (:id g) 
+             {:id (:id g)
               :on-click select-list-item
               })
            (:id g)
            )))]
     [:div "No active games"]))
 
-(rum/defc 
+(rum/defc
   user-list < rum/reactive
   [state]
   [:ul { :class "user-list" }
-   (for 
+   (for
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
       (rum/with-key (list-item u) i))])
 
@@ -62,7 +62,7 @@
   message-list < rum/reactive
   [state]
   [:ul { :class "message-list" }
-   (for 
+   (for
      [[i msg] (map-indexed vector (:message-list (rum/react state)))]
      (let
        [msg (str (:user msg) "> " (:message msg))]
@@ -123,10 +123,10 @@
 (rum/defc
   join-game < rum/static
   [component]
-  [:button 
+  [:button
    {
     :class "btn btn-default btn-lg btn-outline"
-    :type "button" 
+    :type "button"
     :on-click (partial join-game-handler component)
     } "Join Game"])
 
@@ -135,10 +135,10 @@
   [h]
   [:div [:h1 { :class "page-header" } h]])
 
-(rum/defc 
-  lobby < rum/static 
+(rum/defc
+  lobby < rum/static
   [component state]
-  (let 
+  (let
     ; calling html on each list item as workaround
     ; see https://github.com/r0man/sablono/issues/57
     [
@@ -147,12 +147,12 @@
                       [:h3 "Players" ]
                       (user-list state)])
      div-message-list (html
-                        [:div { :class "col-md-9" } 
+                        [:div { :class "col-md-9" }
                          (message-list state)
                          (chat-input component)])
      div-game-buttons (html
-                        [:div 
-                         { 
+                        [:div
+                         {
                           :class "btn-group game-buttons col-md-12"
                           :role "group"
                           }
@@ -194,22 +194,22 @@
 (defn
   update-message-list
   [state message]
-  (swap! 
-    state 
+  (swap!
+    state
     (fn [state]
-      (update-in 
-        state 
+      (update-in
+        state
         [:message-list]
         (fn
           [mlist]
-          (conj 
+          (conj
             (subvec mlist (max 0 (- (count mlist) 20)))
             message))))))
 
 (defn start
   [component]
   (let
-    [state 
+    [state
       (or
         (:state component)
         (atom {
@@ -219,8 +219,8 @@
      done (:done component)
      socket (:socket component)
      ]
-    (if-not 
-      done 
+    (if-not
+      done
       (do
         (socket/on socket "user-list" (partial update-user-list state))
         (socket/on socket "game-list" (partial update-game-list state))
@@ -235,7 +235,7 @@
 
 (defn stop [component] component)
 
-(defcom 
+(defcom
   new-lobby
   [config socket routing]
   [state done]
