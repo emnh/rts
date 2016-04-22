@@ -58,7 +58,8 @@
   (let
     [params 
      {
-      :$container ($ page-id)
+      ; must look up ($ page-id) every reload, because of rum remounts on reload
+      :container-id page-id
       :simplex (data (:simplex component))
       }
      subsystem 
@@ -74,11 +75,18 @@
 
 (defn stop
   [component]
-  component)
+  (let
+    [subsystem
+      (if-let
+        [s (:subsystem component)]
+        (with-simple-cause
+          #(component/stop-system s)))
+     component (assoc component :subsystem subsystem)]
+    component))
 
 (defcom
   new-game
-  [simplex]
+  [simplex routing]
   [subsystem]
   start
   stop

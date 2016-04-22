@@ -65,7 +65,7 @@
        physics-stats (data physics-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $physics-stats ($ (-> physics-stats .-domElement))
-       $container (:$container params)
+       $container ($ (:container-id params))
        ]
       (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
@@ -123,13 +123,15 @@
   [params renderer $overlay camera scene config]
   [done]
   (fn [component]
+    (.log js/console "appending" ($ (:container-id params)) (-> (data renderer) .-domElement))
+    (.append ($ (:container-id params)) (-> (data renderer) .-domElement))
+    (.append ($ (:container-id params)) (data $overlay))
     (if-not done
       (do
         (doto
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
-          (#(.append (:$container params) (-> % .-domElement)))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(jayq/css
             ($ (-> % .-domElement))
@@ -140,7 +142,6 @@
              })))
         (doto
           (data $overlay)
-          (#(.append (:$container params) %))
           (.addClass page-class)
           (jayq/css
             {

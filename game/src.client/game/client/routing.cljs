@@ -55,8 +55,10 @@
    {:id (get-page-element-id pagekey)
     :class "top-page"}])
 
-(rum/defc pages
+(rum/defc
+  pages
   []
+  (println "mounting pages")
   [:div
      (for [pagekey (get-pages)]
         (rum/with-key (page pagekey) (name pagekey)))
@@ -114,7 +116,8 @@
             [history (History.)]
             (goog.events/listen history EventType/NAVIGATE #(handle-url component (.-token %)))
             (doto history (.setEnabled true))
-            )))]
+            )))
+     ]
     (rum/mount (pages) js/document.body)
     (handle-url component (string/replace-first window.location.hash "#" ""))
     (->
@@ -129,7 +132,7 @@
 (defcom
   new-router
   [config]
-  [listen-key route-match]
+  [history route-match]
   start-router
   stop-router
   )

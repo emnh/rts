@@ -65,9 +65,9 @@
       (get-map component config scene mesh (:simplex params))
       component))
   (stop [component]
-    (if
-      mesh
-      (scene/remove scene mesh))
+    ;(if
+    ;  mesh
+    ;  (scene/remove scene mesh))
     component
     ))
 
