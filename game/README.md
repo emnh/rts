@@ -2,9 +2,15 @@
  - First of all follow steps under "Getting started" in the main [README.md](../../master/README.md).
  - Then open 2 terminals and run the following:
 ```bash
+cd game
+./run.sh
+```
 ```bash
-cd game; ./run.sh
-cd game; npm install; node figwheel.js
+cd game
+npm install
+# for some reason the github repo is not pulled
+npm install 'missingdays/three.js-node#master'
+node figwheel.js
 ```
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
