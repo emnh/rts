@@ -5,7 +5,13 @@
   "engines": {
     "node": "4.1.1"
   },
+  "repository" : {
+    "type" : "git",
+    "url" : "http://github.com/emnh/rts.git"
+  },
   "dependencies": {
+    "static-kdtree": "1.0.1",
+    "box-intersect": "1.0.1",
     "express": "4.13.3",
     "express-session": "1.11.3",
     "morgan": "1.6.1",
