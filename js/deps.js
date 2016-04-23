@@ -5,5 +5,3 @@ window.bootstrap = require('bootstrap');
 window.boxIntersect = require('box-intersect');
 window.kdtree = require('static-kdtree');
 window.TWEEN = require('tween.js');
-window.howler = require('howler');
-window.StackTrace = require('stacktrace-js');
