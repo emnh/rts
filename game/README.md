@@ -18,7 +18,7 @@ If the demo doesn't work for you, you can watch videos of it at YouTube:
 See also [mdx-m3-viewer](https://github.com/flowtsohg/mdx-m3-viewer).
 All credits to flowtsohg for decoding the M3 format in JavaScript.
 
-# Getting started
+# Getting started with development environment
  - First
 
 ```bash
@@ -26,7 +26,8 @@ git clone https://github.com/emnh/rts rts
 cd rts
 git submodule update --init
 npm install
-./scripts/compile-deps.sh
+npm install 'missingdays/three.js-node#master'
+./scripts/compile.sh
 ```
 
  - Then open 2 terminals and run the following:
@@ -36,9 +37,6 @@ cd game
 ```
 ```bash
 cd game
-npm install
-# for some reason the github repo is not pulled
-npm install 'missingdays/three.js-node#master'
 node figwheel.js
 ```
  - Server figwheel runs on port 3450
@@ -53,6 +51,8 @@ lein cljsbuild once prod-client
 ./scripts/docker-build.sh
 ./scripts/docker-run.sh
 ```
+
+Instead of using docker you can just run prod.js.
 
 # Source folder layout
  - [src.shared/game/shared](src.shared/game/shared): Code shared between server and client.
