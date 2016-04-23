@@ -3,34 +3,36 @@
   "version": "0.1.0",
   "private": "true",
   "engines": {
-    "node": "4.1.1"
+    "node": "5.10.1"
   },
   "repository" : {
     "type" : "git",
     "url" : "http://github.com/emnh/rts.git"
   },
   "dependencies": {
-    "static-kdtree": "1.0.1",
     "box-intersect": "1.0.1",
+    "browserify": "13.0.0",
+    "connect-mongodb-session": "1.0.5",
+    "cookie-parser": "1.4.0",
     "express": "4.13.3",
     "express-session": "1.11.3",
+    "pug": "2.0.0-alpha6",
+    "js-beautify": "1.5.10",
+    "mongodb": "2.0.45",
     "morgan": "1.6.1",
-    "tracer": "0.8.0",
-    "cookie-parser": "1.4.0",
-    "socket.io": "1.4.5",
-    "serve-static": "1.10.0",
     "passport": "0.3.0",
     "passport-facebook": "2.0.0",
-    "passport-twitter": "1.0.3",
-    "passport-google-oauth": "0.2.0",
     "passport-github": "1.0.0",
-    "mongodb": "2.0.45",
+    "passport-google-oauth": "0.2.0",
+    "passport-twitter": "1.0.3",
+    "peerjs": "0.3.14",
+    "serve-static": "1.10.0",
     "simplex-noise": "2.2.0",
-    "three.js": "missingdays/three.js-node#master",
-    "js-beautify": "1.5.10",
+    "socket.io": "1.4.5",
     "socket.io-express-session": "xpepermint/socket.io-express-session#master",
-    "connect-mongodb-session": "1.0.5",
-    "peerjs": "0.3.14"
+    "static-kdtree": "1.0.1",
+    "three.js": "missingdays/three.js-node#master",
+    "tracer": "0.8.0"
   },
   "devDependencies": {
     "source-map-support": "0.4.0",
