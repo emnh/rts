@@ -37,7 +37,7 @@ cd game
 ```
 ```bash
 cd game
-node figwheel.js
+node js/figwheel.js
 ```
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
@@ -52,7 +52,7 @@ lein cljsbuild once prod-client
 ./scripts/docker-run.sh
 ```
 
-Instead of using docker you can just run prod.js.
+Instead of using docker you can just run js/prod.js.
 
 # Source folder layout
  - [src.shared/game/shared](src.shared/game/shared): Code shared between server and client.

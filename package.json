@@ -37,6 +37,6 @@
     "ws": "1.1.0"
   },
   "scripts": {
-    "start": "node prod.js"
+    "start": "node js/prod.js"
   }
 }
