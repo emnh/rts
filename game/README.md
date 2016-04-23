@@ -3,7 +3,7 @@
  - Then open 2 terminals and run the following:
 ```bash
 cd game
-./run.sh
+./scripts/dev.sh
 ```
 ```bash
 cd game
