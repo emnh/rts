@@ -2,12 +2,14 @@
   :description "A real time strategy game"
   :url "http://emh.lart.no/rts-prod"
 
-  :dependencies [[org.clojure/clojure "1.7.0"]
-                 [org.clojure/clojurescript "1.7.122"]
-                 [org.clojure/core.async "0.1.346.0-17112a-alpha"]
-                 [bidi "1.20.3"]
+  :dependencies [[org.clojure/clojure "1.8.0"]
+                 [org.clojure/clojurescript "1.8.40"]
+                 [org.clojure/core.async "0.2.374"]
+                 [bidi "2.0.7"]
                  [com.stuartsierra/component "0.3.1"]
-                 [funcool/promesa "0.5.1"]
+                 [funcool/cats "1.2.1"]
+                 [funcool/promesa "1.1.1"]
+                 ;[funcool/promesa "0.5.1"]
                  [hiccups "0.3.0"]
                  [jayq/jayq "2.5.4"]
                  [rum "0.8.1"]

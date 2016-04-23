@@ -5,6 +5,7 @@
     [com.stuartsierra.component :as component]
     [promesa.core :as p]
     [cats.core :as m]
+    [cats.builtin]
     [game.server.db :as db]
     [game.server.games :as games]
     )

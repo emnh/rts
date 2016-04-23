@@ -3,8 +3,10 @@
   (:require
     [cljs.nodejs :as nodejs]
     [com.stuartsierra.component :as component]
-    [promesa.core :as p]
     [cats.core :as m]
+    [cats.builtin]
+    [promesa.core :as p]
+    [promesa.monad]
     ))
 
 (defonce mongo-client (nodejs/require "mongodb"))

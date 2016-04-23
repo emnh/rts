@@ -3,8 +3,10 @@
     [cljs.nodejs :as nodejs]
     [cljs.pprint :as pprint]
     [hiccups.runtime :as hiccupsrt]
-    [promesa.core :as p]
     [cats.core :as m]
+    [cats.builtin]
+    [promesa.core :as p]
+    [promesa.monad]
     [com.stuartsierra.component :as component]
     [game.server.db :as db]
     )
