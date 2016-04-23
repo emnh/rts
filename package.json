@@ -10,6 +10,7 @@
     "url" : "http://github.com/emnh/rts.git"
   },
   "dependencies": {
+    "bootstrap": "3.3.6",
     "box-intersect": "1.0.1",
     "browserify": "13.0.0",
     "connect-mongodb-session": "1.0.5",
@@ -17,6 +18,7 @@
     "express": "4.13.3",
     "express-session": "1.11.3",
     "pug": "2.0.0-alpha6",
+    "jquery": "2.2.3",
     "js-beautify": "1.5.10",
     "mongodb": "2.0.45",
     "morgan": "1.6.1",
@@ -32,7 +34,8 @@
     "socket.io-express-session": "xpepermint/socket.io-express-session#master",
     "static-kdtree": "1.0.1",
     "three.js": "missingdays/three.js-node#master",
-    "tracer": "0.8.0"
+    "tracer": "0.8.0",
+    "tween.js": "16.3.4"
   },
   "devDependencies": {
     "source-map-support": "0.4.0",
