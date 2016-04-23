@@ -13,8 +13,8 @@ import re
 import json
 
 def main():
-    modelPath = 'models/3d'
-    imagePath = 'models/images'
+    modelPath = 'resources/public/models/3d'
+    imagePath = 'resources/public/models/images'
     models = {}
     images = {}
     export = {
@@ -24,10 +24,12 @@ def main():
     for fname in os.listdir(modelPath):
         dname = os.path.join(modelPath, fname)
         size = os.path.getsize(dname)
+        dname = dname.replace('resources/public/', '')
         models[dname] = size
     for fname in os.listdir(imagePath):
         dname = os.path.join(imagePath, fname)
         size = os.path.getsize(dname)
+        dname = dname.replace('resources/public/', '')
         images[dname] = size
     j = json.dumps(export, sort_keys=True, indent=2, separators=(',', ': '))
     print j
