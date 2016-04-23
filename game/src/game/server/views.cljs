@@ -37,33 +37,33 @@
   ))
 
 (defn login-page
-  [req res]
+  [baseurl req res]
   (let
     [
      a-fb
       [:a {
-           :href "/auth/facebook"
+           :href (str baseurl "auth/facebook")
            :class "btn btn-block btn-social btn-facebook"
            }
        [:i { :class "fa fa-facebook" }]
        "Sign in with Facebook"]
      a-twitter
       [:a {
-           :href "/auth/twitter"
+           :href (str baseurl "auth/twitter")
            :class "btn btn-block btn-social btn-twitter"
            }
        [:i { :class "fa fa-twitter" }]
        "Sign in with Twitter"]
      a-google
      [:a {
-           :href "/auth/google"
+           :href (str baseurl "auth/google")
            :class "btn btn-block btn-social btn-google"
            }
        [:i { :class "fa fa-google" }]
        "Sign in with Google"]
      a-github
      [:a {
-           :href "/auth/github"
+           :href (str baseurl "auth/github")
            :class "btn btn-block btn-social btn-github"
            }
        [:i { :class "fa fa-github" }]

@@ -51,7 +51,7 @@
 (defn init-auth-routes
   [app config passport baseurl]
 
-  (. app (get "/login" #(views/login-page %1 %2)))
+  (. app (get "/login" #(views/login-page baseurl %1 %2)))
 
   (. app (get "/auth/github"
               (-> passport
