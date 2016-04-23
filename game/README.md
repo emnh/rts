@@ -16,6 +16,15 @@ node figwheel.js
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
  - Now you can open [the dev page](http://localhost:3451)
 
+# Building for production
+
+```bash
+lein cljsbuild once prod
+lein cljsbuild once prod-client
+./scripts/docker-build.sh
+./scripts/docker-run.sh
+```
+
 # Source folder layout
  - [src.shared/game/shared](src.shared/game/shared): Code shared between server and client.
  - [src/game/server](src/game/server): Server code.
