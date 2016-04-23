@@ -91,3 +91,10 @@ Not everything is linked up yet, so overview is here:
    Perhaps register with router component. Yes. start-page and stop-page must
    be called from routing component.
 
+## Authentication
+ - Remove authentication for everything except lobby and multiplayer
+ - Update authentication tokens for
+  - Facebook
+  - Twitter
+  - Google
+  - Github (Done)
