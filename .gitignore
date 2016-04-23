@@ -1,13 +1,9 @@
 /bower_components
-/bundle2.js
-/bundle-deps.js
-/bundle.js
+/resources/public/bundle-deps.js
 /classes/
-/compile2.sh
 figwheel_server.log
 /index.html
 *.jar
-/jscache/three71.js
 .lein-deps-sum
 .lein-plugins/
 .lein-repl-history
