@@ -30,7 +30,9 @@
 
 (defn init-static
   [app config]
-  (. app (use "/" (fn [req res next] (security/ensureAuthenticated req res next))))
+  (let
+    [baseurl (get-in config [:server :url])]
+    (. app (use "/" (fn [req res next] (security/ensureAuthenticated req res next baseurl)))))
   (. app (use (serve-static "resources/public" #js {:index "index.html"})))
   (. app (use (serve-static "..")))
   (. app (use (serve-static (get-in config [:paths :src]))))
@@ -47,7 +49,7 @@
   )
 
 (defn init-auth-routes
-  [app config passport]
+  [app config passport baseurl]
 
   (. app (get "/login" #(views/login-page %1 %2)))
 
@@ -60,7 +62,10 @@
               (-> passport
                 (.authenticate
                   "github"
-                  #js { :failureRedirect "/login" }))
+                  #js { 
+                       :failureRedirect (str baseurl "login") 
+                       :successRedirect baseurl
+                       }))
               (fn [req res]
                 (println "github callback request")
                 (-> res (.redirect "/")))))
@@ -82,8 +87,11 @@
               (-> passport
                 (.authenticate
                   "google"
-                  #js { :failureRedirect "/login" 
-                        :successRedirect "/" }))
+                  #js 
+                  {
+                   :failureRedirect (str baseurl "login")
+                   :successRedirect baseurl
+                   }))
               (fn [req res]
                 (-> res (.redirect "/")))))
 
@@ -93,8 +101,8 @@
               (-> passport 
                 (.authenticate "twitter"
                   #js {
-                   :successRedirect "/"
-                   :failureRedirect "/login"
+                   :failureRedirect (str baseurl "login")
+                   :successRedirect baseurl
                    }))))
        
   (. app 
@@ -109,7 +117,12 @@
   (. app
      (get
        "/auth/facebook/callback" 
-       (-> passport (.authenticate "facebook" #js { :failureRedirect "/login" }))
+       (-> passport (.authenticate 
+                      "facebook"
+                      #js { 
+                           :failureRedirect (str baseurl "login")
+                           :successRedirect baseurl
+                           }))
        (fn [req res]
          (-> res (.redirect "/")))))
 
@@ -131,7 +144,9 @@
   (init-session app config passport session)
   (init-static app config)
   (init-routes app config)
-  (init-auth-routes app config passport)
+  (let
+    [baseurl (get-in config [:server :url])]
+    (init-auth-routes app config passport baseurl))
   )
   
 (defrecord App

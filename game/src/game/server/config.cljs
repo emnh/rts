@@ -55,7 +55,7 @@
 (def url
   (if
     (production?)
-    "http://emh.lart.no:3551/"
+    "http://emh.lart.no/rts/"
     "http://localhost:3451/"
     ))
 
@@ -105,7 +105,10 @@
     }
    :db 
    {
-    :url "mongodb://localhost:27017/rts"
+    :url (if 
+           (production?)
+           "mongodb://mongodb:27017/rts"
+           "mongodb://localhost:27017/rts")
     }
    }
   )
