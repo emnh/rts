@@ -168,7 +168,7 @@
                         ]
                       [:div { :class "col-md-3" }
                        (header "Profile")
-                       [:a { :href "/logout" } "Logout"]
+                       [:a { :href "logout" } "Logout"]
                        ]
                       ])
      div-lobby-chat (html

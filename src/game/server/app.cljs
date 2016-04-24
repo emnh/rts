@@ -131,9 +131,7 @@
        "/logout"
        (fn [req res]
          (-> req .logout)
-         (-> res (.redirect "/")))))
-
-
+         (-> res (.redirect (str baseurl))))))
   )
 
 (defn init-app
