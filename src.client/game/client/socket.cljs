@@ -21,7 +21,7 @@
         (let
           [
            socket-io-URL (str (-> js/window .-location))
-           re #"http://[^/]*(/.*)#.*"
+           re #"https?://[^/]*(/.*)#.*"
            path (str (nth (re-find re socket-io-URL) 1) "socket.io")
            socket (-> (js/io
                         socket-io-URL
