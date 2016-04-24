@@ -93,8 +93,3 @@ Not everything is linked up yet, so overview is here:
 
 ## Authentication
  - Remove authentication for everything except lobby and multiplayer
- - Update authentication tokens for
-  - Facebook
-  - Twitter
-  - Google
-  - Github (Done)
