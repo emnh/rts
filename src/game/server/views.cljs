@@ -15,12 +15,11 @@
   (let
     [
      css
-     [
-      "csscache/bootstrap.min.css"
-      "csscache/bootstrap-theme.min.css"
-      "csscache/font-awesome.css"
-      "csscache/docs.css"
-      "csscache/bootstrap-social.css"
+     ["./csscache/bootstrap.min.css"
+      "./csscache/bootstrap-theme.min.css"
+      "./csscache/font-awesome.css"
+      "./csscache/bootstrap-social-docs.css"
+      "./csscache/bootstrap-social.css"
       ]
      scripts
      [
