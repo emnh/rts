@@ -1,4 +1,5 @@
 NAME=rts
+sudo docker stop $NAME
 sudo docker rm $NAME
 sudo docker run \
   --name $NAME \
