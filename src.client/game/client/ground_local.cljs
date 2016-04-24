@@ -7,12 +7,11 @@
       [cats.core :as m]
       [game.client.common :as common :refer [data]]
       [game.client.config :as config]
-      [game.client.scene :as scene]
       ))
 
 
 (defn get-map
-  [component config scene mesh simplex]
+  [component config mesh simplex]
   (let
     [
      grass (-> js/THREE .-ImageUtils (.loadTexture "models/images/grass.jpg"))
@@ -53,21 +52,17 @@
       (-> geometry .computeVertexNormals)
       (let
         [mesh (new THREE.Mesh geometry material)]
-        (scene/add scene mesh)
         (assoc component :mesh mesh))))
 
 (defrecord InitGroundLocal
-  [config scene mesh params]
+  [config mesh params]
   component/Lifecycle
   (start [component]
     (if-not
       mesh
-      (get-map component config scene mesh (:simplex params))
+      (get-map component config mesh (:simplex params))
       component))
   (stop [component]
-    ;(if
-    ;  mesh
-    ;  (scene/remove scene mesh))
     component
     ))
 
@@ -75,4 +70,4 @@
   []
   (component/using
     (map->InitGroundLocal {})
-    [:config :scene :params]))
+    [:config :params]))

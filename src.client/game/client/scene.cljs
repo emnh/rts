@@ -120,7 +120,7 @@
 
 (defcom
   new-init-scene
-  [params renderer $overlay camera scene config]
+  [params renderer $overlay camera scene config ground]
   [done]
   (fn [component]
     (.append ($ (:container-id params)) (-> (data renderer) .-domElement))
@@ -157,6 +157,18 @@
            z (-> (data scene) .-position .-z)
            pos (new THREE.Vector3 x y z)]
           (-> (data camera) (.lookAt pos)))
+        (let
+          [mesh (:mesh ground)
+           newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))
+           newmesh2 (new THREE.Mesh 
+                        (new THREE.SphereGeometry 5 32 32)
+                        (new THREE.MeshBasicMaterial #js { :color 0xff0000 }))
+           ]
+          (println "newmesh" newmesh)
+          (println "newmesh2" newmesh2)
+          (add scene newmesh)
+          ;(add scene newmesh2)
+          )
         (assoc component :done true))
       component))
   (fn [component]
@@ -202,16 +214,15 @@
       (-> light2 .-castShadow (set! true))
       (-> light3 .-castShadow (set! true))
       (-> light4 .-castShadow (set! true))
-      (-> light1 .-shadowCameraLeft (set! (- (config/get-terrain-width config))))
-      (-> light1 .-shadowCameraTop (set! (- (config/get-terrain-height config))))
-      (-> light1 .-shadowCameraRight (set! (+ (config/get-terrain-width config))))
-      (-> light1 .-shadowCameraBottom (set! (+ (config/get-terrain-height config))))
-      (-> light1 .-shadowCameraNear (set! (-> (get-camera) .-near)))
-      (-> light1 .-shadowCameraFar (set! (-> (get-camera) .-far)))
-      (-> light1 .-shadowBias (set! -0.0001))
-      (-> light1 .-shadowMapWidth (set! 2048))
-      (-> light1 .-shadowMapHeight (set! 2048))
-      (-> light1 .-shadowDarkness (set! 1.0))
+      (-> light1 .-shadow .-camera .-left (set! (- (config/get-terrain-width config))))
+      (-> light1 .-shadow .-camera .-top (set! (- (config/get-terrain-height config))))
+      (-> light1 .-shadow .-camera .-right (set! (+ (config/get-terrain-width config))))
+      (-> light1 .-shadow .-camera .-bottom (set! (+ (config/get-terrain-height config))))
+      (-> light1 .-shadow .-camera .-near (set! (-> (get-camera) .-near)))
+      (-> light1 .-shadow .-camera .-far (set! (-> (get-camera) .-far)))
+      (-> light1 .-shadow .-bias (set! -0.0001))
+      (-> light1 .-shadow .-mapSize .-width (set! 2048))
+      (-> light1 .-shadow .-mapSize .-height (set! 2048))
       (add scene light1)
       (add scene light2)
       (add scene light3)

@@ -39,6 +39,7 @@
       :light2 (new-jsobj #(new js/THREE.DirectionalLight))
       :light3 (new-jsobj #(new js/THREE.DirectionalLight))
       :light4 (new-jsobj #(new js/THREE.DirectionalLight))
+      :ground (ground-local/new-init-ground)
       :render-stats (new-jsobj #(new js/Stats))
       :physics-stats (new-jsobj #(new js/Stats))
       :init-scene (scene/new-init-scene)
@@ -47,7 +48,6 @@
       :init-renderer (renderer/new-init-renderer)
       :on-resize (scene/new-on-resize)
       :controls (controls/new-controls)
-      :ground (ground-local/new-init-ground)
       }]
     system
     ))
