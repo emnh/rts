@@ -26,7 +26,6 @@ git clone https://github.com/emnh/rts rts
 cd rts
 git submodule update --init
 npm install
-npm install 'missingdays/three.js-node#master'
 ./scripts/compile.sh
 ```
 

@@ -33,7 +33,7 @@
     "socket.io": "1.4.5",
     "socket.io-express-session": "xpepermint/socket.io-express-session#master",
     "static-kdtree": "1.0.1",
-    "three.js": "missingdays/three.js-node#master",
+    "three": "0.76.1",
     "tracer": "0.8.0",
     "tween.js": "16.3.4"
   },

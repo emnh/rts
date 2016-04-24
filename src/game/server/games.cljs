@@ -13,8 +13,6 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(defonce three (nodejs/require "three.js-node"))
-
 (defcom
   new-games
   [config db]

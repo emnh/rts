@@ -5,8 +5,10 @@
     [com.stuartsierra.component :as component]
     ))
 
+;(nodejs/enable-util-print!)
+
 (defonce simplex (nodejs/require "simplex-noise"))
-(defonce three (nodejs/require "three.js-node"))
+(defonce three (nodejs/require "three"))
 
 (defrecord Noise
   [noisegen]
