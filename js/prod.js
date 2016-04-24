@@ -5,7 +5,7 @@ try {
 global.rtsconfig = {
   production: true,
 }
-require("./out.prod/goog/bootstrap/nodejs.js");
-require("./out.prod/game.js");
+require("../out.prod/goog/bootstrap/nodejs.js");
+require("../out.prod/game.js");
 goog.require("game.server.core");
 goog.require("cljs.nodejscli");
