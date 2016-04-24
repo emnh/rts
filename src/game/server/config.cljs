@@ -61,7 +61,7 @@
 (def url
   (if
     (production?)
-    (str "http://emh.lart.no/" urlpath)
+    (str "https://emh.lart.no/" urlpath)
     (str "http://localhost:3451/" urlpath)))
 
 (def config

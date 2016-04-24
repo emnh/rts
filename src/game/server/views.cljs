@@ -16,11 +16,11 @@
     [
      css
      [
-      "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css"
-      "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap-theme.min.css"
-      "http://fortawesome.github.io/Font-Awesome/assets/font-awesome/css/font-awesome.css"
-      "http://lipis.github.io/bootstrap-social/assets/css/docs.css"
-      "http://lipis.github.io/bootstrap-social/bootstrap-social.css"
+      "csscache/bootstrap.min.css"
+      "csscache/bootstrap-theme.min.css"
+      "csscache/font-awesome.css"
+      "csscache/docs.css"
+      "csscache/bootstrap-social.css"
       ]
      scripts
      [
