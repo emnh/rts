@@ -20,9 +20,17 @@
         (= socket nil)
         (let
           [
-           socket-io-URL (-> js/window .-location)
-           socket (-> js/io (.connect socket-io-URL))]
-          (println (str "Created socket on " socket-io-URL))
+           socket-io-URL (str (-> js/window .-location))
+           re #"http://[^/]*(/.*)#.*"
+           path (str (nth (re-find re socket-io-URL) 1) "socket.io")
+           socket (-> (js/io
+                        socket-io-URL
+                        #js
+                        {
+                         :path path
+                         }
+                        ))]
+          (println (str "Created socket on " socket-io-URL " with path " path))
           (-> socket .-binaryType (set! "arraybuffer"))
           (-> component
             (assoc :socket socket)
@@ -37,6 +45,7 @@
     []))
 
 ; TODO: This rpc is no good. What happens with 2 simultaneous calls before return?
+; TODO: Switch to Sente.
 (defn
   rpc
   [socket call & {:as args}]

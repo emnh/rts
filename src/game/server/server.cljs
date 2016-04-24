@@ -18,7 +18,15 @@
       component
       (let
         [server (.createServer http #((:app app) %1 %2))
-         io (io-lib server)
+         socket-path (get-in config [:server :socket-path])
+         socket-ns (get-in config [:server :socket-ns])
+         io (io-lib
+              server
+              #js
+              {
+               :path socket-path
+               })
+         io (-> io (.of socket-ns))
          port (get-in config [:server :port])
          ]
         (-> server (.listen port))

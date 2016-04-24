@@ -95,6 +95,7 @@
   [component event]
   (let
     [socket (get-in component [:socket :socket])]
+    (println "new-game" socket)
     (-> socket (.emit "new-game"))))
 
 (rum/defc

@@ -52,12 +52,17 @@
 (def google-data (-> fs (.readFileSync (str home google-path))))
 (def github-data (-> fs (.readFileSync (str home github-path))))
 
+(def urlpath
+  (if
+    (production?)
+    "rts/"
+    ""))
+
 (def url
   (if
     (production?)
-    "http://emh.lart.no/rts/"
-    "http://localhost:3451/"
-    ))
+    (str "http://emh.lart.no/" urlpath)
+    (str "http://localhost:3451/" urlpath)))
 
 (def config
   { 
@@ -102,6 +107,9 @@
    {
     :port (if (production?) 3551 3451)
     :url url
+    ;:socket-path (str "/" urlpath "socket.io/")
+    :socket-ns (str "/" urlpath)
+    :socket-path "/socket.io/"
     }
    :db 
    {
