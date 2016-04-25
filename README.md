@@ -83,12 +83,17 @@ Not everything is linked up yet, so overview is here:
 - Don't store multiple user copies (something wrong with query I suppose)
 
 ## Component cleanup
- - Pure functions first! The point is to be reusable.
+ - Pure functions first! The point is to be composable and reusable.
  - Add a prefix to allow multiple components or nest systems (which is recommended against).
  - Pages: What to do? Lifecycle implementation with start-page and stop-page?
    But this requires keeping the system and calling on it, plus dependencies are not really needed.
    Perhaps register with router component. Yes. start-page and stop-page must
    be called from routing component.
+ - Would be nice to have these features:
+  - Dependencies specified only once at point of usage (can be taken care of via macro)
+  - Array of component. Can use name prefix/suffix.
+  - Promise based dependency resolution. Hard. May cause terrible error messages.
+  - Differentiate between changing page (stop page1; start page2) and reload (stop page; start page).
 
 ## Authentication
  - Remove authentication for everything except lobby and multiplayer
