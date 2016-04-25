@@ -234,7 +234,10 @@
       (assoc :done true)
       )))
 
-(defn stop [component] component)
+(defn stop [component] 
+  (println "unmounting lobby")
+  (js/ReactDOM.unmountComponentAtNode (aget ($ page-id) 0))
+  component)
 
 (defcom
   new-lobby
