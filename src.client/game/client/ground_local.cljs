@@ -14,27 +14,31 @@
   [component config mesh simplex]
   (let
     [
-     grass (-> js/THREE .-ImageUtils (.loadTexture "models/images/grass.jpg"))
-     m-opts #js { :map grass }
-     material (new js/THREE.MeshLambertMaterial m-opts)
+     texture-loader (new THREE.TextureLoader)
+     material (new js/THREE.MeshLambertMaterial)
+     wrapping (-> js/THREE .-RepeatWrapping)
      width (config/get-terrain-width config)
      height (config/get-terrain-height config)
+     map-repeat-width (/ width 100)
+     map-repeat-height (/ height 100)
+     on-load (fn [texture]
+               (-> texture .-wrapS (set! wrapping))
+               (-> texture .-wrapT (set! wrapping))
+               (-> texture .-repeat (.set map-repeat-width map-repeat-height))
+               (-> material .-map (set! texture))
+               (-> material .-needsUpdate (set! true)))
+     grass (-> texture-loader (.load "models/images/grass.jpg") on-load)
+     m-opts #js { :map grass }
      x-faces (get-in config [:terrain :x-faces])
      y-faces (get-in config [:terrain :y-faces])
      max-elevation (get-in config [:terrain :max-elevation])
      min-elevation (get-in config [:terrain :min-elevation])
-     wrapping (-> js/THREE .-RepeatWrapping)
-     map-repeat-width (/ width 100)
-     map-repeat-height (/ height 100)
      geometry (new js/THREE.PlaneBufferGeometry width height x-faces y-faces)
      rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
      position (-> geometry .-attributes .-position)
      length (-> position .-count)
      ]
       ;(-> geometry .-position .-array
-      (-> material .-map .-wrapS (set! wrapping))
-      (-> material .-map .-wrapT (set! wrapping))
-      (-> material .-map .-repeat (.set map-repeat-width map-repeat-height))
       (-> geometry (.applyMatrix rotation))
       (doseq
          [i (range length)]

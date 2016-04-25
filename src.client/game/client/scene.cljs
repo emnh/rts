@@ -160,15 +160,8 @@
         (let
           [mesh (:mesh ground)
            newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))
-           newmesh2 (new THREE.Mesh 
-                        (new THREE.SphereGeometry 5 32 32)
-                        (new THREE.MeshBasicMaterial #js { :color 0xff0000 }))
            ]
-          (println "newmesh" newmesh)
-          (println "newmesh2" newmesh2)
-          (add scene newmesh)
-          ;(add scene newmesh2)
-          )
+          (add scene newmesh))
         (assoc component :done true))
       component))
   (fn [component]
