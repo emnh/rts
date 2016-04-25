@@ -23,30 +23,20 @@
   [page]
   (str "#" (get-page-element-id page)))
 
-; TODO: extract routes using bidi (or macro if that fails) instead of using
-; atom
-(def page-list (atom {}))
-
-(defn page-key
-  [kw]
-  (swap! page-list #(assoc % kw true))
-  kw)
-
-(defn get-pages
-  []
-  (keys @page-list))
-
 (def routes
   ["" {
-       "lobby" (page-key :lobby)
-       "game" (page-key :game)
-       "gametest" (page-key :gametest)
+       "lobby" :lobby
+       "game" :game
+       "gametest" :gametest
        "game-lobby/"
        {
-        [:id "/"] (page-key :game-lobby)
+        [:id "/"] :game-lobby
         }
-       "404" (page-key :not-found)
+       "404" :not-found
        }])
+
+(def page-list (set (map :handler (bidi/route-seq routes))))
+(defn get-pages [] page-list)
 
 (rum/defc
   page < rum/static
@@ -87,7 +77,7 @@
     (reset! route-match match)
     (println "handler" handler)
     (if
-      (handler @page-list)
+      (handler page-list)
       (do
         (let
           [$page ($ (get-page-selector handler))
