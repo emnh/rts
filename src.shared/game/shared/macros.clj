@@ -39,7 +39,8 @@
          ~(vec (concat dep-values state-values))
          component/Lifecycle
          (~'start [~component] (~start ~component))
-         (~'stop [~component] (~stop ~component))
+         ; conj will cause reloaded record type to be instantiated. practical for use with figwheel.
+         (~'stop [~component] (conj (~stop ~component) nil))
          )
        (defn
          ~constructor-name
