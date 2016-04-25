@@ -107,7 +107,7 @@
             (doto history (.setEnabled true))
             )))
      ]
-    (rum/mount (pages) js/document.body)
+    (rum/mount (pages) (aget ($ "#pages") 0))
     (handle-url component (string/replace-first window.location.hash "#" ""))
     (->
       component
