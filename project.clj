@@ -7,6 +7,7 @@
                  [org.clojure/core.async "0.2.374"]
                  [bidi "2.0.7"]
                  [com.stuartsierra/component "0.3.1"]
+                 [com.taoensso/sente "1.8.1"]
                  [funcool/cats "1.2.1"]
                  [funcool/promesa "1.1.1"]
                  ;[funcool/promesa "0.5.1"]
