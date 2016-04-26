@@ -17,6 +17,7 @@
     "cookie-parser": "1.4.0",
     "express": "4.13.3",
     "express-session": "1.11.3",
+    "express-ws": "2.0.0-rc.1",
     "pug": "2.0.0-alpha6",
     "jquery": "2.2.3",
     "js-beautify": "1.5.10",
