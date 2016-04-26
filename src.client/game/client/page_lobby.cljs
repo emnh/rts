@@ -217,7 +217,7 @@
                :user-list []
                :message-list []
                }))
-     done (:done component)
+     done (> (:start-count component) 0)
      socket (:socket component)
      ]
     (if-not
@@ -231,17 +231,16 @@
     (->
       component
       (assoc :state state)
-      (assoc :done true)
       )))
 
 (defn stop [component] 
-  (println "unmounting lobby")
-  (js/ReactDOM.unmountComponentAtNode (aget ($ page-id) 0))
+  ;(println "unmounting lobby")
+  (rum/unmount (aget ($ page-id) 0))
   component)
 
 (defcom
   new-lobby
   [config socket routing]
-  [state done]
+  [state]
   start
   stop)
