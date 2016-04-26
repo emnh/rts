@@ -1,6 +1,7 @@
 try {
-    require("source-map-support").install();
+  require("source-map-support").install();
 } catch(err) {
+  println("couldn't install source-map-support");
 }
 global.rtsconfig = {
   production: false,
