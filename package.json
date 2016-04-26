@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "bootstrap": "3.3.6",
+    "body-parser": "1.15.0",
     "box-intersect": "1.0.1",
     "browserify": "13.0.0",
     "connect-mongodb-session": "1.0.5",
