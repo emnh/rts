@@ -36,15 +36,22 @@
     `(do
        (defrecord
          ~record-name
-         ~(vec (concat dep-values state-values))
+         ~(vec (concat dep-values state-values ['started 'start-count 'stop-count]))
          component/Lifecycle
-         (~'start [~component] (~start ~component))
-         ; conj will cause reloaded record type to be instantiated. practical for use with figwheel.
-         (~'stop [~component] (conj (~stop ~component) nil))
-         )
+         (~'start [~component]
+           (->
+             (~start ~component)
+             (update :start-count inc)
+             (assoc :started true)))
+         ; update will cause reloaded record type to be instantiated. practical for use with figwheel.
+         (~'stop [~component] 
+           (->
+             (~stop ~component)
+             (update :stop-count inc)
+             (assoc :started false))))
        (defn
          ~constructor-name
          []
          (component/using
-           (~new-record {})
+           (~new-record {:start-count 0 :stop-count 0 :started false})
            ~(vec (map keyword dep-values)))))))
