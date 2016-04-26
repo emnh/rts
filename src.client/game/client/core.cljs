@@ -38,7 +38,7 @@
 (s-add-component system :page-game-lobby (page-game-lobby/new-game-lobby))
 (s-add-component system :page-not-found (page-not-found/new-page-not-found))
 
-(def ran (atom false))
+(defonce ran (atom false))
 
 (defn debug
   []
@@ -49,9 +49,13 @@
 
 (defn main
   []
-  (reset! ran true)
-  (println "main")
-  (with-simple-cause #(swap! system component/stop-system))
-  (with-simple-cause #(swap! system component/start-system)))
-  
+  (let [old-ran @ran]
+    (reset! ran true)
+    (println "main" old-ran)
+    (if old-ran
+      (do
+        (println "stopping system")
+        (with-simple-cause #(swap! system component/stop-system))))
+    (with-simple-cause #(swap! system component/start-system))))
+    
 (if @ran (main) (js/$ (main)))
