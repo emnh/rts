@@ -17,11 +17,8 @@
     [game.server.sente-setup :as sente-setup]
     [game.shared.state
      :as state
-     :refer [add-component
-             readd-component
-             s-add-component
+     :refer [s-add-component
              s-readd-component
-             system
              with-simple-cause]]
     ))
 
@@ -40,6 +37,7 @@
 (nodejs/enable-util-print!)
 (println "")
 
+(defonce system (atom {}))
 (s-readd-component system :config config/config)
 (s-add-component system :app (app/new-app))
 (s-add-component system :passport (passport/new-passport))

@@ -18,13 +18,15 @@
     [game.client.scene :as scene]
     [game.client.socket :as socket]
     [game.shared.state :as state
-     :refer [system s-add-component s-readd-component with-simple-cause]]
+     :refer [s-add-component s-readd-component with-simple-cause]]
     )
   )
 
 (enable-console-print!)
 
 (println "Reloaded client core")
+
+(defonce system (atom {}))
 
 (s-readd-component system :config config/config)
 
