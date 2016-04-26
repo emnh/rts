@@ -14,9 +14,15 @@
     [game.server.server :as server]
     [game.server.session :as session]
     [game.server.socket :as socket]
+    [game.server.sente-setup :as sente-setup]
     [game.shared.state
      :as state
-     :refer [add-component readd-component system with-simple-cause]]
+     :refer [add-component
+             readd-component
+             s-add-component
+             s-readd-component
+             system
+             with-simple-cause]]
     ))
 
 ;(defonce origlog (-> js/console .-log))
@@ -34,45 +40,17 @@
 (nodejs/enable-util-print!)
 (println "")
 
-(readd-component
-  :config
-  config/config)
-
-(add-component
-  :app
-  (app/new-app))
-
-(add-component
-  :passport
-  (passport/new-passport))
-
-(add-component
-  :server 
-  (server/new-server))
-
-(add-component
-  :noise
-  (map/new-noise))
-
-(readd-component
-  :map
-  (map/new-map))
-
-(add-component
-  :socket
-  (socket/new-socket))
-
-(add-component
-  :db
-  (db/new-db))
-
-(add-component
-  :session
-  (session/new-session))
-
-(readd-component
-  :games
-  (games/new-games))
+(s-readd-component system :config config/config)
+(s-add-component system :app (app/new-app))
+(s-add-component system :passport (passport/new-passport))
+(s-add-component system :server (server/new-server))
+(s-add-component system :noise (map/new-noise))
+(s-add-component system :map (map/new-map))
+(s-add-component system :socket (socket/new-socket))
+(s-add-component system :db (db/new-db))
+(s-add-component system :session (session/new-session))
+(s-add-component system :games (games/new-games))
+(s-add-component system :sente-setup (sente-setup/new-sente-setup))
 
 (defn debug
   []
