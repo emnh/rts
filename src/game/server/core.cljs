@@ -16,7 +16,7 @@
     [game.server.socket :as socket]
     [game.shared.state
      :as state
-     :refer [add-component readd-component system]]
+     :refer [add-component readd-component system with-simple-cause]]
     ))
 
 ;(defonce origlog (-> js/console .-log))
@@ -94,15 +94,8 @@
 (defn -main 
   []
   (println "Main")
-  (swap! system component/stop-system)
-  (try
-    (swap! system component/start-system)
-    (catch js/Object e
-      (let
-        [simple-e (component/ex-without-components e)]
-        (.log js/console simple-e)
-        (.log js/console (aget simple-e "cause"))
-        (throw (aget simple-e "cause"))
-        ))))
+  (with-simple-cause #(swap! system component/stop-system))
+  (with-simple-cause #(swap! system component/start-system)))
+
 (-main)
 (set! *main-cli-fn* -main)
