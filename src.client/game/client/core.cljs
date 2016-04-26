@@ -54,8 +54,9 @@
     (println "main" old-ran)
     (if old-ran
       (do
-        (println "stopping system")
+        ;(println "stopping system")
         (with-simple-cause #(swap! system component/stop-system))))
+    ;(println "starting system")
     (with-simple-cause #(swap! system component/start-system))))
     
 (if @ran (main) (js/$ (main)))
