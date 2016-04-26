@@ -46,7 +46,8 @@
                 :output-to "out.dev.client/game.js"
                 :output-dir "out.dev.client"
                 :optimizations :none
-                :source-map true}}
+                :source-map true
+                :source-map-timestamp true}}
              {:id "prod"
               :source-paths ["src" "src.shared"]
               :compiler {
