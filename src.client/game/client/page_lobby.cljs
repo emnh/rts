@@ -6,7 +6,7 @@
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
-    [game.client.common :as common :refer [list-item]]
+    [game.client.common :as common :refer [list-item header]]
     [game.client.routing :as routing]
     [game.client.socket :as socket]
     [sablono.core :as sablono :refer-macros [html]]
@@ -130,11 +130,6 @@
     :type "button"
     :on-click (partial join-game-handler component)
     } "Join Game"])
-
-(rum/defc
-  header < rum/static
-  [h]
-  [:div [:h1 { :class "page-header" } h]])
 
 (rum/defc
   lobby < rum/static

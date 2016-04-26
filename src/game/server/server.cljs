@@ -8,6 +8,7 @@
 
 (defonce http (nodejs/require "http"))
 (defonce io-lib (nodejs/require "socket.io"))
+(defonce express-ws (nodejs/require "express-ws"))
 
 (defrecord InitServer
   [app config server io]
@@ -20,6 +21,7 @@
         [server (.createServer http #((:app app) %1 %2))
          socket-path (get-in config [:server :socket-path])
          socket-ns (get-in config [:server :socket-ns])
+         ;ws-server (express-ws (:app app) server)
          io (io-lib
               server
               #js

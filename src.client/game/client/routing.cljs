@@ -32,6 +32,7 @@
        {
         [:id "/"] :game-lobby
         }
+       "sente-test" :sente-test
        "404" :not-found
        }])
 

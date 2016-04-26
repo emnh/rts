@@ -13,6 +13,7 @@
     [game.client.page-lobby :as page-lobby]
     [game.client.page-game-lobby :as page-game-lobby]
     [game.client.page-not-found :as page-not-found]
+    [game.client.page-sente-test :as page-sente-test]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
@@ -30,14 +31,16 @@
 
 (s-readd-component system :config config/config)
 
-(s-add-component system :socket (socket/new-init-socket))
+;(s-add-component system :socket (socket/new-init-socket))
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
 ;(s-add-component system :ground (ground/new-init-ground))
 
 (s-add-component system :routing (routing/new-router))
+(s-add-component system :sente-setup (page-sente-test/new-sente-setup))
+(s-add-component system :page-sente-test (page-sente-test/new-sente-test))
 (s-add-component system :page-game (page-game/new-game))
-(s-add-component system :page-lobby (page-lobby/new-lobby))
-(s-add-component system :page-game-lobby (page-game-lobby/new-game-lobby))
+;(s-add-component system :page-lobby (page-lobby/new-lobby))
+;(s-add-component system :page-game-lobby (page-game-lobby/new-game-lobby))
 (s-add-component system :page-not-found (page-not-found/new-page-not-found))
 
 (defonce ran (atom false))

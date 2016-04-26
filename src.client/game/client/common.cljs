@@ -32,3 +32,8 @@
     attrs
     [:li attrs content]
     [:li content]))
+
+(rum/defc
+  header < rum/static
+  [h]
+  [:div [:h1 { :class "page-header" } h]])
