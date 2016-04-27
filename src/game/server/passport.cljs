@@ -35,10 +35,12 @@
            (db/upsert
               db 
               "users"
-              id-pair
+              (clj->js id-pair)
               user)]
-          (p/then user-promise #(done nil (clj->js id-pair)))
-          (p/catch user-promise #(done % nil))
+          (->
+            user-promise
+            (p/then #(done nil (clj->js id-pair)))
+            (p/catch #(done % nil)))
         ))))
   (-> gpassport
     (.deserializeUser 
