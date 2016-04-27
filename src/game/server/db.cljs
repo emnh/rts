@@ -108,6 +108,16 @@
              :w 1
              :dropDups true
              })
+      (create-index
+        component
+        "users"
+        #js { :id 1 :provider 1 }
+        #js {
+             :unique true
+             :background true
+             :w 1
+             :dropDups true
+             })
       ;(p/then (find-messages component) #(println %))
       component))
   (stop [component] 
