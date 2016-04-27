@@ -49,6 +49,9 @@
 
 (def config
   {
+   :sente {
+           :connection-timeout 10000
+           }
    :dom {
          :controls-height 250
          }

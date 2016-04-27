@@ -6,7 +6,7 @@
     [com.stuartsierra.component :as component]
     [game.client.common :as common :refer [list-item header]]
     [game.client.routing :as routing]
-    [game.client.socket :as socket]
+    [game.client.sente-setup :as sente-setup]
     [jayq.core :as jayq :refer [$]]
     [promesa.core :as p]
     [rum.core :as rum]
@@ -29,16 +29,23 @@
   [component]
   (if
     @(:send-loop-enabled component)
-    (do
-      (if
-        (:open? @(:state (:sente-setup component)))
-        (do
-         (println "send-fn" )
-         ((:send-fn (:sente-setup component))
-            [:sente-test/ping {:had-a-callback? "yes"}]
-            5000
-            (fn [cb-reply] (println "cb-reply" cb-reply)))))
-      (js/setTimeout (partial send-loop component) 5000))))
+    (if
+      (:open? @(:state (:sente-setup component)))
+      (do
+        (println "send-fn" )
+        ((:send-fn (:sente-setup component))
+           [:sente-test/ping {:had-a-callback? "yes"}]
+           5000
+           (fn [cb-reply] (println "cb-reply" cb-reply)))
+        (js/setTimeout (partial send-loop component) 60000))
+      (do
+        (println "not-send-fn" )
+        (js/setTimeout (partial send-loop component) 1000)))))
+
+(defn
+  handle-init
+  [component ev-msg]
+  )
 
 (defcom 
   new-sente-test
@@ -47,7 +54,10 @@
   (fn [component]
     (let
       [component (assoc component :send-loop-enabled (atom true))]
-      (send-loop component)
+      (sente-setup/register-handler sente-setup :sente-test/init (partial handle-init component))
+      (p/then
+        (:connected-promise sente-setup)
+        #(send-loop component))
       (rum/mount (sente-view component) (aget $page 0))
       (routing/init-page $page)
       component))

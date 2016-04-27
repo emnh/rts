@@ -8,14 +8,11 @@
     [rum.core :as rum]
     [game.client.common :as common :refer [list-item header]]
     [game.client.routing :as routing]
-    [game.client.socket :as socket]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
-
-(def page-id (routing/get-page-selector :lobby))
 
 (defn
   select-list-item
@@ -213,7 +210,7 @@
                :message-list []
                }))
      done (> (:start-count component) 0)
-     socket (:socket component)
+     sente-setup (:sente-setup component)
      ]
     (if-not
       done
@@ -221,8 +218,8 @@
         (socket/on socket "user-list" (partial update-user-list state))
         (socket/on socket "game-list" (partial update-game-list state))
         (socket/on socket "chat-message" (partial update-message-list state))))
-    (rum/mount (lobby component state) (aget ($ page-id) 0))
-    (routing/init-page ($ page-id))
+    (rum/mount (lobby component state) (aget (:$page component) 0))
+    (routing/init-page (:$page component))
     (->
       component
       (assoc :state state)
@@ -230,12 +227,14 @@
 
 (defn stop [component] 
   ;(println "unmounting lobby")
-  (rum/unmount (aget ($ page-id) 0))
+  (if-let
+    [page (aget (:$page component) 0)]
+    (rum/unmount page))
   component)
 
 (defcom
   new-lobby
-  [config socket routing]
+  [config sente-setup routing]
   [state]
   start
   stop)

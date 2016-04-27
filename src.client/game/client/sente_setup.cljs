@@ -4,13 +4,14 @@
     [cljs.pprint :as pprint]
     [clojure.string :as string :refer [join]]
     [com.stuartsierra.component :as component]
-    [game.client.common :as common :refer [list-item header]]
+    [game.client.common :as common :refer [list-item header promise-obj]]
     [game.client.routing :as routing]
     [game.client.socket :as socket]
     [jayq.core :as jayq :refer [$]]
     [promesa.core :as p]
     [rum.core :as rum]
     [sablono.core :as sablono :refer-macros [html]]
+    [taoensso.encore :as encore]
     [taoensso.sente  :as sente  :refer (cb-success?)]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
@@ -21,66 +22,108 @@
 (defn 
   ->output!
   [fmt & args]
-  ;(println fmt args)
-  (.log js/console "output:" fmt args)
-  )
+  (let [msg (apply encore/format fmt args)]
+    (println msg)))
 
 ;;;; Sente event handlers
 
 (defmulti -event-msg-handler
   "Multimethod to handle Sente `event-msg`s"
-  :id ; Dispatch on event-id
-  )
+  (fn [component ev-msg]
+    (:id ev-msg))) ; Dispatch on event-id
 
 (defn event-msg-handler
   "Wraps `-event-msg-handler` with logging, error catching, etc."
-  [{:as ev-msg :keys [id ?data event]}]
+  [component {:as ev-msg :keys [id ?data event]}]
   (println "event-msg-handler")
-  (-event-msg-handler ev-msg))
+  (-event-msg-handler component ev-msg))
 
 (defmethod -event-msg-handler
   :default ; Default/fallback case (no other matching handler)
-  [{:as ev-msg :keys [event]}]
-  (->output! "Unhandled event: %s" event))
+  [component {:as ev-msg :keys [event]}]
+  (if-let
+    [handler (event (:event-handlers component))]
+    (handler ev-msg)
+    (->output! "Unhandled event: %s" event)))
 
 (defmethod -event-msg-handler :chsk/state
-  [{:as ev-msg :keys [?data]}]
-  (if (= ?data {:first-open? true})
-    (->output! "Channel socket successfully established!")
+  [component {:as ev-msg :keys [?data]}]
+  (if
+    (:first-open? ?data)
+    (do
+      (->output! "Channel socket successfully established!: %s" ?data)
+      (.resolve (:connected-promise component) component))
     (->output! "Channel socket state change: %s" ?data)))
 
 (defmethod -event-msg-handler :chsk/recv
-  [{:as ev-msg :keys [?data]}]
-  (->output! "Push event from server: %s" ?data))
+  [component {:as ev-msg :keys [?data]}]
+  (->output! "Push event from server: %s" ?data)
+  (let
+    [event (first ?data)]
+    (if-let
+      [handler (event (:event-handlers component))]
+      (handler ev-msg))))
 
 (defmethod -event-msg-handler :chsk/handshake
-  [{:as ev-msg :keys [?data]}]
+  [component {:as ev-msg :keys [?data]}]
   (let [[?uid ?csrf-token ?handshake-data] ?data]
     (->output! "Handshake: %s" ?data)))
 
+(defn
+  register-handler
+  [component event handler]
+  (swap! (:event-handlers component) #(assoc % event handler)))
+
+;(def p1 (promise-obj))
+;(->
+;  p1
+;  (p/then #(println "as promised"))
+;  (p/catch #(println "not as promised")))
+;(.resolve p1 (new js/Error "test"))
+
 (defcom
   new-sente-setup
-  []
-  [chsk ch-recv send-fn state router]
+  [config]
+  [chsk ch-recv send-fn state router event-handlers connected-promise]
   (fn [component] 
     (let
       [{:keys [chsk ch-recv send-fn state]}
-       (sente/make-channel-socket-client! "/chsk" { :type :auto :packer :edn })
+       (if
+         (= start-count 0)
+         (sente/make-channel-socket-client! "/chsk" { :type :auto :packer :edn })
+         component)
+       event-handlers (or event-handlers (atom {}))
        router (if (= router nil) (atom nil) router)
+       connected-promise
+       (or
+         connected-promise
+         (let
+           [p (promise-obj)]
+           (p/then
+             (p/delay (get-in config [:sente :connection-timeout]))
+             #(do
+                (if-not
+                  (p/resolved? p)
+                  (.reject p (new js/Error "Sente connection timeout")))))
+           p))
+       component
+       (->
+        component
+         (assoc :connected-promise connected-promise)
+         (assoc :event-handlers event-handlers)
+         (assoc :router router)
+         (assoc :chsk chsk)
+         (assoc :ch-recv ch-recv)
+         (assoc :send-fn send-fn)
+         (assoc :state state))
        stop-router! #(when-let [stop-f @router] (stop-f))
        start-router!
-       (do
+       #(do
          (stop-router!)
          (reset! router
                  (sente/start-client-chsk-router!
-                  chsk event-msg-handler)))
+                  ch-recv (partial event-msg-handler component))))
        ]
       (start-router!)
-      (->
-        component
-        (assoc :router router)
-        (assoc :chsk chsk)
-        (assoc :ch-recv ch-recv)
-        (assoc :send-fn send-fn)
-        (assoc :state state))))
+      component))
   (fn [component] component))
