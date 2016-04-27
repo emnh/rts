@@ -5,7 +5,9 @@
               [rum.core :as rum]
               [com.stuartsierra.component :as component]
               [game.client.config :as config]
-              ))
+              )
+  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  )
 
 (defrecord JSObj [initializer data]
   component/Lifecycle
@@ -21,6 +23,14 @@
 
 (defn new-jsobj [initializer]
   (map->JSObj {:initializer initializer}))
+
+(defrecord LCObj [data]
+  component/Lifecycle
+  (start [component] component)
+  (stop [component] component))
+
+(defn new-lc [data]
+  (map->LCObj {:data data}))
 
 (defn data [component]
   (:data component))

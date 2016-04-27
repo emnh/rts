@@ -65,7 +65,7 @@
        physics-stats (data physics-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $physics-stats ($ (-> physics-stats .-domElement))
-       $container ($ (:container-id params))
+       $container (:$page params)
        ]
       (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
@@ -123,8 +123,8 @@
   [params renderer $overlay camera scene config ground]
   [done]
   (fn [component]
-    (.append ($ (:container-id params)) (-> (data renderer) .-domElement))
-    (.append ($ (:container-id params)) (data $overlay))
+    (.append (:$page params) (-> (data renderer) .-domElement))
+    (.append (:$page params) (data $overlay))
     (if-not done
       (do
         (doto

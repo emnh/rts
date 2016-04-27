@@ -18,8 +18,6 @@
 
 (enable-console-print!)
 
-(def page-id (routing/get-page-selector :sente-test))
-
 (rum/defc
   sente-view
   [component]
@@ -40,19 +38,24 @@
             [:sente-test/ping {:had-a-callback? "yes"}]
             5000
             (fn [cb-reply] (println "cb-reply" cb-reply)))))
-      (js/setTimeout (partial send-loop component) 1000))))
+      (js/setTimeout (partial send-loop component) 5000))))
 
 (defcom 
   new-sente-test
   [sente-setup]
-  [send-loop-enabled]
+  [$page send-loop-enabled]
   (fn [component]
     (let
       [component (assoc component :send-loop-enabled (atom true))]
       (send-loop component)
-      (rum/mount (sente-view component) (aget ($ page-id) 0))
-      (routing/init-page ($ page-id))
+      (rum/mount (sente-view component) (aget $page 0))
+      (routing/init-page $page)
       component))
   (fn [component]
-    (reset! send-loop-enabled false)
+    (if
+      (not= send-loop-enabled nil)
+      (reset! send-loop-enabled false))
+    (if
+      (not= (aget $page 0) nil)
+      (rum/unmount (aget $page 0)))
     component))

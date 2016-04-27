@@ -14,8 +14,6 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(def page-id (routing/get-page-selector :not-found))
-
 (rum/defc
   content < rum/static
   []
@@ -27,11 +25,14 @@
 
 (defn start
   [component]
-  (rum/mount (content) (aget ($ page-id) 0))
+  (rum/mount (content) (aget (:$page component) 0))
   component)
 
 (defn stop
   [component]
+  (if-let
+    [page (aget (:$page component) 0)]
+    (rum/unmount page))
   component)
 
 (defcom

@@ -3,7 +3,6 @@
     [cljs.pprint :as pprint]
     [clojure.string :as string]
     [jayq.core :as jayq :refer [$]]
-    [game.client.config :as config]
     [game.client.common :as common :refer [data]]
     [com.stuartsierra.component :as component]
     [goog.events :as events]
@@ -22,6 +21,14 @@
 (defn get-page-selector
   [page]
   (str "#" (get-page-element-id page)))
+
+(defn get-page-$element
+  [page]
+  ($ (get-page-selector page)))
+
+(defn get-page-element
+  [page]
+  (aget ($ (get-page-selector page)) 0))
 
 (def routes
   ["" {
@@ -74,19 +81,25 @@
   (let
     [route-match (:route-match component)
      match (bidi/match-route routes url)
-     handler (if match (:handler match) :not-found)]
+     handler (if match (:handler match) :not-found)
+     old-match @route-match]
     (reset! route-match match)
-    (println "handler" handler)
+    ;(println "handler" handler)
     (if
       (handler page-list)
       (do
         (let
           [$page ($ (get-page-selector handler))
            ]
-          (-> $page (.removeClass "invisible"))
-          )
-        )
-      )))
+          (-> $page (.removeClass "invisible")))
+        ;(println "cmp" handler (:handler old-match))
+        (if 
+          (not= handler (:handler old-match))
+          (do
+            ;(println "routing-callback")
+            (js/setTimeout
+              #((:data (:routing-callback component)) handler)
+              0)))))))
 
 (defn
   change-page
@@ -97,7 +110,9 @@
   start-router
   [component]
   (let
-    [component (assoc component :route-match (atom {}))
+    [route-match (or (:route-match component) (atom {}))
+     component (assoc component :route-match route-match)
+     handlers (or (:handlers component) (atom {}))
      history
       (or
         (:history component)
@@ -109,10 +124,11 @@
             )))
      ]
     (rum/mount (pages) (aget ($ "#pages") 0))
-    (handle-url component (string/replace-first window.location.hash "#" ""))
+    ;(handle-url component (string/replace-first window.location.hash "#" ""))
     (->
       component
       (assoc :history history)
+      (assoc :handlers handlers)
       )))
 
 (defn stop-router
@@ -121,12 +137,13 @@
 
 (defcom
   new-router
-  [config]
-  [history route-match]
+  [routing-callback]
+  [history route-match handlers]
   start-router
   stop-router
   )
 
+; TODO: replace with game component state
 (defn game-active
   []
   (= window.location.hash "#game"))

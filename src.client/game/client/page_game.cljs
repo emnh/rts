@@ -21,8 +21,6 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(def page-id (routing/get-page-selector :game))
-
 (defn new-system
   [params]
   (let
@@ -58,8 +56,7 @@
   (let
     [params 
      {
-      ; must look up ($ page-id) every reload, because of rum remounts on reload
-      :container-id page-id
+      :$page (:$page component)
       :simplex (data (:simplex component))
       }
      subsystem 
@@ -67,7 +64,7 @@
         #(component/start-system
           (if-let
             [s (:subsystem component)]
-            s
+            (assoc s :params params)
             (new-system params))))
      component (assoc component :subsystem subsystem)
      ]
