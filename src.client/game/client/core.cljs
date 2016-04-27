@@ -90,7 +90,8 @@
                  (new-page :sente-test (page-sente-test/new-sente-test)))
 (s-add-component system :page-game
                  (new-page :game (page-game/new-game)))
-;(s-add-component system :page-lobby (page-lobby/new-lobby))
+(s-add-component system :page-lobby
+                 (new-page :lobby (page-lobby/new-lobby)))
 ;(s-add-component system :page-game-lobby (page-game-lobby/new-game-lobby))
 (s-add-component system :page-not-found 
                  (new-page :not-found (page-not-found/new-page-not-found)))

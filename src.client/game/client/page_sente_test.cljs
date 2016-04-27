@@ -45,6 +45,7 @@
 (defn
   handle-init
   [component ev-msg]
+  (println "handle-init")
   )
 
 (defcom 
@@ -53,7 +54,9 @@
   [$page send-loop-enabled]
   (fn [component]
     (let
-      [component (assoc component :send-loop-enabled (atom true))]
+      [component
+       (-> component
+         (assoc :send-loop-enabled (atom true)))]
       (sente-setup/register-handler sente-setup :sente-test/init (partial handle-init component))
       (p/then
         (:connected-promise sente-setup)

@@ -32,6 +32,17 @@
   (-event-msg-handler component ev-msg))
 
 (defmethod -event-msg-handler
+  :rts/subscribe
+  [component {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
+  ;(.log js/console "user" (-> ring-req :body .-user .-displayName))
+  (let
+    [subscription-event ?data]
+    (swap!
+      (:subscriptions component)
+      #(assoc-in % [uid subscription-event] true))))
+    ;(send-fn uid [subscription-event [:success uid]])))
+
+(defmethod -event-msg-handler
   :chsk/uidport-open
   [component {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
   (println "uidport-open" uid)
@@ -57,9 +68,17 @@
   [component {:as ev-msg :keys [event id ?data ring-req ?reply-fn send-fn]}]
   (let [session (:session ring-req)
         uid     (:uid     session)]
-    (println "Unhandled event:" event)
-    (when ?reply-fn
-      (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))
+    (if-let
+      [handler (id @(:event-handlers component))]
+      (handler component ev-msg)
+      (do
+        (println "Unhandled event:" event)
+        (when ?reply-fn
+          (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))))
+
+(defn register-handler
+  [component event handler]
+  (swap! (:event-handlers component) #(assoc % event handler)))
 
 (defn user-id-fn
   [req]
@@ -67,10 +86,36 @@
     [uid (db/get-id (-> req :body .-session .-user .-_id))]
     uid))
 
+(defn watch-connected-uids
+  [component key atom old-state new-state]
+  (let
+    [uids (:any new-state)
+     ;query { :_id (db/get-object-id (first uids)) }
+     query { :_id { :$in (map db/get-object-id uids) } }
+     ]
+    (println "connected-uids" uids)
+    (println "query" query)
+    ;(.log js/console "query js" (clj->js query))
+    (p/then
+      (db/find (:db component) "users" query)
+      (fn
+        [docs]
+        (let 
+          [docs (js->clj docs :keywordize-keys true)
+           display-names (map #(:displayName %) docs)
+           send-fn (:send-fn component)
+           ]
+          (println "display names" display-names)
+          (doseq
+            [uid uids]
+            ; TODO: only send if subscribed. also send when subscribing.
+            (send-fn uid [:rts/user-list (into [] display-names)])))))))
+
 (defcom
   new-sente-setup
-  [app server]
-  [router ajax-post-fn ajax-get-or-ws-handshake-fn ch-recv send-fn connected-uids]
+  [app server db]
+  [router ajax-post-fn ajax-get-or-ws-handshake-fn ch-recv send-fn connected-uids
+   subscriptions event-handlers uid-properties]
   (fn [component]
 		(let 
       [packer :edn ; Default packer, a good choice in most cases
@@ -85,10 +130,19 @@
          (sente-express/make-express-channel-socket-server! 
            { :packer packer :user-id-fn user-id-fn })
          component)
+       _
+       (do
+         (remove-watch connected-uids :uid-broadcaster)
+         (add-watch connected-uids :uid-broadcaster (partial watch-connected-uids component)))
        router (if (= router nil) (atom nil) router)
+       subscriptions (or subscriptions (atom {}))
+       event-handlers (or event-handlers (atom {}))
+       uid-properties (or uid-properties (atom {}))
        component
        (->
          component
+         (assoc :event-handlers event-handlers)
+         (assoc :subscriptions subscriptions)
          (assoc :test { :component-start-time (-> (new js/Date) .toString) })
          (assoc :router router)
          (assoc :ajax-post-fn                ajax-post-fn)
@@ -109,7 +163,8 @@
          (:app app)
          (.ws "/chsk"
               (fn [ws req next]
-                ;(println "ws chsk")
+                 ;(swap! uid-properties #(assoc % (-> req
+;                (println "ws chsk" req)
                 (ajax-get-or-ws-handshake-fn req nil nil
                                           {:websocket? true
                                            :websocket  ws})))

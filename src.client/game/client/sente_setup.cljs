@@ -59,10 +59,11 @@
   [component {:as ev-msg :keys [?data]}]
   (->output! "Push event from server: %s" ?data)
   (let
-    [event (first ?data)]
+    [event (first ?data)
+     data (rest ?data)]
     (if-let
-      [handler (event (:event-handlers component))]
-      (handler ev-msg))))
+      [handler (event @(:event-handlers component))]
+      (handler data))))
 
 (defmethod -event-msg-handler :chsk/handshake
   [component {:as ev-msg :keys [?data]}]
@@ -72,14 +73,17 @@
 (defn
   register-handler
   [component event handler]
-  (swap! (:event-handlers component) #(assoc % event handler)))
+  (swap! (:event-handlers component) #(assoc % event handler))
+  (p/then
+    (:connected-promise component)
+    #((:send-fn component) [:rts/subscribe event])))
 
-;(def p1 (promise-obj))
-;(->
-;  p1
-;  (p/then #(println "as promised"))
-;  (p/catch #(println "not as promised")))
-;(.resolve p1 (new js/Error "test"))
+(defn
+  send
+  [component event ?data]
+  (p/then
+    (:connected-promise component)
+    #((:send-fn component) [event ?data])))
 
 (defcom
   new-sente-setup

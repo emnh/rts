@@ -8,6 +8,7 @@
     [cats.builtin]
     [game.server.db :as db]
     [game.server.games :as games]
+    [game.server.sente-setup :as sente]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
@@ -42,11 +43,6 @@
       (get-in component [:games :db-read])
       (fn [games]
         (-> socket (.emit "game-list" (clj->js  @games)))))
-    (.on 
-      socket "get-map"
-       (fn [data]
-         (println ["get-map" data])
-         (.emit socket "get-map" (clj->js (:map map)))))
     (.on
       socket "chat-message"
       (fn [data]
@@ -97,24 +93,9 @@
 
 (defcom 
   new-socket
-  [server config map session db games]
+  [config db games sente-setup]
   [sockets done]
   (fn [component]
-    (if
-      done
-      component
-      (let
-        [io (:io server)
-         sockets (or sockets (atom []))
-         session (:session session)
-         component
-          (->
-            component
-            (assoc :sockets sockets)
-            (assoc :done true))
-         handler #(handler component %)
-         ]
-        (-> io (.use (iosession session)))
-        (-> io (.on "connection" handler))
-        component)))
+    ;(sente/register-handler sente-setup :rts/user-list send-user-list)
+    component)
   (fn [component] component))

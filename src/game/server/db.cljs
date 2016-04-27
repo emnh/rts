@@ -191,3 +191,8 @@
   ; see http://docs.mongodb.org/manual/reference/object-id/
   (-> objectid .toString))
 
+(def ObjectId (-> mongo-client .-ObjectId))
+
+(defn get-object-id
+  [id]
+  (new ObjectId id))

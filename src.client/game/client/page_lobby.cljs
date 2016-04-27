@@ -8,6 +8,7 @@
     [rum.core :as rum]
     [game.client.common :as common :refer [list-item header]]
     [game.client.routing :as routing]
+    [game.client.sente-setup :as sente-setup]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     )
@@ -72,10 +73,17 @@
     [keyCode (-> event .-nativeEvent .-keyCode)]
     (if
       (= keyCode (-> js/KeyEvent .-DOM_VK_RETURN))
-      (let
-        [socket (get-in component [:socket :socket])]
-        (-> socket (.emit "chat-message" (clj->js (-> ($ "#chat-input") .val))))
+      (do
+        (sente-setup/send
+          (:sente-setup component)
+          :rts/chat-message
+          (-> ($ "#chat-input") .val))
         (-> ($ "#chat-input") (.val ""))))))
+
+;      (let
+;        [socket (get-in component [:socket :socket])]
+;        (-> socket (.emit "chat-message" (clj->js (-> ($ "#chat-input") .val))))
+;        (-> ($ "#chat-input") (.val ""))))))
 
 (rum/defc
   chat-input < rum/static
@@ -209,15 +217,12 @@
                :user-list []
                :message-list []
                }))
-     done (> (:start-count component) 0)
      sente-setup (:sente-setup component)
      ]
-    (if-not
-      done
-      (do
-        (socket/on socket "user-list" (partial update-user-list state))
-        (socket/on socket "game-list" (partial update-game-list state))
-        (socket/on socket "chat-message" (partial update-message-list state))))
+    (do
+      (sente-setup/register-handler sente-setup :rts/user-list (partial update-user-list state))
+      (sente-setup/register-handler sente-setup :rts/game-list (partial update-game-list state))
+      (sente-setup/register-handler sente-setup :rts/chat-message (partial update-message-list state)))
     (rum/mount (lobby component state) (aget (:$page component) 0))
     (routing/init-page (:$page component))
     (->
