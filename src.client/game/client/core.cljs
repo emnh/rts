@@ -17,6 +17,7 @@
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
+    [game.client.sente-setup :as sente-setup]
     [game.client.socket :as socket]
     [game.shared.state :as state
      :refer [s-add-component s-readd-component with-simple-cause]]
@@ -36,7 +37,7 @@
 ;(s-add-component system :ground (ground/new-init-ground))
 
 (s-add-component system :routing (routing/new-router))
-(s-add-component system :sente-setup (page-sente-test/new-sente-setup))
+(s-add-component system :sente-setup (sente-setup/new-sente-setup))
 (s-add-component system :page-sente-test (page-sente-test/new-sente-test))
 (s-add-component system :page-game (page-game/new-game))
 ;(s-add-component system :page-lobby (page-lobby/new-lobby))
