@@ -251,14 +251,11 @@
       }
      interval-handler-enabled (atom true)
      interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)
-     interval-handler-name "scroll-interval"
      ]
     (rebind $element contextevt prevent-default)
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
-    (js/clearInterval (aget js/window interval-handler-name))
     (js/requestAnimationFrame interval-handler)
-    ;(aset js/window interval-handler-name (js/setInterval interval-handler 10))
     (assoc component :old-interval-handler-enabled interval-handler-enabled)
     ))
 
@@ -269,9 +266,10 @@
     (let
       [element (scene/get-view-element renderer)
        ]
-      (if old-interval-handler-enabled (reset! old-interval-handler-enabled false))
       (init-controls component element config camera scene)))
-  (stop [component] component)
+  (stop [component]
+    (if old-interval-handler-enabled (reset! old-interval-handler-enabled false))
+    component)
   )
 
 (defn new-controls
