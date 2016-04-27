@@ -16,6 +16,35 @@
 
 (defonce express-ws (nodejs/require "express-ws"))
 
+(defn send-to-subscribers
+  [component event data]
+  (let
+    [uids (event @(:subscriptions component))
+     send-fn (:send-fn component)]
+    (doseq 
+      [uid uids]
+      (send-fn uid [event data]))))
+
+(defn send-user-list
+  [component uids]
+  (let
+    [query { :_id { :$in (map db/get-object-id uids) } }]
+    ;(println "query" query)
+    ;(.log js/console "query js" (clj->js query))
+    (p/then
+      (db/find (:db component) "users" query)
+      (fn
+        [docs]
+        (let 
+          [docs (js->clj docs :keywordize-keys true)
+           display-names (map #(:displayName %) docs)
+           send-fn (:send-fn component)
+           ]
+          (println "display names" display-names)
+          (doseq
+            [uid uids]
+            (send-to-subscribers component :rts/user-list (into [] display-names))))))))
+
 ;;;; Sente event handlers
 
 (defmulti -event-msg-handler
@@ -39,7 +68,20 @@
     [subscription-event ?data]
     (swap!
       (:subscriptions component)
-      #(assoc-in % [uid subscription-event] true))))
+      #(update
+         %
+         subscription-event
+         (fnil
+           (fn
+             [subscriber-list]
+             (conj subscriber-list uid))
+           #{})))
+    (cond
+      (= subscription-event :rts/user-list)
+      (do
+        (println "send-user-list subscription")
+        (send-user-list component (:any @(:connected-uids component)))))
+    (println "subscription" @(:subscriptions component))))
     ;(send-fn uid [subscription-event [:success uid]])))
 
 (defmethod -event-msg-handler
@@ -89,33 +131,15 @@
 (defn watch-connected-uids
   [component key atom old-state new-state]
   (let
-    [uids (:any new-state)
-     ;query { :_id (db/get-object-id (first uids)) }
-     query { :_id { :$in (map db/get-object-id uids) } }
-     ]
+    [uids (:any new-state)]
     (println "connected-uids" uids)
-    (println "query" query)
-    ;(.log js/console "query js" (clj->js query))
-    (p/then
-      (db/find (:db component) "users" query)
-      (fn
-        [docs]
-        (let 
-          [docs (js->clj docs :keywordize-keys true)
-           display-names (map #(:displayName %) docs)
-           send-fn (:send-fn component)
-           ]
-          (println "display names" display-names)
-          (doseq
-            [uid uids]
-            ; TODO: only send if subscribed. also send when subscribing.
-            (send-fn uid [:rts/user-list (into [] display-names)])))))))
-
+    (send-user-list component uids)))
+    
 (defcom
   new-sente-setup
   [app server db]
   [router ajax-post-fn ajax-get-or-ws-handshake-fn ch-recv send-fn connected-uids
-   subscriptions event-handlers uid-properties]
+   subscriptions event-handlers]
   (fn [component]
 		(let 
       [packer :edn ; Default packer, a good choice in most cases
@@ -130,14 +154,9 @@
          (sente-express/make-express-channel-socket-server! 
            { :packer packer :user-id-fn user-id-fn })
          component)
-       _
-       (do
-         (remove-watch connected-uids :uid-broadcaster)
-         (add-watch connected-uids :uid-broadcaster (partial watch-connected-uids component)))
        router (if (= router nil) (atom nil) router)
        subscriptions (or subscriptions (atom {}))
        event-handlers (or event-handlers (atom {}))
-       uid-properties (or uid-properties (atom {}))
        component
        (->
          component
@@ -151,6 +170,10 @@
          (assoc :send-fn                     send-fn) ; ChannelSocket's send API fn
          (assoc :connected-uids              connected-uids) ; Watchable, read-only atom
          )
+       _
+       (do
+         (remove-watch connected-uids :uid-broadcaster)
+         (add-watch connected-uids :uid-broadcaster (partial watch-connected-uids component)))
        stop-router! #(when-let [stop-f @router] (stop-f))
        start-router!
          #(do
@@ -163,8 +186,6 @@
          (:app app)
          (.ws "/chsk"
               (fn [ws req next]
-                 ;(swap! uid-properties #(assoc % (-> req
-;                (println "ws chsk" req)
                 (ajax-get-or-ws-handshake-fn req nil nil
                                           {:websocket? true
                                            :websocket  ws})))
