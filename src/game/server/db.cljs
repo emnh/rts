@@ -27,6 +27,14 @@
   [id]
   (new ObjectId id))
 
+;(def Object (-> mongo-client .-Object))
+
+;(extend-type Object
+;  IEncodeClojure
+;  (-js->clj [x options]
+;    (println "hello" x)
+;    (into {} (for [k (js-keys x)] [(keyword k) (js->clj (aget x k))]))))
+
 ;(extend-type ObjectId
 ;  IEncodeClojure
 ;  (-js->clj [x options]
@@ -40,6 +48,47 @@
   transform
   [value]
   (js->clj value :keywordize-keys true))
+
+;(defn js->clj2
+;  "Recursively transforms JavaScript arrays into ClojureScript
+;  vectors, and JavaScript objects into ClojureScript maps.  With
+;  option ':keywordize-keys true' will convert object fields from
+;  strings to keywords."
+;  ([x] (js->clj2 x {:keywordize-keys false}))
+;  ([x & opts]
+;    (let [{:keys [keywordize-keys]} opts
+;          keyfn (if keywordize-keys keyword str)
+;          f (fn thisfn [x]
+;              (cond
+;                (satisfies? IEncodeClojure x)
+;                (-js->clj x (apply array-map opts))
+; 
+;                (seq? x)
+;                (doall (map thisfn x))
+; 
+;                (coll? x)
+;                (into (empty x) (map thisfn x))
+; 
+;                (array? x)
+;                (vec (map thisfn x))
+;                 
+;                (or
+;                  (identical? (type x) js/Object)
+;                  (re-matches #"^#object\[Object" (str x)))
+;                (into {} (for [k (js-keys x)]
+;                           [(keyfn k) (thisfn (aget x k))]))
+; 
+;                :else 
+;                (do
+;                  (println "x" (type x) (str x))
+;                  x)
+;                ))]
+;      (f x))))
+
+;(defn
+;  transform-hard
+;  [value]
+;  (js->clj2 value :keywordize-keys true))
 
 (defn find
   [db coll query]
@@ -183,7 +232,7 @@
               (reject err)
               (resolve (transform docs)))))))))
 
-(defn update
+(defn updateOne
   [db coll query ops]
   (m/mlet
     [db (:dbp db)
@@ -191,14 +240,14 @@
      ]
     (p/promise
       (fn [resolve reject]
-        (.update
-          coll
-          (clj->js query)
-          (clj->js ops)
-          (fn [err docs]
-            (if err
-              (reject err)
-              (resolve docs))))))))
+        (-> coll
+          (.updateOne
+            (clj->js query)
+            (clj->js ops)
+            (fn [err docs]
+              (if err
+                (reject err)
+                (resolve (transform (.-result docs)))))))))))
 
 (defn upsert
   [db coll query ops]

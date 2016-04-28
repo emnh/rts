@@ -132,6 +132,7 @@
         { :game-id game-id })
       (p/then
         (fn [reply]
+          (println "join-game" reply)
           (routing/change-page (str "#game-lobby/" game-id "/")))))))
 
 (rum/defc

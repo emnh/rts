@@ -39,7 +39,7 @@
           [display-names (map #(:displayName %) docs)
            send-fn (:send-fn component)
            ]
-          (println "display names" display-names)
+;          (println "display names" display-names)
           (doseq
             [uid uids]
             (send-to-subscribers component :rts/user-list (into [] display-names))))))))
@@ -82,15 +82,15 @@
     (if-let
       [handler (subscription-event @(:subscription-event-handlers component))]
       (handler component ev-msg)
-      (println "Unhandled subscription event:" subscription-event))
+      (println "Unhandled subscription event:" subscription-event))))
 
-    (println "subscription" @(:subscriptions component))))
+;    (println "subscription" @(:subscriptions component))))
     ;(send-fn uid [subscription-event [:success uid]])))
 
 (defmethod -event-msg-handler
   :chsk/uidport-open
   [component {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
-  (println "uidport-open" uid)
+;  (println "uidport-open" uid)
   (send-fn uid [:sente-test/uidport [:hello uid]]))
 
 (defmethod -event-msg-handler
@@ -209,7 +209,7 @@
         component
         :rts/user-list
         #(do
-          (println "send-user-list subscription")
+;          (println "send-user-list subscription")
           (send-user-list component (:any @(:connected-uids component)))))
        component))
   (fn [component] component))

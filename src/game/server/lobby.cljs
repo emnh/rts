@@ -156,19 +156,30 @@
     (p/catch
       (fn [err]
         (when ?reply-fn
-          (?reply-fn [:rts/new-game-reject err]))))))
+          (?reply-fn [:rts/new-game-reject (str err)]))))))
 
 (defn join-game
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
-  (println "lobby/join-game")
   (let
     [p (games/join-game (:db lobby) (:game-id ?data) uid)]
-    (println "promise" p)
-    (p/then p
-      (fn [doc]
-        (when ?reply-fn
-          (print "replying")
-          (?reply-fn [:rts/join-game-resolve]))))))
+    (-> p
+      (p/then
+        (fn [doc]
+;          (println "join-game" doc)
+;          (println "join-game" (:nModified doc))
+          (if 
+            (= (:n doc) 1)
+            (when ?reply-fn
+              (?reply-fn [:rts/join-game-resolve]))
+            (when ?reply-fn
+              (?reply-fn [:rts/join-game-reject "Game not found"])))))
+      (p/catch
+        (fn [err]
+          (when ?reply-fn
+            (print "replying")
+            (?reply-fn [:rts/join-game-reject (str err)])))))))
+
+
 
 (defn subscribe-game-list
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]

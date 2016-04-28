@@ -19,18 +19,19 @@
   (let
     [query
      {
-      :_id (db/get-object-id uid)
+      :_id (db/get-object-id game-id)
       }
      ops
      {
       :$set
       {
+       :updated true
        (str "players." uid) {}
        }
       }
      ]
-    (println "update db")
-    (db/update db "games" query ops)))
+    ;(println "update db" query ops)
+    (db/updateOne db "games" query ops)))
 
 (defn
   new-game
@@ -49,5 +50,5 @@
        userid {}
        }
       }]
-    (println "games/new-game" game)
+    ;(println "games/new-game" game)
     (db/insert db "games" (clj->js game))))
