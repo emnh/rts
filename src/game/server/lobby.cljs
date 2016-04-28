@@ -13,9 +13,17 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
+(defn
+  message-from-db
+  [doc]
+  (->
+    doc
+    (dissoc :_id)
+    (assoc :date (.getTimestamp (:_id doc)))))
+
 (defn recv-chat-message
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
-  (println "recv-chat-message")
+;  (println "recv-chat-message")
   (let
     [display-name (-> ring-req :body .-session .-user .-displayName)
      doc 
@@ -25,7 +33,6 @@
       :message ?data
       :date (db/timestamp)
       }
-     ;msgdata (assoc doc :date #(.toString %))
      ]
     (->
       (db/insert (:db lobby) "messages" doc)
@@ -48,6 +55,21 @@
           (when ?reply-fn
             (?reply-fn :rts/chat-message-reject err)))))))
 
+(defn subscribe-chat-messages
+  [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
+  (->
+    (db/find-messages (:db lobby))
+    (p/then
+      (fn [docs]
+        (doseq
+         [doc docs]
+          ; TODO: optimize by sending batch
+          (sente/send
+            sente
+            uid
+            :rts/chat-message
+            (message-from-db doc)))))))
+
 (defcom 
   new-lobby
   [config db games sente-setup]
@@ -57,5 +79,9 @@
       sente-setup
       :rts/chat-message
       (partial recv-chat-message component))
+    (sente/register-subscription-handler
+      sente-setup
+      :rts/chat-message
+      (partial subscribe-chat-messages component))
     component)
   (fn [component] component))

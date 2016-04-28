@@ -44,6 +44,10 @@
             [uid uids]
             (send-to-subscribers component :rts/user-list (into [] display-names))))))))
 
+(defn send
+  [component uid event data]
+  ((:send-fn component) uid [event data]))
+
 ;;;; Sente event handlers
 
 (defmulti -event-msg-handler
@@ -75,12 +79,11 @@
              [subscriber-list]
              (conj subscriber-list uid))
            #{})))
-    ; TODO: generalize
-    (cond
-      (= subscription-event :rts/user-list)
-      (do
-        (println "send-user-list subscription")
-        (send-user-list component (:any @(:connected-uids component)))))
+    (if-let
+      [handler (subscription-event @(:subscription-event-handlers component))]
+      (handler component ev-msg)
+      (println "Unhandled subscription event:" subscription-event))
+
     (println "subscription" @(:subscriptions component))))
     ;(send-fn uid [subscription-event [:success uid]])))
 
@@ -126,6 +129,10 @@
   [component event handler]
   (swap! (:event-handlers component) #(assoc % event handler)))
 
+(defn register-subscription-handler
+  [component event handler]
+  (swap! (:subscription-event-handlers component) #(assoc % event handler)))
+
 (defn user-id-fn
   [req]
   (let
@@ -143,7 +150,7 @@
   new-sente-setup
   [app server db]
   [router ajax-post-fn ajax-get-or-ws-handshake-fn ch-recv send-fn connected-uids
-   subscriptions event-handlers]
+   subscriptions event-handlers subscription-event-handlers]
   (fn [component]
 		(let 
       [packer :edn ; Default packer, a good choice in most cases
@@ -161,9 +168,11 @@
        router (if (= router nil) (atom nil) router)
        subscriptions (or subscriptions (atom {}))
        event-handlers (or event-handlers (atom {}))
+       subscription-event-handlers (or subscription-event-handlers (atom {}))
        component
        (->
          component
+         (assoc :subscription-event-handlers subscription-event-handlers)
          (assoc :event-handlers event-handlers)
          (assoc :subscriptions subscriptions)
          (assoc :test { :component-start-time (-> (new js/Date) .toString) })
@@ -186,15 +195,21 @@
                    (sente/start-server-chsk-router!
                     ch-recv (partial event-msg-handler component))))
        ]
-       (doto
-         (:app app)
-         (.ws "/chsk"
-              (fn [ws req next]
-                (ajax-get-or-ws-handshake-fn req nil nil
-                                          {:websocket? true
-                                           :websocket  ws})))
-         (.get "/chsk" ajax-get-or-ws-handshake-fn)
-         (.post "/chsk" ajax-post-fn))
-       (start-router!)
+      (doto
+        (:app app)
+        (.ws "/chsk"
+             (fn [ws req next]
+               (ajax-get-or-ws-handshake-fn req nil nil
+                                         {:websocket? true
+                                          :websocket  ws})))
+        (.get "/chsk" ajax-get-or-ws-handshake-fn)
+        (.post "/chsk" ajax-post-fn))
+      (start-router!)
+      (register-subscription-handler
+        component
+        :rts/user-list
+        #(do
+          (println "send-user-list subscription")
+          (send-user-list component (:any @(:connected-uids component)))))
        component))
   (fn [component] component))

@@ -197,7 +197,7 @@
 (defn
   update-message-list
   [state message]
-  (println "upd-msg" message)
+  ;(println "upd-msg" message)
   (swap!
     state
     (fn [state]
@@ -219,6 +219,7 @@
         (atom {
                :user-list []
                :message-list []
+               :game-list []
                }))
      sente-setup (:sente-setup component)
      ]
