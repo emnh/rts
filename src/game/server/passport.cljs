@@ -48,7 +48,7 @@
       (fn [id-pair done] 
         (let
           [user-promise (db/find db "users" (js->clj id-pair :keywordize-keys true))]
-          (p/then user-promise #(done nil (first %)))
+          (p/then user-promise #(done nil (clj->js (first %))))
           (p/catch user-promise #(done % nil))
                   )))))
 

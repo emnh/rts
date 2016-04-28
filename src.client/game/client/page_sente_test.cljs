@@ -29,18 +29,22 @@
   [component]
   (if
     @(:send-loop-enabled component)
-    (if
-      (:open? @(:state (:sente-setup component)))
-      (do
-        (println "send-fn" )
-        ((:send-fn (:sente-setup component))
-           [:sente-test/ping {:had-a-callback? "yes"}]
-           5000
-           (fn [cb-reply] (println "cb-reply" cb-reply)))
-        (js/setTimeout (partial send-loop component) 60000))
-      (do
-        (println "not-send-fn" )
-        (js/setTimeout (partial send-loop component) 1000)))))
+    (do
+      (println "send-fn" )
+      (->
+        (sente-setup/send-cb
+          (:sente-setup component)
+          :sente-test/ping
+          {:had-a-callback? "yes"})
+        (p/then
+           (fn [cb-reply]
+             (println "cb-reply" cb-reply)))
+        (p/catch
+          (fn [err]
+            (println "err" err)))
+        (p/finally
+          (fn []
+            (js/setTimeout (partial send-loop component) 60000)))))))
 
 (defn
   handle-init

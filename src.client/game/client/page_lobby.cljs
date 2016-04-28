@@ -70,20 +70,22 @@
   input-handler
   [component event]
   (let
-    [keyCode (-> event .-nativeEvent .-keyCode)]
+    [keyCode (-> event .-nativeEvent .-keyCode)
+     timeout (get-in component [:config :sente :request-timeout])
+     ]
     (if
       (= keyCode (-> js/KeyEvent .-DOM_VK_RETURN))
       (do
-        (sente-setup/send
-          (:sente-setup component)
-          :rts/chat-message
-          (-> ($ "#chat-input") .val))
-        (-> ($ "#chat-input") (.val ""))))))
-
-;      (let
-;        [socket (get-in component [:socket :socket])]
-;        (-> socket (.emit "chat-message" (clj->js (-> ($ "#chat-input") .val))))
-;        (-> ($ "#chat-input") (.val ""))))))
+        (->
+          (sente-setup/send-cb
+            (:sente-setup component)
+            :rts/chat-message
+            (-> ($ "#chat-input") .val))
+          (p/then
+            (fn
+              [event]
+              (println "chat-reply" event)
+              (-> ($ "#chat-input") (.val "")))))))))
 
 (rum/defc
   chat-input < rum/static
@@ -195,6 +197,7 @@
 (defn
   update-message-list
   [state message]
+  (println "upd-msg" message)
   (swap!
     state
     (fn [state]

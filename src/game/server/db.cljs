@@ -25,7 +25,7 @@
             (fn [err docs]
               (if err
                 (reject err)
-                (resolve (reverse docs))))))))))
+                (resolve (reverse (js->clj docs :keywordize-keys true)))))))))))
 
 (defn find-messages
   [db]
@@ -43,7 +43,7 @@
           (.toArray (fn [err docs]
             (if err
               (reject err)
-              (resolve (reverse docs))))))))))
+              (resolve (reverse (js->clj docs :keywordize-keys true)))))))))))
 
 (defn find-joinable-games
   [db]
@@ -121,6 +121,12 @@
       ;(p/then (find-messages component) #(println %))
       component))
   (stop [component] 
+    (if
+      (:dbp component)
+      (p/then
+        (:dbp component)
+        (fn [db]
+          (.close db))))
     component))
 
 (defn new-db
@@ -139,11 +145,11 @@
       (fn [resolve reject]
         (.insert
           coll
-          doc 
+          (clj->js doc)
           (fn [err docs]
             (if err
               (reject err)
-              (resolve docs))))))))
+              (resolve (js->clj docs :keywordize-keys true)))))))))
 
 (defn update
   [db coll query ops]

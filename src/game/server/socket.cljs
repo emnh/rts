@@ -15,16 +15,6 @@
 
 (defonce iosession (nodejs/require "socket.io-express-session"))
 
-(defn
-  user-list
-  [sockets]
-  (vec (map #(-> % .-handshake .-session .-user .-displayName) sockets)))
-
-(defn
-  user-list-c
-  [component]
-  (clj->js (user-list @(:sockets component))))
-
 (defn io-connection
   [component socket config map]
   (println "io-connection with session: " (-> socket .-handshake .-session))
@@ -76,26 +66,5 @@
             games
             game-id
             user
-            (-> (get-in component [:server :io]))))))
-    (.on
-      socket "disconnect"
-      (fn []
-        (swap! (:sockets component) (fn [sockets] (remove #(= socket %) sockets)))
-        (-> (get-in component [:server :io]) (.emit "user-list" (user-list-c component)))))))
+            (-> (get-in component [:server :io]))))))))
 
-(defn handler
-  [component socket]
-  (let
-    [io (get-in component [:server :io])]
-      (swap! (:sockets component) #(conj % socket))
-      (-> io (.emit "user-list" (user-list-c component)))
-      (io-connection component socket (:config component) (:map component))))
-
-(defcom 
-  new-socket
-  [config db games sente-setup]
-  [sockets done]
-  (fn [component]
-    ;(sente/register-handler sente-setup :rts/user-list send-user-list)
-    component)
-  (fn [component] component))

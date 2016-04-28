@@ -19,7 +19,7 @@
 
 (enable-console-print!)
 
-(defn 
+(defn
   ->output!
   [fmt & args]
   (let [msg (apply encore/format fmt args)]
@@ -85,11 +85,32 @@
     (:connected-promise component)
     #((:send-fn component) [event ?data])))
 
+(defn
+  send-cb
+  ([component event data]
+    (let
+      [timeout (get-in component [:config :sente :request-timeout])]
+      (send-cb component event data timeout)))
+  ([component event data timeout]
+   (->
+     (:connected-promise component)
+     (p/then
+       #(p/promise
+         (fn [resolve reject]
+           (let
+             [callback
+              (fn [event]
+                (if
+                  (= event :chsk/timeout)
+                  (reject (new js/Error event))
+                  (resolve event)))]
+             ((:send-fn component) [event data] timeout callback))))))))
+
 (defcom
   new-sente-setup
   [config]
   [chsk ch-recv send-fn state router event-handlers connected-promise]
-  (fn [component] 
+  (fn [component]
     (let
       [{:keys [chsk ch-recv send-fn state]}
        (if

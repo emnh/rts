@@ -36,8 +36,7 @@
       (fn
         [docs]
         (let 
-          [docs (js->clj docs :keywordize-keys true)
-           display-names (map #(:displayName %) docs)
+          [display-names (map #(:displayName %) docs)
            send-fn (:send-fn component)
            ]
           (println "display names" display-names)
@@ -76,6 +75,7 @@
              [subscriber-list]
              (conj subscriber-list uid))
            #{})))
+    ; TODO: generalize
     (cond
       (= subscription-event :rts/user-list)
       (do
@@ -117,6 +117,10 @@
         (println "Unhandled event:" event)
         (when ?reply-fn
           (?reply-fn {:umatched-event-as-echoed-from-from-server event}))))))
+
+;(defn register-subscription
+;  [component event handler]
+;  )
 
 (defn register-handler
   [component event handler]

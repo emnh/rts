@@ -24,8 +24,8 @@
   [app config passport session]
   (let
     [session-secret (get-in config [:session :secret])]
-    (-> app (.use (cookie-parser session-secret)))
-    (-> app (.use session )))
+    (-> app (.use (cookie-parser session-secret))))
+  (-> app (.use session ))
   (-> app (.use (csurf #js { :cookie false })))
   (-> app (.use (.urlencoded body-parser #js { :extended false } )))
   (-> app (.use (-> passport .initialize)))

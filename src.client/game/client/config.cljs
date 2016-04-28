@@ -50,6 +50,7 @@
 (def config
   {
    :sente {
+           :request-timeout 10000
            :connection-timeout 10000
            }
    :dom {
