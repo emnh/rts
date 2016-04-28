@@ -13,23 +13,3 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(defonce iosession (nodejs/require "socket.io-express-session"))
-
-(defn io-connection
-  [component socket config map]
-  (let
-    [displayName (-> socket .-handshake .-session .-user .-displayName)]
-    (.on
-      socket "join-game"
-      (fn [data]
-        (let
-          [data (js->clj data :keywordize-keys true)
-           game-id (:game-id data)
-           games (:games component)
-           user (-> socket .-handshake .-session .-user)]
-          (games/join-game
-            games
-            game-id
-            user
-            (-> (get-in component [:server :io]))))))))
-
