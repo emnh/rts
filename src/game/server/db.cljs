@@ -11,6 +11,31 @@
 
 (defonce mongo-client (nodejs/require "mongodb"))
 
+(def Timestamp (-> mongo-client .-Timestamp))
+(defn timestamp
+  []
+  (new Timestamp))
+
+(defn get-id
+  [objectid]
+  ; see http://docs.mongodb.org/manual/reference/object-id/
+  (-> objectid .toString))
+
+(def ObjectId (-> mongo-client .-ObjectId))
+
+(defn get-object-id
+  [id]
+  (new ObjectId id))
+
+;(extend-type ObjectId
+;  IEncodeClojure
+;  (-js->clj [x options]
+;    (println "hello" x)
+;    { 
+;     :id (get-id x)
+;     :date (.getTimestamp x)
+;     }))
+
 (defn
   transform
   [value]
@@ -168,8 +193,8 @@
       (fn [resolve reject]
         (.update
           coll
-          query 
-          ops
+          (clj->js query)
+          (clj->js ops)
           (fn [err docs]
             (if err
               (reject err)
@@ -193,19 +218,3 @@
               (reject err)
               (resolve docs))))))))
 
-(def Timestamp (-> mongo-client .-Timestamp))
-(defn timestamp
-  []
-  (new Timestamp))
-
-(defn get-id
-  [objectid]
-  ; TODO: After version 2.2 this needs to be changed to .-str instead of .toString
-  ; see http://docs.mongodb.org/manual/reference/object-id/
-  (-> objectid .toString))
-
-(def ObjectId (-> mongo-client .-ObjectId))
-
-(defn get-object-id
-  [id]
-  (new ObjectId id))

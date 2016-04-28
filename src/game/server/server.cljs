@@ -7,11 +7,10 @@
     ))
 
 (defonce http (nodejs/require "http"))
-(defonce io-lib (nodejs/require "socket.io"))
 (defonce express-ws (nodejs/require "express-ws"))
 
 (defrecord InitServer
-  [app config server io]
+  [app config server]
   component/Lifecycle
   (start [component]
     (if
@@ -19,22 +18,11 @@
       component
       (let
         [server (.createServer http #((:app app) %1 %2))
-         socket-path (get-in config [:server :socket-path])
-         socket-ns (get-in config [:server :socket-ns])
-         ;ws-server (express-ws (:app app) server)
-         io (io-lib
-              server
-              #js
-              {
-               :path socket-path
-               })
-         io (-> io (.of socket-ns))
          port (get-in config [:server :port])
          ]
         (-> server (.listen port))
         (-> component
-          (assoc :server server)
-          (assoc :io io)))))
+          (assoc :server server)))))
   (stop [component] component))
 
 (defn new-server

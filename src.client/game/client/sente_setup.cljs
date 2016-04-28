@@ -6,7 +6,6 @@
     [com.stuartsierra.component :as component]
     [game.client.common :as common :refer [list-item header promise-obj]]
     [game.client.routing :as routing]
-    [game.client.socket :as socket]
     [jayq.core :as jayq :refer [$]]
     [promesa.core :as p]
     [rum.core :as rum]

@@ -8,7 +8,6 @@
     [game.client.common :as common :refer [new-jsobj new-lc]]
     [game.client.config :as config]
     [game.client.controls :as controls]
-    [game.client.ground :as ground]
     [game.client.page-game :as page-game]
     [game.client.page-lobby :as page-lobby]
     [game.client.page-game-lobby :as page-game-lobby]
@@ -18,7 +17,6 @@
     [game.client.routing :as routing]
     [game.client.scene :as scene]
     [game.client.sente-setup :as sente-setup]
-    [game.client.socket :as socket]
     [game.shared.state :as state
      :refer [s-add-component s-readd-component with-simple-cause]]
     )
@@ -79,9 +77,7 @@
 
 (s-readd-component system :config config/config)
 
-;(s-add-component system :socket (socket/new-init-socket))
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
-;(s-add-component system :ground (ground/new-init-ground))
 
 (s-add-component system :routing-callback (new-lc reload-page))
 (s-add-component system :routing (routing/new-router))
@@ -92,7 +88,8 @@
                  (new-page :game (page-game/new-game)))
 (s-add-component system :page-lobby
                  (new-page :lobby (page-lobby/new-lobby)))
-;(s-add-component system :page-game-lobby (page-game-lobby/new-game-lobby))
+(s-add-component system :page-game-lobby 
+                 (new-page :game-lobby (page-game-lobby/new-game-lobby)))
 (s-add-component system :page-not-found 
                  (new-page :not-found (page-not-found/new-page-not-found)))
 

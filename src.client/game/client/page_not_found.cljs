@@ -7,7 +7,6 @@
     [cats.core :as m]
     [rum.core :as rum]
     [game.client.routing :as routing]
-    [game.client.socket :as socket]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     )

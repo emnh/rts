@@ -8,7 +8,7 @@
     [rum.core :as rum]
     [game.client.common :as common :refer [list-item]]
     [game.client.routing :as routing]
-    [game.client.socket :as socket]
+    [game.client.sente-setup :as sente-setup]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     )
@@ -24,10 +24,17 @@
     [keyCode (-> event .-nativeEvent .-keyCode)]
     (if
       (= keyCode (-> js/KeyEvent .-DOM_VK_RETURN))
-      (let
-        [socket (get-in component [:socket :socket])]
-        (-> socket (.emit "chat-message" (clj->js (-> ($ "#chat-input") .val))))
-        (-> ($ "#chat-input") (.val ""))))))
+      (do
+        (->
+          (sente-setup/send-cb
+            (:sente-setup component)
+            :rts/chat-message
+            (-> ($ "#chat-input") .val))
+          (p/then
+            (fn
+              [event]
+              (println "chat-reply" event)
+              (-> ($ "#chat-input") (.val "")))))))))
 
 (rum/defc
   chat-input < rum/static
@@ -112,7 +119,7 @@
 
 (defcom
   new-game-lobby
-  [config socket routing]
+  [config sente-setup routing]
   [state done]
   start
   stop)

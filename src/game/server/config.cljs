@@ -107,9 +107,7 @@
    {
     :port (if (production?) 3551 3451)
     :url url
-    ;:socket-path (str "/" urlpath "socket.io/")
-    :socket-ns (str "/" urlpath)
-    :socket-path "/socket.io/"
+    :sente-path (str "/" urlpath "chsk")
     }
    :db 
    {

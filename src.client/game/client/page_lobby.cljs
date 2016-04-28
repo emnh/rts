@@ -125,14 +125,14 @@
   [component event]
   (if-let
     [game-id (-> ($ ".game-list .selected") (.attr "id"))]
-    (let
-      [socket (get-in component [:socket :socket])
-       data #js
-       {
-        :game-id game-id
-        }]
-      (-> socket (.emit "join-game" data))
-      (routing/change-page (str "#game-lobby/" game-id "/")))))
+    (->
+      (sente-setup/send-cb
+        (:sente-setup component)
+        :rts/join-game
+        { :game-id game-id })
+      (p/then
+        (fn [reply]
+          (routing/change-page (str "#game-lobby/" game-id "/")))))))
 
 (rum/defc
   join-game < rum/static

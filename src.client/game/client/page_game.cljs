@@ -12,7 +12,6 @@
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
-    [game.client.socket :as socket]
     [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]

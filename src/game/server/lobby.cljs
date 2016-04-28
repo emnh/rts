@@ -62,16 +62,16 @@
   (let
     [players (map #(:players %) games)
      uids (map name (flatten (map #(keys %) players)))
-     _ (println "uids" uids)
+;     _ (println "uids" uids)
      query { :_id { :$in (map db/get-object-id uids) } }]
     (->
       (db/find (:db lobby) "users" query)
       (p/then
         (fn [users]
-          (println "users" users)
+;          (println "users" users)
           (let
             [by-uid (group-by #(db/get-id (:_id %)) users)]
-            (println "by-uid" by-uid)
+;            (println "by-uid" by-uid)
             (for
               [game games]
               (update game :players (partial update-players by-uid))))))
@@ -136,9 +136,9 @@
 
 (defn new-game
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
-  (println "lobby/new-game")
+;  (println "lobby/new-game")
   (->
-    (games/new-game (:games lobby) uid)
+    (games/new-game (:db lobby) uid)
     (p/then
       (fn [docs]
         (when ?reply-fn
@@ -158,15 +158,27 @@
         (when ?reply-fn
           (?reply-fn [:rts/new-game-reject err]))))))
 
+(defn join-game
+  [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
+  (println "lobby/join-game")
+  (let
+    [p (games/join-game (:db lobby) (:game-id ?data) uid)]
+    (println "promise" p)
+    (p/then p
+      (fn [doc]
+        (when ?reply-fn
+          (print "replying")
+          (?reply-fn [:rts/join-game-resolve]))))))
+
 (defn subscribe-game-list
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
-  (println "subscribe game list")
+;  (println "subscribe game list")
   (->
     (db/find-joinable-games (:db lobby))
     (p/then (partial games-from-db lobby))
     (p/then
       (fn [docs]
-        (println "docs" docs)
+;        (println "docs" docs)
         (sente/send
           sente
           uid
@@ -175,7 +187,7 @@
 
 (defcom 
   new-lobby
-  [config db games sente-setup]
+  [config db sente-setup]
   []
   (fn [component]
     (sente/register-handler
@@ -194,5 +206,9 @@
       sente-setup
       :rts/new-game
       (partial new-game component))
+    (sente/register-handler
+      sente-setup
+      :rts/join-game
+      (partial join-game component))
     component)
   (fn [component] component))

@@ -13,58 +13,28 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(defcom
-  new-games
-  [config db]
-  [games dbread]
-  (fn [component]
-    (if 
-      games
-      component
-      (let
-        [games (atom {})
-         component (assoc component :games games)
-         component
-           (assoc component
-             :db-read
-             (m/mlet
-               [docs (db/find-joinable-games (:db component))]
-               (let
-                 [docs (js->clj docs :keywordize-keys true)
-                  f #(assoc %1 (:id %2) %2)
-                  docs (reduce 
-                         f 
-                         {}
-                         (for [game docs]
-                           (do
-                             (-> game
-                               (assoc :id (db/get-id (:_id game)))))))]
-                  (swap! games #(merge % docs)))
-               games))]
-      component)))
-  (fn [component]
-    component))
-
 (defn
   join-game
-  [games game-id user broadcast-socket]
+  [db game-id uid]
   (let
-    [userid (db/get-id (-> user .-_id))]
-    (swap!
-      (:games games)
-      (fn [games] 
-        (->
-          games
-          (assoc-in 
-            [game-id :players userid :display-name]
-            (-> user .-displayName)))))
-    (pprint/pprint ["join-game" @(:games games)])
-    (-> broadcast-socket
-      (.emit "game-list" (clj->js @(:games games))))))
+    [query
+     {
+      :_id (db/get-object-id uid)
+      }
+     ops
+     {
+      :$set
+      {
+       (str "players." uid) {}
+       }
+      }
+     ]
+    (println "update db")
+    (db/update db "games" query ops)))
 
 (defn
   new-game
-  [games uid]
+  [db uid]
   (let
     [userid uid
      game
@@ -80,4 +50,4 @@
        }
       }]
     (println "games/new-game" game)
-    (db/insert (:db games) "games" (clj->js game))))
+    (db/insert db "games" (clj->js game))))
