@@ -27,25 +27,30 @@
     (-> target
       (.toggleClass "selected"))))
 
+(defn
+  format-game-list
+  [game-list]
+  (doall
+    (for
+      [gameid (keys game-list)]
+      (let
+        [g (get game-list gameid)
+         players (str "(" (count (:players g)) "/" (:max-player-count g) ")")]
+        (rum/with-key
+          (list-item
+            (str players " " (:name g) ": " (join "," (map #(:display-name %) (vals (:players g)))))
+            {:id (:id g)
+             :on-click select-list-item
+             })
+          (:id g))))))
+
 (rum/defc
   game-list < rum/reactive
   [state]
   (if-let
     [game-list (:game-list (rum/react state))]
-    [:ul { :class "game-list col-md-9" }
-     (for
-       [gameid (keys game-list)]
-       (let
-         [g (get game-list gameid)
-          players (str "(" (count (:players g)) "/" (:max-player-count g) ")")]
-         (rum/with-key
-           (list-item
-             (str players " " (:name g) ": " (join "," (map #(get % :display-name) (vals (:players g)))))
-             {:id (:id g)
-              :on-click select-list-item
-              })
-           (:id g)
-           )))]
+    [:ul { :class "game-list col-md-9" } (format-game-list game-list)]
+    ;[:ul { :class "game-list col-md-9" } (str game-list)]
     [:div "No active games"]))
 
 (rum/defc
@@ -100,10 +105,11 @@
 
 (defn new-game-handler
   [component event]
-  (let
-    [socket (get-in component [:socket :socket])]
-    (println "new-game" socket)
-    (-> socket (.emit "new-game"))))
+  (println "new-game")
+  (sente-setup/send-cb
+    (:sente-setup component)
+    :rts/new-game
+    {}))
 
 (rum/defc
   new-game < rum/static
@@ -192,6 +198,7 @@
 (defn
   update-game-list
   [state message]
+  (println "game-list" message)
   (swap! state #(assoc-in % [:game-list] message)))
 
 (defn

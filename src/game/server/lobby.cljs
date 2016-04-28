@@ -14,6 +14,70 @@
   )
 
 (defn
+  dekeywordize-keys
+  [dict]
+  (reduce
+    #(assoc %1 (name (key %2)) (val %2))
+    {}
+    dict))
+
+(defn
+  games-from-db-convert
+  [lobby games]
+  (reduce
+    (fn [m [k v]] (assoc m k (first v)))
+    {}
+    (group-by
+      :id
+      (map
+        (fn [game]
+          (->
+            game
+            (dissoc :_id)
+            (update :players dekeywordize-keys)
+            (assoc :id (db/get-id (:_id game)))))
+        games))))
+
+(defn update-players
+  [by-uid players]
+  (reduce
+    (fn
+     [m [k v]]
+     (assoc
+       m
+       k
+       (do
+         (merge
+           v
+           {
+            :display-name
+            (:displayName (first (by-uid (name k))))
+            }))))
+    {}
+    players))
+
+(defn
+  games-from-db
+  [lobby games]
+  (let
+    [players (map #(:players %) games)
+     uids (map name (flatten (map #(keys %) players)))
+     _ (println "uids" uids)
+     query { :_id { :$in (map db/get-object-id uids) } }]
+    (->
+      (db/find (:db lobby) "users" query)
+      (p/then
+        (fn [users]
+          (println "users" users)
+          (let
+            [by-uid (group-by #(db/get-id (:_id %)) users)]
+            (println "by-uid" by-uid)
+            (for
+              [game games]
+              (update game :players (partial update-players by-uid))))))
+      (p/then (partial games-from-db-convert lobby)))))
+
+(defn
   message-from-db
   [doc]
   (->
@@ -70,6 +134,45 @@
             :rts/chat-message
             (message-from-db doc)))))))
 
+(defn new-game
+  [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
+  (println "lobby/new-game")
+  (->
+    (games/new-game (:games lobby) uid)
+    (p/then
+      (fn [docs]
+        (when ?reply-fn
+          (?reply-fn [:rts/new-game-resolve]))
+        (->
+          (db/find-joinable-games (:db lobby))
+          (p/then (partial games-from-db lobby))
+          (p/then
+            (fn
+              [games]
+              (sente/send-to-subscribers
+                sente
+                :rts/game-list
+                games))))))
+    (p/catch
+      (fn [err]
+        (when ?reply-fn
+          (?reply-fn [:rts/new-game-reject err]))))))
+
+(defn subscribe-game-list
+  [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
+  (println "subscribe game list")
+  (->
+    (db/find-joinable-games (:db lobby))
+    (p/then (partial games-from-db lobby))
+    (p/then
+      (fn [docs]
+        (println "docs" docs)
+        (sente/send
+          sente
+          uid
+          :rts/game-list
+          docs)))))
+
 (defcom 
   new-lobby
   [config db games sente-setup]
@@ -83,5 +186,13 @@
       sente-setup
       :rts/chat-message
       (partial subscribe-chat-messages component))
+    (sente/register-subscription-handler
+      sente-setup
+      :rts/game-list
+      (partial subscribe-game-list component))
+    (sente/register-handler
+      sente-setup
+      :rts/new-game
+      (partial new-game component))
     component)
   (fn [component] component))

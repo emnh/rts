@@ -64,46 +64,20 @@
 
 (defn
   new-game
-  [games user broadcast-socket]
+  [games uid]
   (let
-    [userid (db/get-id (-> user .-_id))
+    [userid uid
      game
      {
       :host userid
+      :name "Unnamed"
       :started false
       :active true
       :max-player-count 2
       :players
       {
-       userid 
-         {
-          :display-name (-> user .-displayName)
-          }
+       userid {}
        }
       }]
-    (println "new-game" game)
-    (m/mlet
-      [docs (db/insert (:db games) "games" (clj->js game))
-       ]
-      (let
-        [docs (js->clj docs :keywordize-keys true)
-         game (get (:ops docs) 0)
-         _id (:_id game)
-         id (db/get-id _id)
-         game (assoc game :id id)
-         game (assoc game :name id)
-         ]
-        (let 
-          [update-promise
-            (db/update 
-              (:db games)
-              "games" 
-              #js {:_id _id}
-              (clj->js (dissoc game :_id)))]
-          ;(p/then update-promise (fn [success] (println "success updating game" success)))
-          ;(p/catch update-promise (fn [error] (println "error updating game: " error))))
-          )
-        (swap! (:games games) #(assoc % id game))
-        ;(pprint/pprint @(:games games))
-        (-> broadcast-socket 
-          (.emit "game-list" (clj->js @(:games games))))))))
+    (println "games/new-game" game)
+    (db/insert (:db games) "games" (clj->js game))))

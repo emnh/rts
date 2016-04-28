@@ -11,6 +11,11 @@
 
 (defonce mongo-client (nodejs/require "mongodb"))
 
+(defn
+  transform
+  [value]
+  (js->clj value :keywordize-keys true))
+
 (defn find
   [db coll query]
   (m/mlet
@@ -25,7 +30,7 @@
             (fn [err docs]
               (if err
                 (reject err)
-                (resolve (reverse (js->clj docs :keywordize-keys true)))))))))))
+                (resolve (reverse (transform docs)))))))))))
 
 (defn find-messages
   [db]
@@ -43,7 +48,7 @@
           (.toArray (fn [err docs]
             (if err
               (reject err)
-              (resolve (reverse (js->clj docs :keywordize-keys true)))))))))))
+              (resolve (reverse (transform docs)))))))))))
 
 (defn find-joinable-games
   [db]
@@ -60,7 +65,7 @@
           (.toArray (fn [err docs]
             (if err
               (reject err)
-              (resolve (reverse docs))))))))))
+              (resolve (reverse (transform docs)))))))))))
 
 
 (defn create-index
@@ -151,7 +156,7 @@
           (fn [err docs]
             (if err
               (reject err)
-              (resolve (js->clj docs :keywordize-keys true)))))))))
+              (resolve (transform docs)))))))))
 
 (defn update
   [db coll query ops]
