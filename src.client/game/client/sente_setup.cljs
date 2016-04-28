@@ -60,7 +60,7 @@
   (->output! "Push event from server: %s" ?data)
   (let
     [event (first ?data)
-     data (rest ?data)]
+     data (second ?data)]
     (if-let
       [handler (event @(:event-handlers component))]
       (handler data))))
