@@ -23,7 +23,7 @@
     "pug": "2.0.0-alpha6",
     "jquery": "2.2.3",
     "js-beautify": "1.5.10",
-    "mongodb": "2.0.45",
+    "mongodb": "2.1.18",
     "morgan": "1.6.1",
     "passport": "0.3.0",
     "passport-facebook": "2.0.0",
