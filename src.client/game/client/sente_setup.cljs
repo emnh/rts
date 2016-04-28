@@ -35,7 +35,7 @@
 (defn event-msg-handler
   "Wraps `-event-msg-handler` with logging, error catching, etc."
   [component {:as ev-msg :keys [id ?data event]}]
-  (println "event-msg-handler")
+;  (println "event-msg-handler")
   (-event-msg-handler component ev-msg))
 
 (defmethod -event-msg-handler
@@ -57,7 +57,7 @@
 
 (defmethod -event-msg-handler :chsk/recv
   [component {:as ev-msg :keys [?data]}]
-  (->output! "Push event from server: %s" ?data)
+  ;(->output! "Push event from server: %s" ?data)
   (let
     [event (first ?data)
      data (second ?data)]
