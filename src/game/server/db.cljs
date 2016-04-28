@@ -88,15 +88,17 @@
     (let
       [url (get-in config [:db :url])
        dbp
-        (p/promise
-          (fn [resolve reject]
-            (-> 
-              mongo-client 
-              (.connect url
-                (fn [err db]
-                  (if err 
-                    (reject err)
-                    (resolve db)))))))
+       (or
+         (:dbp component)
+         (p/promise
+           (fn [resolve reject]
+             (-> 
+               mongo-client 
+               (.connect url
+                 (fn [err db]
+                   (if err 
+                     (reject err)
+                     (resolve db))))))))
        component (assoc component :dbp dbp)]
       (create-index
         component
@@ -121,12 +123,12 @@
       ;(p/then (find-messages component) #(println %))
       component))
   (stop [component] 
-    (if
-      (:dbp component)
-      (p/then
-        (:dbp component)
-        (fn [db]
-          (.close db))))
+;    (if
+;      (:dbp component)
+;      (p/then
+;        (:dbp component)
+;        (fn [db]
+;          (.close db))))
     component))
 
 (defn new-db

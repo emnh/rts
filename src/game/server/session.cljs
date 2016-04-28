@@ -11,14 +11,24 @@
 (defonce MongoDBStore ((nodejs/require "connect-mongodb-session") session))
 (defonce assert (nodejs/require "assert"))
 
+(defn create-session
+  [session-secret store]
+  (session
+    #js { 
+        :secret session-secret 
+        :key "express.sid"
+        :resave false
+        :saveUninitialized false
+        :store store}))
+
 (defn start
   [component]
   (if 
     (= (:start-count component) 0)
     (let
       [config (:config component)
-       session-secret (get-in config [:session :secret])
        url (get-in config [:db :url])
+       session-secret (get-in config [:session :secret])
        store
         (new MongoDBStore #js { 
            ; TODO: reuse db connection?
@@ -28,17 +38,19 @@
        _ (-> store (.on "error" 
                         (fn [error]
                           (-> assert (.ifError error)))))
-       session
-         (session
-            #js { 
-                :secret session-secret 
-                :key "express.sid"
-                :resave false
-                :saveUninitialized false
-                :store store
-                })]
-      (assoc component :session session))
-    component))
+       ]
+      (->
+        component
+        (assoc :store store)
+        (assoc :session (create-session session-secret store))))
+   (let
+      [config (:config component)
+       session-secret (get-in config [:session :secret])
+       store (:store component)
+       ]
+      (->
+        component
+        (assoc :session (create-session session-secret store))))))
 
 (defn stop
   [component]
@@ -48,7 +60,7 @@
 (defcom
   new-session
   [config]
-  [session]
+  [store session]
   start
   stop
   )
