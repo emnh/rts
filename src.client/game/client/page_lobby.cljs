@@ -201,7 +201,9 @@
   update-game-list
   [state message]
   ;(println "game-list" message)
-  (swap! state #(assoc-in % [:game-list] (schema/validate-game-list message))))
+  (swap!
+    state
+    #(assoc-in % [:game-list] (schema/validate-game-list message))))
 
 (defn
   update-message-list
@@ -217,7 +219,7 @@
           [mlist]
           (conj
             (subvec mlist (max 0 (- (count mlist) 20)))
-            message))))))
+            (schema/validate-chat-message message)))))))
 
 (defn start
   [component]

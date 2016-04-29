@@ -87,7 +87,8 @@
   (->
     doc
     (dissoc :_id)
-    (assoc :date (.getTimestamp (:_id doc)))))
+    (assoc :date (.getTimestamp (:_id doc)))
+    (schema/validate-chat-message)))
 
 (defn recv-chat-message
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]
@@ -117,7 +118,7 @@
             (sente/send-to-subscribers
               sente
               :rts/chat-message
-              doc))))
+              (schema/validate-chat-message doc)))))
       (p/catch
         (fn [err]
           (when ?reply-fn
