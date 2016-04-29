@@ -9,6 +9,7 @@
     [game.server.db :as db]
     [game.server.games :as games]
     [game.server.sente-setup :as sente]
+    [game.shared.schema :as schema]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
@@ -75,7 +76,10 @@
             (for
               [game games]
               (update game :players (partial update-players by-uid))))))
-      (p/then (partial games-from-db-convert lobby)))))
+      (p/then
+        (partial games-from-db-convert lobby))
+      (p/then
+        schema/validate-game-list))))
 
 (defn
   message-from-db
@@ -90,7 +94,7 @@
 ;  (println "recv-chat-message")
   (let
     [display-name (-> ring-req :body .-session .-user .-displayName)
-     doc 
+     doc
      {
       :uid uid
       :user display-name
@@ -167,7 +171,7 @@
         (fn [doc]
 ;          (println "join-game" doc)
 ;          (println "join-game" (:nModified doc))
-          (if 
+          (if
             (= (:n doc) 1)
             (when ?reply-fn
               (?reply-fn [:rts/join-game-resolve]))
@@ -196,7 +200,7 @@
           :rts/game-list
           docs)))))
 
-(defcom 
+(defcom
   new-lobby
   [config db sente-setup]
   []

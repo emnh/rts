@@ -9,6 +9,7 @@
     [game.client.common :as common :refer [list-item header]]
     [game.client.routing :as routing]
     [game.client.sente-setup :as sente-setup]
+    [game.shared.schema :as schema]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     )
@@ -199,8 +200,8 @@
 (defn
   update-game-list
   [state message]
-  (println "game-list" message)
-  (swap! state #(assoc-in % [:game-list] message)))
+  ;(println "game-list" message)
+  (swap! state #(assoc-in % [:game-list] (schema/validate-game-list message))))
 
 (defn
   update-message-list

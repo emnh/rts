@@ -25,7 +25,6 @@
      {
       :$set
       {
-       :updated true
        (str "players." uid) {}
        }
       }
