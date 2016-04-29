@@ -60,7 +60,7 @@
   [:ul { :class "user-list" }
    (for
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
-      (rum/with-key (list-item u) i))])
+      (rum/with-key (list-item (:display-name u)) i))])
 
 (rum/defc
   message-list < rum/reactive
@@ -195,7 +195,7 @@
 (defn
   update-user-list
   [state message]
-  (swap! state #(assoc-in % [:user-list] message)))
+  (swap! state #(assoc-in % [:user-list] (schema/validate-user-list message))))
 
 (defn
   update-game-list

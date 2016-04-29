@@ -36,13 +36,22 @@
       (fn
         [docs]
         (let 
-          [display-names (map #(:displayName %) docs)
+          [uids-with-dns (into 
+                           []
+                           (map
+                             (fn [doc]
+                               {
+                                :uid (db/get-id (:_id doc))
+                                :display-name (:displayName doc)
+                                }
+                               )
+                             docs))
            send-fn (:send-fn component)
            ]
 ;          (println "display names" display-names)
           (doseq
             [uid uids]
-            (send-to-subscribers component :rts/user-list (into [] display-names))))))))
+            (send-to-subscribers component :rts/user-list uids-with-dns)))))))
 
 (defn send
   [component uid event data]

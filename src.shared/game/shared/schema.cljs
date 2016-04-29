@@ -3,6 +3,7 @@
 						 :include-macros true ;; cljs only
 							 ]))
 
+; TODO: id regex
 (def Id s/Str)
 
 (def GameList
@@ -22,8 +23,7 @@
       }
      }
     }
-   }
-  )
+   })
 
 (def ChatMessage
   {
@@ -31,8 +31,13 @@
    :uid Id
    :user s/Str
    :message s/Str
-   }
-  )
+   })
+
+(def UserList
+  [{
+   :uid Id
+   :display-name s/Str
+   }])
 
 (defn validate-game-list
   [game-list]
@@ -41,3 +46,7 @@
 (defn validate-chat-message
   [chat-message]
   (s/validate ChatMessage chat-message))
+
+(defn validate-user-list
+  [user-list]
+  (s/validate UserList user-list))
