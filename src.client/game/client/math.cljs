@@ -8,3 +8,4 @@
 (def pi (-> js/Math .-PI))
 (def floor #(-> js/Math (.floor %)))
 (def round #(-> js/Math (.round %)))
+(def random #(-> js/Math (.random)))

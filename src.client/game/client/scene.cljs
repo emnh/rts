@@ -19,8 +19,11 @@
   (let
     [
      config (:config onresize)
-     width (.-innerWidth js/window)
-     height (- (.-innerHeight js/window) (get-in config [:dom :controls-height]))
+     $container (get-in onresize [:params :$page])
+     width (.width $container)
+     height (.height $container)
+;     width (.-innerWidth js/window)
+;     height (- (.-innerHeight js/window) (get-in config [:dom :controls-height]))
      scene (data (:renderer onresize))
      scene (data (:scene onresize))
      camera (data (:camera onresize))
@@ -36,25 +39,20 @@
     (-> $overlay .-height (set! height))
     ))
 
-(defrecord OnResize
-  [config scene camera renderer]
-  component/Lifecycle
-  (start [component]
+(defcom
+  new-on-resize
+  [config scene camera renderer params $overlay init-scene]
+  []
+  (fn [component]
     (on-resize component nil)
     (-> ($ js/window)
       (.unbind "resize.gameResize")
       (.bind "resize.gameResize" (partial on-resize component)))
     component)
-  (stop [component]
+  (fn [component]
     (-> ($ js/window)
       (.unbind "resize.gameResize"))
     component))
-
-(defn new-on-resize
-  []
-  (component/using
-    (map->OnResize {})
-    [:config :scene :camera :renderer :$overlay :init-scene]))
 
 (defrecord InitStats [params render-stats physics-stats]
   component/Lifecycle

@@ -37,3 +37,22 @@ li {
 .game-list li.selected {
   background: orange;
 }
+
+#page-game {
+  width: 100%;
+}
+
+#page-game,
+#page-game-test {
+  height: 100%;
+}
+
+#page-game .container,
+#page-game-test .container {
+  height: 100%;
+}
+
+#page-game-test #game {
+  width: 100%;
+  height: 100%;
+}

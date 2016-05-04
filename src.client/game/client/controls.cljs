@@ -3,7 +3,7 @@
               [cljs.pprint :as pprint]
               [jayq.core :as jayq :refer [$]]
               [game.client.config :as config]
-              [game.client.common :as common :refer [data]]
+              [game.client.common :as common :refer [data unique-id]]
               [game.client.scene :as scene]
               [game.client.routing :as routing]
               [game.client.math :as math :refer [square sin cos pi atan2 sqrt]]
@@ -198,28 +198,26 @@
 (defn
   handle-key
   [keys-pressed event active]
-  (if
-    (routing/game-active)
-    (let
-      [action (if active #(assoc %1 %2 true) dissoc)
-       key-code (-> event .-keyCode)
-       combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
-      (if
-        (contains? handled-keys combination)
-        (do
-          (prevent-default event)
-          (swap! keys-pressed #(action % combination))
-          ; E.g. a sequence of left down, ctrl down, left up, left down, left up should stop action
-          (if-not active (swap! keys-pressed #(action % key-code)))
-          ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
-          (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
-          false
-          )
-        true)))
-    true)
+  (let
+    [action (if active #(assoc %1 %2 true) dissoc)
+     key-code (-> event .-keyCode)
+     combination (if (-> event .-ctrlKey) [:ctrl key-code] key-code)]
+    (if
+      (contains? handled-keys combination)
+      (do
+        (prevent-default event)
+        (swap! keys-pressed #(action % combination))
+        ; E.g. a sequence of left down, ctrl down, left up, left down, left up should stop action
+        (if-not active (swap! keys-pressed #(action % key-code)))
+        ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
+        (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
+        false
+        )
+      true)))
 
 (defn key-down
   [keys-pressed event]
+  (println "keydown")
   (handle-key keys-pressed event true))
 
 (defn key-up
@@ -229,8 +227,8 @@
 (defn rebind
   [$element eventname handler]
   (-> $element
-    (.unbind eventname)
-    (.bind eventname handler)))
+    (.off eventname)
+    (.on eventname handler)))
 
 (defn
   init-controls
@@ -238,7 +236,8 @@
   (let
     [$body ($ "body")
      $element ($ element)
-     bindns "controls"
+     bindns (str "controls" (unique-id element))
+     _ (println "bindns" bindns)
      contextevt (str "contextmenu." bindns)
      keydownevt (str "keydown." bindns)
      keyupevt (str "keyup." bindns)
@@ -256,21 +255,26 @@
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
     (js/requestAnimationFrame interval-handler)
-    (assoc component :old-interval-handler-enabled interval-handler-enabled)
+    (-> component
+      (assoc :keydownevt keydownevt)
+      (assoc :keyupevt keyupevt)
+      (assoc :old-interval-handler-enabled interval-handler-enabled))
     ))
 
 (defrecord Controls
-  [config renderer camera scene old-interval-handler-enabled]
+  [config renderer camera scene old-interval-handler-enabled keydownevt keyupevt]
   component/Lifecycle
   (start [component]
     (let
-      [element (scene/get-view-element renderer)
-       ]
+      [element (scene/get-view-element renderer)]
       (init-controls component element config camera scene)))
   (stop [component]
     (if old-interval-handler-enabled (reset! old-interval-handler-enabled false))
-    component)
-  )
+    (let
+      [$body ($ "body")]
+      (if keydownevt (-> $body (.off keydownevt)))
+      (if keyupevt (-> $body (.off keyupevt))))
+    component))
 
 (defn new-controls
   []

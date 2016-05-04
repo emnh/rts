@@ -11,6 +11,7 @@
     [game.client.page-game :as page-game]
     [game.client.page-lobby :as page-lobby]
     [game.client.page-load-test :as page-load-test]
+    [game.client.page-game-test :as page-game-test]
     [game.client.page-game-lobby :as page-game-lobby]
     [game.client.page-not-found :as page-not-found]
     [game.client.page-sente-test :as page-sente-test]
@@ -73,10 +74,17 @@
     ;(println "starting system")
     (with-simple-cause #(swap! system component/start-system))))
 
+(defonce reloading (atom false))
+
 (defn reload-page
   [page-kw]
-  (println "reload-page")
-  (main))
+  (if-not
+    @reloading
+    (do
+      (println "reload-page")
+      (reset! reloading true)
+      (main)
+      (reset! reloading false))))
 
 (s-readd-component system :config config/config)
 
@@ -88,6 +96,8 @@
 (s-add-component system :progress-manager (progress-manager/new-progress-manager))
 (s-add-component system :resources (resources/new-resources))
 
+(s-add-component system :page-game-test
+                 (new-page :game-test (page-game-test/new-game-test)))
 (s-add-component system :page-load-test
                  (new-page :load-test (page-load-test/new-load-test)))
 (s-add-component system :page-sente-test

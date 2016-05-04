@@ -17,10 +17,6 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-;<div id="units" class="progress">
-;              <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" class="progress-bar progress-bar-striped active"><span class="sr-only">0% Complete</span></div>
-;            </div>
-
 (rum/defc
   progress-bar < rum/static
   "complete is a number from 0 to 100"
@@ -82,7 +78,6 @@
   component)
 
 (defn stop [component] 
-  ;(println "unmounting lobby")
   (if-let
     [page (aget (:$page component) 0)]
     (rum/unmount page))

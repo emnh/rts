@@ -34,13 +34,13 @@
   ["" {
        "lobby" :lobby
        "game" :game
-       "gametest" :gametest
-       "loadtest" :load-test
+       "game-test" :game-test
+       "load-test" :load-test
+       "sente-test" :sente-test
        "game-lobby/"
        {
         [:id "/"] :game-lobby
         }
-       "sente-test" :sente-test
        "404" :not-found
        }])
 
