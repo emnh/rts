@@ -129,11 +129,27 @@
    ]
   )
 
+(def defaults
+  {
+    :scale 1
+    :rotation [0 0 0]
+    :texture-path "models/images/camouflage.jpg"
+    :texture-repeat [1 1]
+    :opacity 1
+    :type :unit-type/ground
+    :move-speed 1
+    :can-attack true
+    :can-move true
+    :max-health 100
+    })
+
 (defn
   load-image
   [path on-success on-progress on-error]
   (let
-    [xhr (new js/XMLHttpRequest)]
+    [xhr (new js/XMLHttpRequest)
+
+     ]
     (doto 
       xhr 
       (.open "GET" path true)
@@ -143,26 +159,38 @@
       (aset "onprogress" on-progress)
       (.send))))
 
+(defn load-texture
+  [path on-progress]
+  (p/promise
+    (fn [resolve reject]
+      (let
+        [on-success 
+         (fn []
+           (this-as 
+             this
+             (let
+               [img (new js/Image)
+                blob (new js/Blob #js [(.-response this)])]
+               (aset img "onload" (fn [] (resolve (new js/THREE.Texture img))))
+               (aset img "onerror" #(reject (str "image load error: " path)))
+               (aset img "src" (-> js/window .-URL (.createObjectURL blob))))))]
+        (load-image path on-success on-progress reject)))))
+
+(defn on-progress
+  [progress-manager resource xhr]
+  (update-progress-item
+    progress-manager
+    resource
+    (-> xhr .-loaded)
+    (-> xhr .-total)))
+
 (defcom
   new-resources
   [progress-manager]
-  [resource-list]
+  [resource-list all-promise]
   (fn [component]
     (let
-      [defaults
-       {
-        :scale 1
-        :rotation [0 0 0]
-        :texture-path "models/images/camouflage.jpg"
-        :texture-repeat [1 1]
-        :opacity 1
-        :type :unit-type/ground
-        :move-speed 1
-        :can-attack true
-        :can-move true
-        :max-health 100
-        }
-       resource-list
+      [resource-list
        (into 
          []
          (for
@@ -171,15 +199,8 @@
              [path (:path model)
               texture-path (:texture-path model)
               geo-loader (new js/THREE.BufferGeometryLoader)
-              on-progress
-              (fn [resource xhr]
-                (update-progress-item
-                  progress-manager
-                  resource
-                  (-> xhr .-loaded)
-                  (-> xhr .-total)))
-              on-geo-progress (partial on-progress path)
-              on-texture-progress (partial on-progress texture-path)
+              on-geo-progress (partial on-progress progress-manager path)
+              on-texture-progress (partial on-progress progress-manager texture-path)
               load-promise
               (p/promise 
                 (fn [resolve reject]
@@ -188,27 +209,7 @@
                      on-error reject]
                     (-> geo-loader
                       (.load path on-success on-geo-progress on-error)))))
-              texture-load-promise
-              (p/promise
-                (fn [resolve reject]
-                  (let
-                    [on-success 
-                     (fn []
-                       (this-as 
-                         this
-                         (let
-                           [img (new js/Image)
-                            blob (new js/Blob #js [(.-response this)])]
-                           (aset
-                             img
-                             "onload"
-                             (fn []
-                               (resolve (new js/THREE.Texture img))))
-                           (aset img "onerror" #(reject (str "image load error: " texture-path)))
-                           (aset img "src" (-> js/window .-URL (.createObjectURL blob))))))
-                     on-error reject
-                     on-progress on-texture-progress]
-                     (load-image texture-path on-success on-progress on-error))))]
+              texture-load-promise (load-texture texture-path on-texture-progress)]
              (merge
                model
                {
@@ -216,5 +217,12 @@
                 :texture-load-promise texture-load-promise 
                 }))))]
          (-> component
+           (assoc
+             :all-promise 
+             (p/all
+               (into
+                 []
+                 (concat
+                   (map #(vector (:load-promise %) (:texture-load-promise %)) resource-list)))))
            (assoc :resource-list resource-list))))
   (fn [component] component))
