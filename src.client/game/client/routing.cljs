@@ -35,6 +35,7 @@
        "lobby" :lobby
        "game" :game
        "gametest" :gametest
+       "loadtest" :load-test
        "game-lobby/"
        {
         [:id "/"] :game-lobby
