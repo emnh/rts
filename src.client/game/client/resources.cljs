@@ -173,7 +173,6 @@
               geo-loader (new js/THREE.BufferGeometryLoader)
               on-progress
               (fn [resource xhr]
-                (println "resource" resource)
                 (update-progress-item
                   progress-manager
                   resource

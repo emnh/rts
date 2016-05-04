@@ -16,8 +16,12 @@
     (:progress-map component)
     #(-> %
        (assoc-in [resource :completed] completed)
-       (assoc-in [resource :total] size)))
-  (println "progress-map" @(:progress-map component)))
+       (assoc-in [resource :total] size))))
+;  (println "progress-map" @(:progress-map component)))
+
+(defn get-progress-map
+  [component]
+  (:progress-map component))
 
 (defcom
   new-progress-manager

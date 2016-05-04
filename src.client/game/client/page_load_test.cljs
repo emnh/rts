@@ -7,18 +7,73 @@
               [promesa.core :as p]
               [game.client.common :as common :refer [list-item header]]
               [game.client.config :as config]
+              [game.client.math :as math :refer [round]]
               [game.client.routing :as routing]
+              [game.client.progress-manager
+               :as progress-manager
+               :refer [get-progress-map]]
               [sablono.core :as sablono :refer-macros [html]]
               )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
+
+;<div id="units" class="progress">
+;              <div role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" class="progress-bar progress-bar-striped active"><span class="sr-only">0% Complete</span></div>
+;            </div>
+
+(rum/defc
+  progress-bar < rum/static
+  "complete is a number from 0 to 100"
+  [text complete]
+  [:div { :id "units" :class "progress" }
+   [:div { 
+          :role "progressbar" 
+          :aria-valuenow complete
+          :aria-valuemin 0 
+          :aria-valuemax 100 
+          :class 
+          (str "progress-bar progress-bar-striped active"
+               (if (= (round complete) 100) " progress-bar-success" ""))
+          :style 
+          {
+            :width (str (round complete) "%")
+           }
+          }
+    [:span { :class "" } text]
+    ]
+   ]
+  )
+
+(defn
+  format-progress
+  [progress-map]
+  (into 
+    []
+    (for
+      [resource (keys progress-map)]
+      (let
+        [{:keys [completed total]}
+         (progress-map resource)
+         progress (* 100 (if (> total 0) (/ completed total) 1))
+         progress-text (str resource ": " progress "%")]
+        (rum/with-key
+          (list-item (progress-bar progress-text progress))
+          resource)))))
+
+(rum/defc
+  progress-list < rum/reactive
+  [component]
+  (let
+    [progress-map (rum/react (get-progress-map (:progress-manager component)))]
+    [:ul { :class "progress-list" } (format-progress progress-map)]
+    ))
 
 (rum/defc
   load-test < rum/static
   [component]
   (let
     [h (header "Load Test")]
-    (html [:div { :class "container" } h])))
+    (html [:div { :class "container" } h (progress-list component)])))
 
 (defn start
   [component]

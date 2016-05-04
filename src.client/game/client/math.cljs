@@ -6,3 +6,5 @@
 (def cos #(-> js/Math (.cos %)))
 (def atan2 #(-> js/Math (.atan2 %1 %2)))
 (def pi (-> js/Math .-PI))
+(def floor #(-> js/Math (.floor %)))
+(def round #(-> js/Math (.round %)))
