@@ -18,12 +18,22 @@
   ; (println "Resize called")
   (let
     [
+     fullscreen? 
+     (<= 
+       (or
+        (-> js/screen .-availHeight) 
+        (- (-> js/screen .-height) 30))
+       (-> js/window .-innerHeight))
      config (:config onresize)
      $container (get-in onresize [:params :$page])
-     width (.width $container)
-     height (.height $container)
-;     width (.-innerWidth js/window)
-;     height (- (.-innerHeight js/window) (get-in config [:dom :controls-height]))
+     width
+     (if fullscreen?
+       (.-innerWidth js/window)
+       (.width $container))
+     height
+     (if fullscreen?
+       (.-innerHeight js/window)
+       (.height $container))
      scene (data (:renderer onresize))
      scene (data (:scene onresize))
      camera (data (:camera onresize))
@@ -33,6 +43,18 @@
     (-> renderer (.setSize width height))
     (-> ($ (-> renderer .-domElement)) (.width width))
     (-> ($ (-> renderer .-domElement)) (.height height))
+    (if
+      fullscreen?
+      (do
+        (-> ($ (str "." page-class))
+          (.addClass "fullscreen"))
+        (-> ($ "body")
+          (.addClass "fullscreen")))
+      (do
+        (-> ($ (str "." page-class))
+          (.removeClass "fullscreen"))
+        (-> ($ "body")
+          (.removeClass "fullscreen"))))
     (-> camera .-aspect (set! (/ width height)))
     (-> camera .updateProjectionMatrix)
     (-> $overlay (.width width))
@@ -69,19 +91,19 @@
        ]
       (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
+      (-> $render-stats (.addClass "render-stats"))
       (jayq/css
         $render-stats
         {
-         :position "absolute"
          :top 0
          :z-index 100
          })
       (-> $container (.append $physics-stats))
       (-> $physics-stats (.addClass page-class))
+      (-> $physics-stats (.addClass "physics-stats"))
       (jayq/css
         $physics-stats
         {
-         :position "absolute"
          :top "50px"
          :z-index 100
          })
@@ -127,7 +149,7 @@
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(jayq/css
             ($ (-> % .-domElement))
-            {:position "absolute"
+            {
              :top 0
              :z-index 0
              })))
@@ -136,7 +158,6 @@
           (.addClass page-class)
           (jayq/css
             {
-             :position "absolute"
              :top 0
              :left 0
              :z-index 1
