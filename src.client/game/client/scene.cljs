@@ -11,7 +11,7 @@
 
 (enable-console-print!)
 
-(def page-class "page-game")
+(def page-class "game-content")
 
 (defn on-resize
   [onresize event]
@@ -54,9 +54,11 @@
       (.unbind "resize.gameResize"))
     component))
 
-(defrecord InitStats [params render-stats physics-stats]
-  component/Lifecycle
-  (start [component]
+(defcom
+  new-init-stats
+  [params render-stats physics-stats]
+  []
+  (fn [component]
     (let
       [
        render-stats (data render-stats)
@@ -80,27 +82,13 @@
         $physics-stats
         {
          :position "absolute"
-         :top 50
+         :top "50px"
          :z-index 100
          })
       component))
-  (stop [component]
+  (fn [component]
     (-> ($ (str "." page-class)) .remove)
     component))
-
-(defn new-init-stats
-  []
-  (component/using
-    (map->InitStats {})
-    [:params :render-stats :physics-stats]))
-
-(defn get-width
-  []
-  (.-innerWidth js/window))
-
-(defn get-height
-  []
-  (.-innerHeight js/window))
 
 (defn add
   [scene item]
@@ -118,13 +106,20 @@
 
 (defcom
   new-init-scene
-  [params renderer $overlay camera scene config ground]
+  ; depends on init-stats because stats elements must be appended first
+  [params renderer $overlay camera scene config ground physics-stats init-stats]
   [done]
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
     (if-not done
-      (do
+      (let
+        [$physics-stats ($ (-> (data physics-stats) .-domElement))
+         margin-top (+
+                      (-> $physics-stats .position .-top)
+                      (-> $physics-stats .height))
+         margin-top (str (- margin-top) "px")]
+
         (doto
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))
@@ -134,7 +129,6 @@
             ($ (-> % .-domElement))
             {:position "absolute"
              :top 0
-             :left 0
              :z-index 0
              })))
         (doto
@@ -170,8 +164,8 @@
   []
   (let
      [
-      width (get-width)
-      height (get-height)
+      width 100  ; will be set correctly later by resize
+      height 100 ; will be set correctly later by resize
       FOV 35
       frustumFar 1000000
       frustumNear 1

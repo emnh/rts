@@ -217,7 +217,6 @@
 
 (defn key-down
   [keys-pressed event]
-  (println "keydown")
   (handle-key keys-pressed event true))
 
 (defn key-up
