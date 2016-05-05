@@ -66,7 +66,6 @@
         (:connected-promise sente-setup)
         #(send-loop component))
       (rum/mount (sente-view component) (aget $page 0))
-      (routing/init-page $page)
       component))
   (fn [component]
     (if

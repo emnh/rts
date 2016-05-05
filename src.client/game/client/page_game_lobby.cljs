@@ -108,7 +108,6 @@
        (:state component)
        (atom {}))]
     (rum/mount (game-lobby component state) (aget ($ page-id) 0))
-    (routing/init-page ($ page-id))
     (->
       component
       (assoc :state state))))

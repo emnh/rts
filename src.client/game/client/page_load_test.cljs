@@ -22,15 +22,15 @@
   "complete is a number from 0 to 100"
   [text complete]
   [:div { :id "units" :class "progress" }
-   [:div { 
-          :role "progressbar" 
+   [:div {
+          :role "progressbar"
           :aria-valuenow complete
-          :aria-valuemin 0 
-          :aria-valuemax 100 
-          :class 
+          :aria-valuemin 0
+          :aria-valuemax 100
+          :class
           (str "progress-bar progress-bar-striped active"
                (if (= (round complete) 100) " progress-bar-success" ""))
-          :style 
+          :style
           {
             :width (str (round complete) "%")
            }
@@ -43,7 +43,7 @@
 (defn
   format-progress
   [progress-map]
-  (into 
+  (into
     []
     (for
       [resource (keys progress-map)]
@@ -74,10 +74,9 @@
 (defn start
   [component]
   (rum/mount (load-test component) (aget (:$page component) 0))
-  (routing/init-page (:$page component))
   component)
 
-(defn stop [component] 
+(defn stop [component]
   (if-let
     [page (aget (:$page component) 0)]
     (rum/unmount page))

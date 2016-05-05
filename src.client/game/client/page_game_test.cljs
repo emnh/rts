@@ -18,7 +18,7 @@
               [game.shared.state :as state :refer [with-simple-cause]]
               [sablono.core :as sablono :refer-macros [html]]
               )
-  (:require-macros 
+  (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]])
   )
@@ -76,7 +76,6 @@
 (defn start
   [component]
   (rum/mount (game-test component) (aget (:$page component) 0))
-  (routing/init-page (:$page component))
   (let
     [params
      {
@@ -86,12 +85,11 @@
      subsystem
       (with-simple-cause
         #(component/start-system
-          (if-let
-            [s (:subsystem component)]
-            (-> s
-              (assoc :params params)
-              (new-test-system))
-            (game/new-system params))))
+           (new-test-system
+             (if-let
+               [s (:subsystem component)]
+               (-> s (assoc :params params))
+               (game/new-system params)))))
      component (assoc component :subsystem subsystem)
      ]
     component))

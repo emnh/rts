@@ -239,7 +239,6 @@
       (sente-setup/register-handler sente-setup :rts/game-list (partial update-game-list state))
       (sente-setup/register-handler sente-setup :rts/chat-message (partial update-message-list state)))
     (rum/mount (lobby component state) (aget (:$page component) 0))
-    (routing/init-page (:$page component))
     (->
       component
       (assoc :state state)

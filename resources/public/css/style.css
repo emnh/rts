@@ -38,6 +38,12 @@ li {
   background: orange;
 }
 
+.top-page {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
 #page-game {
   width: 100%;
 }
