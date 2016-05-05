@@ -33,7 +33,7 @@
 
 (defonce system (atom {}))
 
-(defcom 
+(defcom
   -new-page
   [routing]
   [page-kw page-component]

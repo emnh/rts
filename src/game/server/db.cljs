@@ -39,7 +39,7 @@
 ;  IEncodeClojure
 ;  (-js->clj [x options]
 ;    (println "hello" x)
-;    { 
+;    {
 ;     :id (get-id x)
 ;     :date (.getTimestamp x)
 ;     }))
@@ -62,23 +62,23 @@
 ;              (cond
 ;                (satisfies? IEncodeClojure x)
 ;                (-js->clj x (apply array-map opts))
-; 
+;
 ;                (seq? x)
 ;                (doall (map thisfn x))
-; 
+;
 ;                (coll? x)
 ;                (into (empty x) (map thisfn x))
-; 
+;
 ;                (array? x)
 ;                (vec (map thisfn x))
-;                 
+;                
 ;                (or
 ;                  (identical? (type x) js/Object)
 ;                  (re-matches #"^#object\[Object" (str x)))
 ;                (into {} (for [k (js-keys x)]
 ;                           [(keyfn k) (thisfn (aget x k))]))
-; 
-;                :else 
+;
+;                :else
 ;                (do
 ;                  (println "x" (type x) (str x))
 ;                  x)
@@ -100,7 +100,7 @@
       (fn [resolve reject]
         (-> coll
           (.find (clj->js query))
-          (.toArray 
+          (.toArray
             (fn [err docs]
               (if err
                 (reject err)
@@ -171,11 +171,11 @@
          (:dbp component)
          (p/promise
            (fn [resolve reject]
-             (-> 
-               mongo-client 
+             (->
+               mongo-client
                (.connect url
                  (fn [err db]
-                   (if err 
+                   (if err
                      (reject err)
                      (resolve db))))))))
        component (assoc component :dbp dbp)]
@@ -201,7 +201,7 @@
              })
       ;(p/then (find-messages component) #(println %))
       component))
-  (stop [component] 
+  (stop [component]
 ;    (if
 ;      (:dbp component)
 ;      (p/then
@@ -213,7 +213,7 @@
 (defn new-db
   []
   (component/using
-   (map->InitDB {}) 
+   (map->InitDB {})
     [:config]))
 
 (defn insert
@@ -259,7 +259,7 @@
       (fn [resolve reject]
         (.update
           coll
-          query 
+          query
           (clj->js ops)
           #js { :upsert true }
           (fn [err docs]

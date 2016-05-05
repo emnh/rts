@@ -9,7 +9,7 @@
       [game.client.common :as common :refer [data]]
       [game.client.config :as config]
       )
-  (:require-macros 
+  (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]
     ))
@@ -49,7 +49,7 @@
      y2 (infix y1 + 1 * height / y-faces)
      ]
     (if
-      (infix 
+      (infix
         xi < 0 ||
         yi < 0 ||
         isNaN(xi) ||

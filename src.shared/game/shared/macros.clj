@@ -20,7 +20,7 @@
 ;(defmacro memoize-once
 (defmacro defm
   [name expr]
-  (let 
+  (let
     [iname (symbol (str name "-internal"))]
     `(do
       (def ~iname ~expr)
@@ -44,7 +44,7 @@
              (update :start-count inc)
              (assoc :started true)))
          ; update will cause reloaded record type to be instantiated. practical for use with figwheel.
-         (~'stop [~component] 
+         (~'stop [~component]
            (->
              (~stop ~component)
              (update :stop-count inc)

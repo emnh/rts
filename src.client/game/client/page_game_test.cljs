@@ -4,7 +4,9 @@
               [jayq.core :as jayq :refer [$]]
               [rum.core :as rum]
               [com.stuartsierra.component :as component]
+              [cats.core :as m]
               [promesa.core :as p]
+              [promesa.monad]
               [game.client.common :as common :refer [list-item header data]]
               [game.client.config :as config]
               [game.client.game :as game]
@@ -67,11 +69,70 @@
   (fn [component]
     component))
 
+(defcom
+  new-units
+  [ground scene init-scene resources]
+  [starting units]
+  (fn [component]
+    (let
+      [starting (atom true)
+       units (atom [])]
+      (doseq [model (:resource-list resources)]
+        (let
+          [texture-loader (new THREE.TextureLoader)
+           material (new js/THREE.MeshLambertMaterial)
+           wrapping (-> js/THREE .-RepeatWrapping)
+           on-load (fn [texture]
+                     (-> texture .-wrapS (set! wrapping))
+                     (-> texture .-wrapT (set! wrapping))
+                     (-> texture .-repeat (.set 1 1))
+                     (-> material .-map (set! texture))
+                     (-> material .-needsUpdate (set! true)))
+           grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
+           ]
+          (m/mlet
+            [geometry (:load-promise model)
+             texture (:texture-load-promise model)]
+            (if @starting
+              (let
+                [xpos 0
+                 ypos 100
+                 zpos 0
+                 material (new js/THREE.MeshLambertMaterial #js { :map texture })
+                 ;_ (-> material .-needsUpdate (set! true))
+                 mesh (new js/THREE.Mesh geometry material)
+                 ]
+                (println "model add" (:name model) mesh)
+                (swap! units conj mesh)
+                (scene/add scene mesh)
+                (doto (-> mesh .-position)
+                  (aset "x" xpos)
+                  (aset "y" ypos)
+                  (aset "z" zpos)))))))
+      (-> component
+        (assoc :units units)
+        (assoc :starting starting))))
+  (fn [component]
+    (println "stopping units")
+    (if starting
+      (reset! starting false))
+    (for [unit @units]
+      (scene/remove scene unit))
+    (->
+      component
+      (assoc :starting nil)
+      (assoc :units nil))))
+
 (defn new-test-system
   [subsystem]
-  subsystem
+  (->
+    subsystem
+    (update :units (fn [units]
+                     (if-not
+                       (= units nil)
+                       units
+                       (new-units))))))
 ;    (update :ground-balls #(or % (new-ground-balls)))
-  )
 
 (defn start
   [component]
@@ -85,11 +146,14 @@
      subsystem
       (with-simple-cause
         #(component/start-system
-           (new-test-system
+           (->
              (if-let
                [s (:subsystem component)]
                (-> s (assoc :params params))
-               (game/new-system params)))))
+               (game/new-system params))
+             (new-test-system)
+             (assoc :resources (merge {} (:resources component)))
+             )))
      component (assoc component :subsystem subsystem)
      ]
     component))

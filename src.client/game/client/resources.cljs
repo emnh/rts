@@ -150,8 +150,8 @@
     [xhr (new js/XMLHttpRequest)
 
      ]
-    (doto 
-      xhr 
+    (doto
+      xhr
       (.open "GET" path true)
       (aset "responseType" "arraybuffer")
       (aset "onerror" on-error)
@@ -160,21 +160,59 @@
       (.send))))
 
 (defn load-texture
-  [path on-progress]
+  [model path on-progress]
   (p/promise
     (fn [resolve reject]
       (let
-        [on-success 
+        [repeat-x (first (:texture-repeat model))
+         repeat-y (second (:texture-repeat model))
+         on-success
          (fn []
-           (this-as 
+           (this-as
              this
              (let
                [img (new js/Image)
                 blob (new js/Blob #js [(.-response this)])]
-               (aset img "onload" (fn [] (resolve (new js/THREE.Texture img))))
+               (aset img "onload"
+                     (fn []
+;                       (println "resolve image" path)
+                       (let
+                         [texture (new js/THREE.Texture img)]
+                         (-> texture .-wrapS (set! js/THREE.RepeatWrapping))
+                         (-> texture .-wrapT (set! js/THREE.RepeatWrapping))
+                         (-> texture .-repeat (.set repeat-x repeat-y))
+                         (-> texture .-needsUpdate (set! true))
+                         (resolve texture))))
                (aset img "onerror" #(reject (str "image load error: " path)))
-               (aset img "src" (-> js/window .-URL (.createObjectURL blob))))))]
+               (aset img "src" (-> js/window .-URL (.createObjectURL blob)))
+               )))]
         (load-image path on-success on-progress reject)))))
+
+(defn transform-geometry
+  [model geo]
+  (let
+    [mat (new js/THREE.Matrix4)
+     scale (:scale model)]
+    (-> mat (.makeRotationX (nth (:rotation model) 0)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeRotationY (nth (:rotation model) 1)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeRotationZ (nth (:rotation model) 2)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeScale scale scale scale))
+    (-> geo (.applyMatrix mat))
+    geo))
+
+(defn load-geometry
+  [model path on-progress]
+  (p/promise
+    (fn [resolve reject]
+      (let
+        [on-success #(resolve (transform-geometry model %))
+         on-error reject
+         geo-loader (new js/THREE.BufferGeometryLoader)]
+        (-> geo-loader
+          (.load path on-success on-progress on-error))))))
 
 (defn on-progress
   [progress-manager resource xhr]
@@ -191,34 +229,26 @@
   (fn [component]
     (let
       [resource-list
-       (into 
+       (into
          []
          (for
            [model (map #(merge defaults %) models)]
            (let
              [path (:path model)
               texture-path (:texture-path model)
-              geo-loader (new js/THREE.BufferGeometryLoader)
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)
-              load-promise
-              (p/promise 
-                (fn [resolve reject]
-                  (let
-                    [on-success resolve
-                     on-error reject]
-                    (-> geo-loader
-                      (.load path on-success on-geo-progress on-error)))))
-              texture-load-promise (load-texture texture-path on-texture-progress)]
+              load-promise (load-geometry model path on-geo-progress)
+              texture-load-promise (load-texture model texture-path on-texture-progress)]
              (merge
                model
                {
                 :load-promise load-promise
-                :texture-load-promise texture-load-promise 
+                :texture-load-promise texture-load-promise
                 }))))]
          (-> component
            (assoc
-             :all-promise 
+             :all-promise
              (p/all
                (into
                  []
