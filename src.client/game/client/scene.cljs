@@ -35,8 +35,8 @@
     (-> ($ (-> renderer .-domElement)) (.height height))
     (-> camera .-aspect (set! (/ width height)))
     (-> camera .updateProjectionMatrix)
-    (-> $overlay .-width (set! width))
-    (-> $overlay .-height (set! height))
+    (-> $overlay (.width width))
+    (-> $overlay (.height height))
     ))
 
 (defcom
