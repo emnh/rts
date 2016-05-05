@@ -81,8 +81,6 @@ Not everything is linked up yet, so overview is here:
   speed when game (requestAnimationFrame) lags
 - Enforce limits on new-game and join-game, 1 per user
 - Enforce unique nicknames inside game, make user type one
-- Don't store multiple user copies (something wrong with query I suppose)
-- Use database as single source of truth, don't cache db reads in memory.
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
