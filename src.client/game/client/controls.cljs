@@ -8,7 +8,8 @@
               [game.client.routing :as routing]
               [game.client.math :as math :refer [square sin cos pi atan2 sqrt]]
               [com.stuartsierra.component :as component]
-              ))
+              )
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
 (defn prevent-default
   [event]
@@ -235,6 +236,11 @@
   (let
     [$body ($ "body")
      $element ($ element)
+     $overlay (data (:$overlay component))
+     render-stats (data (:render-stats component))
+     physics-stats (data (:physics-stats component))
+     $render-stats ($ (-> render-stats .-domElement))
+     $physics-stats ($ (-> physics-stats .-domElement))
      bindns (str "controls" (unique-id element))
      contextevt (str "contextmenu." bindns)
      keydownevt (str "keydown." bindns)
@@ -250,6 +256,9 @@
      interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)
      ]
     (rebind $element contextevt prevent-default)
+    (rebind $overlay contextevt prevent-default)
+    (rebind $render-stats contextevt prevent-default)
+    (rebind $physics-stats contextevt prevent-default)
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
     (js/requestAnimationFrame interval-handler)
@@ -259,24 +268,18 @@
       (assoc :old-interval-handler-enabled interval-handler-enabled))
     ))
 
-(defrecord Controls
-  [config renderer camera scene old-interval-handler-enabled keydownevt keyupevt]
-  component/Lifecycle
-  (start [component]
+(defcom
+  new-controls
+  [renderer config camera scene init-scene $overlay render-stats physics-stats]
+  [old-interval-handler-enabled keydownevt keyupevt]
+  (fn [component]
     (let
       [element (scene/get-view-element renderer)]
       (init-controls component element config camera scene)))
-  (stop [component]
+  (fn [component]
     (if old-interval-handler-enabled (reset! old-interval-handler-enabled false))
     (let
       [$body ($ "body")]
       (if keydownevt (-> $body (.off keydownevt)))
       (if keyupevt (-> $body (.off keyupevt))))
     component))
-
-(defn new-controls
-  []
-  (component/using
-    (map->Controls {})
-    [:renderer :config :camera :scene]
-    ))
