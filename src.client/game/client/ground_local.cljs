@@ -27,7 +27,7 @@
                (-> texture .-repeat (.set map-repeat-width map-repeat-height))
                (-> material .-map (set! texture))
                (-> material .-needsUpdate (set! true)))
-     grass (-> texture-loader (.load "models/images/grass.jpg") on-load)
+     grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
      m-opts #js { :map grass }
      x-faces (get-in config [:terrain :x-faces])
      y-faces (get-in config [:terrain :y-faces])
@@ -38,7 +38,6 @@
      position (-> geometry .-attributes .-position)
      length (-> position .-count)
      ]
-      ;(-> geometry .-position .-array
       (-> geometry (.applyMatrix rotation))
       (doseq
          [i (range length)]
