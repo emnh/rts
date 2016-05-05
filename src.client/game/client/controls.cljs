@@ -236,7 +236,6 @@
     [$body ($ "body")
      $element ($ element)
      bindns (str "controls" (unique-id element))
-     _ (println "bindns" bindns)
      contextevt (str "contextmenu." bindns)
      keydownevt (str "keydown." bindns)
      keyupevt (str "keyup." bindns)

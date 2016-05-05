@@ -9,3 +9,4 @@
 (def floor #(-> js/Math (.floor %)))
 (def round #(-> js/Math (.round %)))
 (def random #(-> js/Math (.random)))
+(def isNaN #(js/isNaN %))

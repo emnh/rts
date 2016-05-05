@@ -8,6 +8,8 @@
               [game.client.common :as common :refer [list-item header data]]
               [game.client.config :as config]
               [game.client.game :as game]
+              [game.client.ground-local :as ground]
+              [game.client.scene :as scene]
               [game.client.math :as math :refer [round]]
               [game.client.progress-manager
                :as progress-manager
@@ -16,7 +18,9 @@
               [game.shared.state :as state :refer [with-simple-cause]]
               [sablono.core :as sablono :refer-macros [html]]
               )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  (:require-macros 
+    [infix.macros :refer [infix]]
+    [game.shared.macros :as macros :refer [defcom]])
   )
 
 (rum/defc
@@ -25,11 +29,49 @@
   (let
     [h (header "Game Test")]
     (html [:div { :class "container" } h
-           [:div 
+           [:div
             {
-             :id "game" 
+             :id "game"
              }]
            ])))
+
+(defcom
+  new-ground-balls
+  [ground scene init-scene]
+  []
+  (fn [component]
+    (let
+      [x-faces (:x-faces ground)
+       y-faces (:y-faces ground)
+       width (:width ground)
+       height (:height ground)
+       geometry (new THREE.SphereGeometry 1 4 4)
+       material (new THREE.MeshBasicMaterial #js { :color 0xFF0000 })]
+      (doseq
+        [x (range x-faces)
+         y (range y-faces)]
+        (let
+          [xpos (infix x * width / x-faces - width / 2)
+           zpos (infix y * height / y-faces - height / 2)
+           ypos (ground/get-height ground xpos zpos)
+           mesh (new js/THREE.Mesh geometry material)
+           ]
+          (scene/add scene mesh)
+          (doto
+            (-> mesh .-position)
+            (aset "x" xpos)
+            (aset "y" ypos)
+            (aset "z" zpos)
+            ))))
+    component)
+  (fn [component]
+    component))
+
+(defn new-test-system
+  [subsystem]
+  subsystem
+;    (update :ground-balls #(or % (new-ground-balls)))
+  )
 
 (defn start
   [component]
@@ -46,7 +88,9 @@
         #(component/start-system
           (if-let
             [s (:subsystem component)]
-            (assoc s :params params)
+            (-> s
+              (assoc :params params)
+              (new-test-system))
             (game/new-system params))))
      component (assoc component :subsystem subsystem)
      ]
