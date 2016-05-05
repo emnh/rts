@@ -95,9 +95,10 @@
              texture (:texture-load-promise model)]
             (if @starting
               (let
-                [xpos 0
-                 ypos 100
-                 zpos 0
+                [xpos (* (math/random) 200.0)
+                 zpos (* (math/random) 200.0)
+                 miny (- (-> geometry .-boundingBox .-min .-y))
+                 ypos (+ miny (ground/get-height ground xpos zpos))
                  material (new js/THREE.MeshLambertMaterial #js { :map texture })
                  ;_ (-> material .-needsUpdate (set! true))
                  mesh (new js/THREE.Mesh geometry material)
@@ -116,7 +117,8 @@
     (println "stopping units")
     (if starting
       (reset! starting false))
-    (for [unit @units]
+    (doseq [unit @units]
+      (println "removing unit")
       (scene/remove scene unit))
     (->
       component

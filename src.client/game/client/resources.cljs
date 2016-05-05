@@ -201,6 +201,9 @@
     (-> geo (.applyMatrix mat))
     (-> mat (.makeScale scale scale scale))
     (-> geo (.applyMatrix mat))
+    ;(-> geo (.computeBoundingBox))
+    (-> geo (.center))
+    (-> geo (.computeBoundingBox))
     geo))
 
 (defn load-geometry
