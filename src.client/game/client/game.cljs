@@ -12,6 +12,7 @@
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
+    [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
@@ -46,6 +47,7 @@
       :init-renderer (renderer/new-init-renderer)
       :on-resize (scene/new-on-resize)
       :controls (controls/new-controls)
+      :selector (selection/new-selector)
       }]
     system
     ))

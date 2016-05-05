@@ -147,18 +147,15 @@
       :simplex (data (:simplex component))
       }
      subsystem
-      (with-simple-cause
-        #(component/start-system
-           (->
-             (if-let
-               [s (:subsystem component)]
-               (-> s (assoc :params params))
-               (game/new-system params))
-             (new-test-system)
-             (assoc :resources (merge {} (:resources component)))
-             )))
-     component (assoc component :subsystem subsystem)
-     ]
+     (->
+       (if-let
+         [s (:subsystem component)]
+         (-> s (assoc :params params))
+         (game/new-system params))
+       (new-test-system)
+       (assoc :resources (merge {} (:resources component))))
+     subsystem (with-simple-cause #(component/start-system subsystem))
+     component (assoc component :subsystem subsystem)]
     component))
 
 (defn stop [component]
