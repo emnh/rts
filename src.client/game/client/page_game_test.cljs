@@ -103,7 +103,7 @@
                  ;_ (-> material .-needsUpdate (set! true))
                  mesh (new js/THREE.Mesh geometry material)
                  ]
-                (println "model add" (:name model) mesh)
+;                (println "model add" (:name model) mesh)
                 (swap! units conj mesh)
                 (scene/add scene mesh)
                 (doto (-> mesh .-position)
@@ -118,7 +118,7 @@
     (if starting
       (reset! starting false))
     (doseq [unit @units]
-      (println "removing unit")
+;      (println "removing unit")
       (scene/remove scene unit))
     (->
       component

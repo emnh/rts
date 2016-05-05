@@ -204,6 +204,8 @@
     ;(-> geo (.computeBoundingBox))
     (-> geo (.center))
     (-> geo (.computeBoundingBox))
+    (-> geo (.computeFaceNormals))
+    (-> geo (.computeVertexNormals))
     geo))
 
 (defn load-geometry
