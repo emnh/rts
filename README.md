@@ -76,6 +76,7 @@ Not everything is linked up yet, so overview is here:
 
 # TODO
 
+- Make health bars the same size even if screen boxes change size when rotating view.
 - Add :start and :stop parameters to defcom macro instead of positional, expecting more parameters soon.
 - Make scroll speed take into account time elapsed in order to scroll at same
   speed when game (requestAnimationFrame) lags
