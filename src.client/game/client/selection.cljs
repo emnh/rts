@@ -198,8 +198,10 @@
            :height eps
            }))
       (check-intersect-screen component (- x eps) (- y eps) (+ x eps) (+ y eps)))
-    (= (-> event-data .-which RIGHT_MOUSE_BUTTON))
-    (println "TODO")))
+    (= (-> event-data .-which) RIGHT_MOUSE_BUTTON)
+    (do
+      (println "TODO")
+      (-> event-data .preventDefault))))
 
 (defn
   on-mouse-move
@@ -231,6 +233,7 @@
        mousedownevt (str "mousedown." bindns)
        mousemoveevt (str "mousemove." bindns)
        mouseupevt (str "mouseup." bindns)
+       contextevt (str "contextmenu." bindns)
        selection-element (scene/get-view-element renderer)
        $page (:$page params)
        component
@@ -248,6 +251,7 @@
       (controls/rebind $selection-layer mousedownevt (partial on-mouse-down component))
       (controls/rebind $selection-layer mousemoveevt (partial on-mouse-move component))
       (controls/rebind $selection-layer mouseupevt (partial on-mouse-up component))
+      (controls/rebind $selection-layer contextevt controls/prevent-default)
       (-> $page (.append $selection-div))
       (-> $selection-div (.addClass "invisible"))
       (-> $selection-div (.addClass "selection-rect"))
