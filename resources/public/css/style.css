@@ -70,10 +70,15 @@ body.fullscreen {
 
 .game-content {
   position: absolute;
+  left: 0;
+  top: 0;
 }
 .game-content.fullscreen {
   position: fixed;
-  left: 0;
+}
+
+.overlay {
+  z-index: 1;
 }
 
 #page-game-test #game.fullscreen {

@@ -12,6 +12,7 @@
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
+    [game.client.overlay :as overlay]
     [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
@@ -32,6 +33,7 @@
       :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true }))
       :scene (new-jsobj #(new js/THREE.Scene))
       :$overlay (new-jsobj #($ "<canvas/>"))
+      :pixi-overlay (overlay/new-overlay)
       :raycaster (new-jsobj #(new js/THREE.Raycaster))
       :camera (new-jsobj scene/get-camera)
       :light1 (new-jsobj #(new js/THREE.DirectionalLight))

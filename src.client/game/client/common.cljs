@@ -80,3 +80,6 @@
          (set! (-> element .-id) id)
          id)))))
 
+(defn game-time
+  []
+  (-> (new js/Date) .getTime))

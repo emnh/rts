@@ -41,8 +41,10 @@
      camera (data (:camera onresize))
      renderer (data (:renderer onresize))
      $overlay (data (:$overlay onresize))
+     pixi-renderer (get-in onresize [:pixi-overlay :pixi-renderer])
      ]
     (-> renderer (.setSize width height))
+    (-> pixi-renderer (.resize width height))
     (-> ($ (-> renderer .-domElement)) (.width width))
     (-> ($ (-> renderer .-domElement)) (.height height))
     (if
@@ -65,7 +67,7 @@
 
 (defcom
   new-on-resize
-  [config scene camera renderer params $overlay init-scene]
+  [config scene camera renderer params $overlay init-scene pixi-overlay]
   []
   (fn [component]
     (on-resize component nil)
@@ -149,21 +151,11 @@
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
-          (#(jayq/css
-            ($ (-> % .-domElement))
-            {
-             :top 0
-             :z-index 0
-             })))
+          (#(-> ($ (-> % .-domElement)) (.addClass "game3d"))))
         (doto
           (data $overlay)
           (.addClass page-class)
-          (jayq/css
-            {
-             :top 0
-             :left 0
-             :z-index 1
-             }))
+          (.addClass "overlay"))
         (add scene (data camera))
         (-> (data camera) .-position (.copy (get-in config [:controls :origin])))
         (let

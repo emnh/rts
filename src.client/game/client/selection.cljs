@@ -7,14 +7,10 @@
     [cats.core :as m]
     [rum.core :as rum]
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
-    [game.client.config :as config]
     [game.client.controls :as controls]
     [game.client.engine :as engine]
-    [game.client.renderer :as renderer]
-    [game.client.routing :as routing]
     [game.client.scene :as scene]
     [game.client.math :as math :refer [pi]]
-    [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
@@ -53,16 +49,29 @@
 (defn get-bounding-box-geometry
   [mesh]
   (let
-    ; TODO: generate bbox mesh elsewhere
-    [bbox (-> mesh .-geometry .-boundingBox)
-     geometry (new THREE.BoxGeometry 
-                   (- (-> bbox .-max .-x) (-> bbox .-min .-x))
-                   (- (-> bbox .-max .-y) (-> bbox .-min .-y))
-                   (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
-     geo-translation (-> (new THREE.Vector3)
-                       (.add (-> bbox .-min))
-                       (.add (-> bbox .-max))
-                       (.divideScalar 2))
+    [geometry
+     (if
+       (and
+         (-> mesh (.hasOwnProperty "rts-bbox-geometry"))
+         (not (undefined? (aget mesh "rts-bbox-geometry"))))
+       (-> (aget mesh "rts-bbox-geometry") .clone)
+       (let
+         [bbox (-> mesh .-geometry .-boundingBox)
+          bbox-geometry (new THREE.BoxGeometry 
+                        (- (-> bbox .-max .-x) (-> bbox .-min .-x))
+                        (- (-> bbox .-max .-y) (-> bbox .-min .-y))
+                        (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
+          geo-translation (-> (new THREE.Vector3)
+                            (.add (-> bbox .-min))
+                            (.add (-> bbox .-max))
+                            (.divideScalar 2))
+          ]
+         (-> bbox-geometry (.translate
+                        (-> geo-translation .-x)
+                        (-> geo-translation .-y)
+                        (-> geo-translation .-z)))
+         (aset mesh "rts-bbox-geometry" bbox-geometry)
+         (-> bbox-geometry .clone)))
      rotation-matrix (-> (new THREE.Matrix4)
                        (.makeRotationFromQuaternion 
                          (-> mesh .-quaternion)))
@@ -77,10 +86,6 @@
                             (-> mesh .-position .-y)
                             (-> mesh .-position .-z)))
      ]
-    (-> geometry (.translate
-                   (-> geo-translation .-x)
-                   (-> geo-translation .-y)
-                   (-> geo-translation .-z)))
     (-> geometry (.applyMatrix rotation-matrix))
     (-> geometry (.applyMatrix scale-matrix))
     (-> geometry (.applyMatrix translation-matrix))
