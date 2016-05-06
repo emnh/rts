@@ -72,11 +72,12 @@
 (defcom
   new-units
   [ground scene init-scene resources]
-  [starting units]
+  [starting units unit-meshes]
   (fn [component]
     (let
       [starting (atom true)
-       units (atom [])]
+       units (atom [])
+       unit-meshes (atom [])]
       (doseq [model (:resource-list resources)]
         (let
           [texture-loader (new THREE.TextureLoader)
@@ -105,7 +106,8 @@
                  mesh (new js/THREE.Mesh geometry material)
                  ]
 ;                (println "model add" (:name model) mesh)
-                (swap! units conj mesh)
+                (swap! unit-meshes conj mesh)
+                (swap! units conj { :model model })
                 (scene/add scene mesh)
                 (doto (-> mesh .-position)
                   (aset "x" xpos)
@@ -113,18 +115,20 @@
                   (aset "z" zpos)))))))
       (-> component
         (assoc :units units)
+        (assoc :unit-meshes unit-meshes)
         (assoc :starting starting))))
   (fn [component]
     (println "stopping units")
     (if starting
       (reset! starting false))
-    (if units
-      (doseq [unit @units]
+    (if unit-meshes
+      (doseq [unit @unit-meshes]
         (scene/remove scene unit)))
     (->
       component
       (assoc :starting nil)
-      (assoc :units nil))))
+      (assoc :units nil)
+      (assoc :unit-meshes nil))))
 
 (defn new-test-system
   [subsystem]

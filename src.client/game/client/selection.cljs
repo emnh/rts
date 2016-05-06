@@ -9,6 +9,7 @@
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.config :as config]
     [game.client.controls :as controls]
+    [game.client.engine :as engine]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
@@ -24,11 +25,88 @@
 (def MIDDLE_MOUSE_BUTTON 2)
 (def RIGHT_MOUSE_BUTTON 3)
 
+(defn get-bounding-box-geometry
+  [mesh]
+  (let
+    ; TODO: generate bbox mesh elsewhere
+    [bbox (-> mesh .-geometry .-boundingBox)
+     geometry (new THREE.BoxGeometry 
+                   (- (-> bbox .-max .-x) (-> bbox .-min .-x))
+                   (- (-> bbox .-max .-y) (-> bbox .-min .-y))
+                   (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
+     geo-translation (-> (new THREE.Vector3)
+                       (.add (-> bbox .-min))
+                       (.add (-> bbox .-max))
+                       (.divideScalar 2))
+     rotation-matrix (-> (new THREE.Matrix4)
+                       (.makeRotationFromQuaternion 
+                         (-> mesh .-quaternion)))
+     scale-matrix (-> (new THREE.Matrix4) 
+                    (.makeScale
+                      (-> mesh .-scale .-x)
+                      (-> mesh .-scale .-y)
+                      (-> mesh .-scale .-z)))
+     translation-matrix (-> (new THREE.Matrix4)
+                          (.makeTranslation
+                            (-> mesh .-position .-x)
+                            (-> mesh .-position .-y)
+                            (-> mesh .-position .-z)))
+     ]
+    (-> geometry (.translate
+                   (-> geo-translation .-x)
+                   (-> geo-translation .-y)
+                   (-> geo-translation .-z)))
+    (-> geometry (.applyMatrix rotation-matrix))
+    (-> geometry (.applyMatrix scale-matrix))
+    (-> geometry (.applyMatrix translation-matrix))
+    geometry))
+
+; http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current
+(defn get-screen-boxes
+  [component]
+  (let
+    [frustum (new THREE.Frustum)
+     camera-view-projection-matrix (new THREE.Matrix4)
+     camera (data (:camera component))
+     screen-boxes #js []
+     ]
+    (-> camera .updateMatrixWorld)
+    (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
+    (-> camera-view-projection-matrix
+      (.multiplyMatrices (-> camera .-projectionMatrix) (-> camera .-matrixWorldInverse)))
+    (-> frustum (.setFromMatrix camera-view-projection-matrix))
+    (doseq
+      [mesh (engine/get-unit-meshes (:units component))]
+      (if
+        (-> frustum (.intersectsObject mesh))
+        (let
+          [screen-box (new THREE.Box2)]
+          (doseq [vertex (-> (get-bounding-box-geometry mesh) .-vertices)]
+            (-> screen-box 
+              (.expandByPoint
+                (scene/world-to-screen (:renderer component) (:camera component) vertex))))
+          (let
+            [box #js [
+                      (-> screen-box .-min .-x)
+                      (-> screen-box .-min .-y)
+                      (-> screen-box .-max .-x)
+                      (-> screen-box .-max .-y)
+                      ]]
+            (-> screen-boxes (.push box))))))
+      screen-boxes))
+
 (defn
   check-intersect-screen
   [component x1 y1 x2 y2]
-  (println "check-intersect-screen" x1 y1 x2 y2)
-  )
+;  (println "check-intersect-screen" x1 y1 x2 y2)
+  (let
+    [screen-boxes (get-screen-boxes component)
+     flat-selection-box #js [ #js [x1 y1 x2 y2]]
+     selected-indices (js/boxIntersect screen-boxes flat-selection-box)
+     units @(:units (:units component))]
+    (doseq
+      [[i j] selected-indices]
+      (println "selected" (:name (:model (nth units i)))))))
 
 (defn
   rectangle-select
@@ -103,7 +181,7 @@
 
 (defcom
   new-selector
-  [scene init-scene params $overlay renderer]
+  [scene init-scene params $overlay renderer camera units]
   [$selection-div start-pos end-pos selecting]
   (fn [component]
     (let

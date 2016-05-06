@@ -6,7 +6,9 @@
     [game.client.common :as common :refer [data]]
     [com.stuartsierra.component :as component]
     )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  (:require-macros 
+    [infix.macros :refer [infix]]
+    [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove]))
 
 (enable-console-print!)
@@ -271,3 +273,17 @@
      pos (-> (-> camera .-position .clone) (.add (-> dir (.multiplyScalar distance))))
      ]
     pos))
+
+(defn world-to-screen
+  [renderer camera pos]
+  (let 
+    [v (-> pos .clone (.project (data camera)))
+     x (-> v .-x)
+     y (-> v .-y)
+     $renderer ($ (-> (data renderer) .-domElement))
+     width (-> $renderer .width)
+     height (-> $renderer .height)
+     x (infix (x + 1) * width / 2)
+     y (infix -(y - 1) * height / 2)
+     v2 (new THREE.Vector2 x y)]
+    v2))
