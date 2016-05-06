@@ -9,6 +9,7 @@
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.math :as math]
     [game.client.selection :as selection]
+    [game.client.engine :as engine]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
@@ -21,17 +22,19 @@
   (let
     [health-bars (:health-bars component)
      t (common/game-time)
-     screen-boxes (selection/get-screen-boxes component)
-     units @(get-in component [:units :units])]
+     screen-boxes (selection/get-screen-boxes component)]
     (-> health-bars .clear)
     (-> health-bars (.lineStyle 1 0x000000 1))
     (doseq
-      [[i unit box] (map vector (range (count units)) units screen-boxes)]
+      [[i box] (map-indexed vector screen-boxes)]
       (let
-        [[x1 y1 x2 y2] box
+        [mesh (aget box "mesh")
+         unit (engine/get-unit-for-mesh (:units component) mesh)
+         [x1 y1 x2 y2] box
          width (- x2 x1)
          height (- y2 y1)
-         health (/ i (count units))
+;         health (/ (inc i) (count screen-boxes))
+         health (/ (:health unit) (:max-health (:model unit)))
          bar-height 8
          health-width (* health width)
          bar-width width

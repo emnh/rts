@@ -15,6 +15,13 @@
   )
 
 (defn
+  get-unit-for-mesh
+  [component mesh]
+  (let
+    [mesh-to-unit-map @(:mesh-to-unit-map component)]
+    (mesh-to-unit-map mesh)))
+
+(defn
   get-unit-meshes
   [units]
   @(:unit-meshes units))

@@ -8,15 +8,10 @@
               [promesa.core :as p]
               [promesa.monad]
               [game.client.common :as common :refer [list-item header data]]
-              [game.client.config :as config]
               [game.client.game :as game]
               [game.client.ground-local :as ground]
               [game.client.scene :as scene]
               [game.client.math :as math :refer [round]]
-              [game.client.progress-manager
-               :as progress-manager
-               :refer [get-progress-map]]
-              [game.client.routing :as routing]
               [game.shared.state :as state :refer [with-simple-cause]]
               [sablono.core :as sablono :refer-macros [html]]
               )
@@ -72,13 +67,15 @@
 (defcom
   new-units
   [ground scene init-scene resources]
-  [starting units unit-meshes]
+  [starting units unit-meshes mesh-to-unit-map]
   (fn [component]
     (let
       [starting (atom true)
        units (atom [])
-       unit-meshes (atom [])]
-      (doseq [model (:resource-list resources)]
+       unit-meshes (atom [])
+       mesh-to-unit-map (atom {})]
+      (doseq 
+        [[index model] (map-indexed vector (:resource-list resources))]
         (let
           [texture-loader (new THREE.TextureLoader)
            material (new js/THREE.MeshLambertMaterial)
@@ -104,16 +101,24 @@
                  material (new js/THREE.MeshLambertMaterial #js { :map texture })
                  ;_ (-> material .-needsUpdate (set! true))
                  mesh (new js/THREE.Mesh geometry material)
+                 unit
+                 { 
+                  :index index 
+                  :model model
+                  :health (* (math/random) (:max-health model))
+                  }
                  ]
 ;                (println "model add" (:name model) mesh)
                 (swap! unit-meshes conj mesh)
-                (swap! units conj { :model model })
+                (swap! units conj unit)
+                (swap! mesh-to-unit-map assoc mesh unit)
                 (scene/add scene mesh)
                 (doto (-> mesh .-position)
                   (aset "x" xpos)
                   (aset "y" ypos)
                   (aset "z" zpos)))))))
       (-> component
+        (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :units units)
         (assoc :unit-meshes unit-meshes)
         (assoc :starting starting))))
