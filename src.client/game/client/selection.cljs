@@ -13,6 +13,7 @@
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
     [game.client.scene :as scene]
+    [game.client.math :as math :refer [pi]]
     [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
@@ -24,6 +25,30 @@
 (def LEFT_MOUSE_BUTTON 1)
 (def MIDDLE_MOUSE_BUTTON 2)
 (def RIGHT_MOUSE_BUTTON 3)
+
+(defn mark
+  [component mesh]
+  (let
+    [radius (-> mesh .-geometry .-boundingSphere .-radius)
+     geometry (new THREE.CircleGeometry radius 32)
+     mat (-> (new THREE.Matrix4) (.makeRotationX (/ pi -2)))
+     _ (-> geometry (.applyMatrix mat))
+     material (new THREE.MeshLambertMaterial #js { :color 0x00FF00 :opacity 0.5 :transparent true })
+     circle (new THREE.Mesh geometry material)]
+    (-> mesh (.add circle))
+    circle))
+
+(defn unmark-all
+  [component]
+  (doseq
+    [selected @(:selected component)]
+    (let
+      [mesh (:mesh selected)
+       mark (:mark selected)]
+      (-> mesh (.remove mark))
+      (-> mark .-geometry .dispose)
+      (-> mark .-material .dispose))
+    (reset! (:selected component) [])))
 
 (defn get-bounding-box-geometry
   [mesh]
@@ -103,10 +128,23 @@
     [screen-boxes (get-screen-boxes component)
      flat-selection-box #js [ #js [x1 y1 x2 y2]]
      selected-indices (js/boxIntersect screen-boxes flat-selection-box)
-     units @(:units (:units component))]
-    (doseq
-      [[i j] selected-indices]
-      (println "selected" (:name (:model (nth units i)))))))
+     units @(:units (:units component))
+     meshes @(:unit-meshes (:units component))]
+    (unmark-all component)
+    (reset!
+      (:selected component)
+      (into
+        []
+        (for
+          [[i j] selected-indices]
+          (let
+            [circle (mark component (nth meshes i))]
+;            (println "selected" (:name (:model (nth units i))))
+            {
+             :unit (nth units i)
+             :mesh (nth meshes i)
+             :mark circle
+             }))))))
 
 (defn
   rectangle-select
@@ -127,7 +165,6 @@
           (jayq/css
             (:$selection-div component)
             {
-             :position "absolute"
              :left x1
              :top y1
              :width (- x2 x1)
@@ -140,7 +177,6 @@
   on-mouse-down
   [component event-data]
   ;(-> event-data .preventDefault)
-  (println "mouse-down")
   (cond
     (= (-> event-data .-which) LEFT_MOUSE_BUTTON)
     (let
@@ -182,12 +218,14 @@
 (defcom
   new-selector
   [scene init-scene params $overlay renderer camera units]
-  [$selection-div start-pos end-pos selecting]
+  [$selection-layer $selection-div start-pos end-pos selecting selected]
   (fn [component]
     (let
       [$selection-div (or $selection-div ($ "<div/>"))
+       $selection-layer (or $selection-layer ($ "<canvas/>"))
        start-pos (or start-pos (atom nil))
        selecting (or selecting (atom false))
+       selected (or selected (atom []))
        end-pos (or end-pos (atom nil))
        bindns (str "selector" (unique-id (aget (data $overlay) 0)))
        mousedownevt (str "mousedown." bindns)
@@ -198,16 +236,18 @@
        component
        (->
          component
+         (assoc :selected selected)
          (assoc :selecting selecting)
          (assoc :start-pos start-pos)
          (assoc :end-pos end-pos)
+         (assoc :$selection-layer $selection-layer)
          (assoc :$selection-div $selection-div))
        ]
-      (controls/rebind (data $overlay) mousedownevt (partial on-mouse-down component))
-      (controls/rebind (data $overlay) mousemoveevt (partial on-mouse-move component))
-      (controls/rebind (data $overlay) mouseupevt (partial on-mouse-up component))
-;      (controls/rebind ($ selection-element) mousedownevt (partial on-mouse-down component))
-;      (controls/rebind ($ selection-element) mousemoveevt (partial on-mouse-move component))
+      (-> (data $overlay) (.after $selection-layer))
+      (-> $selection-layer (.addClass "selection-layer"))
+      (controls/rebind $selection-layer mousedownevt (partial on-mouse-down component))
+      (controls/rebind $selection-layer mousemoveevt (partial on-mouse-move component))
+      (controls/rebind $selection-layer mouseupevt (partial on-mouse-up component))
       (-> $page (.append $selection-div))
       (-> $selection-div (.addClass "invisible"))
       (-> $selection-div (.addClass "selection-rect"))

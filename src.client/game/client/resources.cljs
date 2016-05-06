@@ -204,6 +204,7 @@
     ;(-> geo (.computeBoundingBox))
     (-> geo (.center))
     (-> geo (.computeBoundingBox))
+    (-> geo (.computeBoundingSphere))
     (-> geo (.computeFaceNormals))
     (-> geo (.computeVertexNormals))
     geo))
