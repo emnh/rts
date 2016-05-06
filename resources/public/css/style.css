@@ -72,7 +72,12 @@ body.fullscreen {
   position: absolute;
   left: 0;
   top: 0;
+	-webkit-user-select: none; /* webkit (safari, chrome) browsers */
+	-moz-user-select: none; /* mozilla browsers */
+	-khtml-user-select: none; /* webkit (konqueror) browsers */
+	-ms-user-select: none; /* IE10+ */
 }
+
 .game-content.fullscreen {
   position: fixed;
 }
