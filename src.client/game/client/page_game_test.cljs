@@ -75,7 +75,7 @@
        units (atom [])
        unit-meshes (atom [])
        mesh-to-unit-map (atom {})]
-      (doseq 
+      (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
         (let
           [texture-loader (new THREE.TextureLoader)
@@ -93,30 +93,32 @@
             [geometry (:load-promise model)
              texture (:texture-load-promise model)]
             (if @starting
-              (let
-                [spread 100.0
-                 xpos (- (* (math/random) 2.0 spread) spread)
-                 zpos (- (* (math/random) 2.0 spread) spread)
-                 material (new js/THREE.MeshLambertMaterial #js { :map texture })
-                 ;_ (-> material .-needsUpdate (set! true))
-                 mesh (new js/THREE.Mesh geometry material)
-                 ypos (engine/align-to-ground ground mesh xpos zpos)
-                 unit
-                 { 
-                  :index index 
-                  :model model
-                  :health (* (math/random) (:max-health model))
-                  }
-                 ]
-;                (println "model add" (:name model) mesh)
-                (swap! unit-meshes conj mesh)
-                (swap! units conj unit)
-                (swap! mesh-to-unit-map assoc mesh unit)
-                (scene/add scene mesh)
-                (doto (-> mesh .-position)
-                  (aset "x" xpos)
-                  (aset "y" ypos)
-                  (aset "z" zpos)))))))
+              (doseq
+                [i (range 10)]
+                (let
+                  [spread 100.0
+                   xpos (- (* (math/random) 2.0 spread) spread)
+                   zpos (- (* (math/random) 2.0 spread) spread)
+                   material (new js/THREE.MeshLambertMaterial #js { :map texture })
+                   ;_ (-> material .-needsUpdate (set! true))
+                   mesh (new js/THREE.Mesh geometry material)
+                   ypos (engine/align-to-ground ground mesh xpos zpos)
+                   unit
+                   {
+                    :index index
+                    :model model
+                    :health (* (math/random) (:max-health model))
+                    }
+                   ]
+  ;                (println "model add" (:name model) mesh)
+                  (swap! unit-meshes conj mesh)
+                  (swap! units conj unit)
+                  (swap! mesh-to-unit-map assoc mesh unit)
+                  (scene/add scene mesh)
+                  (doto (-> mesh .-position)
+                    (aset "x" xpos)
+                    (aset "y" ypos)
+                    (aset "z" zpos))))))))
       (-> component
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :units units)

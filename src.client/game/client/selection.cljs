@@ -57,7 +57,7 @@
        (-> (aget mesh "rts-bbox-geometry") .clone)
        (let
          [bbox (-> mesh .-geometry .-boundingBox)
-          bbox-geometry (new THREE.BoxGeometry 
+          bbox-geometry (new THREE.BoxGeometry
                         (- (-> bbox .-max .-x) (-> bbox .-min .-x))
                         (- (-> bbox .-max .-y) (-> bbox .-min .-y))
                         (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
@@ -73,9 +73,9 @@
          (aset mesh "rts-bbox-geometry" bbox-geometry)
          (-> bbox-geometry .clone)))
      rotation-matrix (-> (new THREE.Matrix4)
-                       (.makeRotationFromQuaternion 
+                       (.makeRotationFromQuaternion
                          (-> mesh .-quaternion)))
-     scale-matrix (-> (new THREE.Matrix4) 
+     scale-matrix (-> (new THREE.Matrix4)
                     (.makeScale
                       (-> mesh .-scale .-x)
                       (-> mesh .-scale .-y)
@@ -98,6 +98,8 @@
     [frustum (new THREE.Frustum)
      camera-view-projection-matrix (new THREE.Matrix4)
      camera (data (:camera component))
+     width @(get-in component [:scene-properties :width])
+     height @(get-in component [:scene-properties :height])
      screen-boxes #js []
      ]
     (-> camera .updateMatrixWorld)
@@ -112,9 +114,9 @@
         (let
           [screen-box (new THREE.Box2)]
           (doseq [vertex (-> (get-bounding-box-geometry mesh) .-vertices)]
-            (-> screen-box 
+            (-> screen-box
               (.expandByPoint
-                (scene/world-to-screen (:renderer component) (:camera component) vertex))))
+                (scene/world-to-screen width height (:camera component) vertex))))
           (let
             [box #js [
                       (-> screen-box .-min .-x)
@@ -224,7 +226,7 @@
 
 (defcom
   new-selector
-  [scene init-scene params $overlay renderer camera units]
+  [scene init-scene params $overlay renderer camera units scene-properties]
   [$selection-layer $selection-div start-pos end-pos selecting selected]
   (fn [component]
     (let

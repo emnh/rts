@@ -6,7 +6,7 @@
     [game.client.common :as common :refer [data]]
     [com.stuartsierra.component :as component]
     )
-  (:require-macros 
+  (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove]))
@@ -15,19 +15,34 @@
 
 (def page-class "game-content")
 
+(defcom
+  new-scene-properties
+  []
+  [width height]
+  (fn [component]
+    (let
+      [width (atom 0)
+       height (atom 0)
+       component
+       (-> component
+         (assoc :width width)
+         (assoc :height height))]
+      component))
+  (fn [x] x))
+
 (defn on-resize
-  [onresize event]
+  [component event]
   ; (println "Resize called")
   (let
     [
-     fullscreen? 
-     (<= 
+     fullscreen?
+     (<=
        (or
-        (-> js/screen .-availHeight) 
+        (-> js/screen .-availHeight)
         (- (-> js/screen .-height) 30))
        (-> js/window .-innerHeight))
-     config (:config onresize)
-     $container (get-in onresize [:params :$page])
+     config (:config component)
+     $container (get-in component [:params :$page])
      width
      (if fullscreen?
        (.-innerWidth js/window)
@@ -36,12 +51,12 @@
      (if fullscreen?
        (.-innerHeight js/window)
        (.height $container))
-     scene (data (:renderer onresize))
-     scene (data (:scene onresize))
-     camera (data (:camera onresize))
-     renderer (data (:renderer onresize))
-     $overlay (data (:$overlay onresize))
-     pixi-renderer (get-in onresize [:pixi-overlay :pixi-renderer])
+     scene (data (:renderer component))
+     scene (data (:scene component))
+     camera (data (:camera component))
+     renderer (data (:renderer component))
+     $overlay (data (:$overlay component))
+     pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
      ]
     (-> renderer (.setSize width height))
     (-> pixi-renderer (.resize width height))
@@ -63,11 +78,13 @@
     (-> camera .updateProjectionMatrix)
     (-> $overlay (.width width))
     (-> $overlay (.height height))
+    (reset! (get-in component [:scene-properties :width]) width)
+    (reset! (get-in component [:scene-properties :height]) height)
     ))
 
 (defcom
   new-on-resize
-  [config scene camera renderer params $overlay init-scene pixi-overlay]
+  [config scene camera renderer params $overlay init-scene pixi-overlay scene-properties]
   []
   (fn [component]
     (on-resize component nil)
@@ -267,14 +284,11 @@
     pos))
 
 (defn world-to-screen
-  [renderer camera pos]
-  (let 
+  [width height camera pos]
+  (let
     [v (-> pos .clone (.project (data camera)))
      x (-> v .-x)
      y (-> v .-y)
-     $renderer ($ (-> (data renderer) .-domElement))
-     width (-> $renderer .width)
-     height (-> $renderer .height)
      x (infix (x + 1) * width / 2)
      y (infix -(y - 1) * height / 2)
      v2 (new THREE.Vector2 x y)]

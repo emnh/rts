@@ -104,7 +104,7 @@
 
 (defcom
   new-overlay
-  [$overlay params units camera renderer]
+  [$overlay params units camera renderer scene-properties]
   [pixi-renderer stage health-bars]
   (fn [component]
     (let

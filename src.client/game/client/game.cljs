@@ -32,6 +32,7 @@
       :config config/config
       :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true }))
       :scene (new-jsobj #(new js/THREE.Scene))
+      :scene-properties (scene/new-scene-properties)
       :$overlay (new-jsobj #($ "<canvas/>"))
       :pixi-overlay (overlay/new-overlay)
       :raycaster (new-jsobj #(new js/THREE.Raycaster))
@@ -47,7 +48,7 @@
       :init-light (scene/new-init-light)
       :init-stats (scene/new-init-stats)
       :init-renderer (renderer/new-init-renderer)
-      :on-resize (scene/new-on-resize)
+      :resize (scene/new-on-resize)
       :controls (controls/new-controls)
       :selector (selection/new-selector)
       }]
