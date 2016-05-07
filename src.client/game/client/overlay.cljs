@@ -24,21 +24,23 @@
   (let
     [health-bars (:health-bars component)
      t (common/game-time)
-     screen-boxes (selection/get-screen-boxes component)
-     line-width 2]
+     screen-boxes (selection/get-screen-boxes component)]
     (-> health-bars .clear)
-    (-> health-bars (.lineStyle line-width 0x000000 1))
     (doseq
       [[i box] (map-indexed vector screen-boxes)]
       (let
         [mesh (aget box "mesh")
          unit (engine/get-unit-for-mesh (:units component) mesh)
+         line-width 1
          bar-height 8
          bar-block-width 12
          min-blocks 4
+         shadow-width 2
+         shadow-height 2
+         shadow-opacity 0.4
          [x1 y1 x2 y2] box
          box-width (- x2 x1)
-         bar-width (max (* (math/round (/ box-width bar-block-width)) bar-block-width) (* min-blocks bar-block-width))
+         bar-width (* bar-block-width (max (math/round (/ box-width bar-block-width)) min-blocks))
          ; center bar on box horizontally
          x1 (infix (box-width - bar-width) / 2 + x1)
          height (- y2 y1)
@@ -59,16 +61,41 @@
            :else
            0x00FF00)
          ]
+        ; full blocks
+        (-> health-bars (.lineStyle line-width 0x000000 1))
         (-> health-bars (.beginFill color 1))
         (-> health-bars
           (.drawRect x1 y1 health-width bar-height))
         (-> health-bars .endFill)
+        ; last transparent block
         (-> health-bars (.beginFill color last-block-opacity))
         (-> health-bars
           (.drawRect (+ x1 health-width) y1 bar-block-width bar-height))
         (-> health-bars .endFill)
+        ; top lighter
+        (-> health-bars (.lineStyle 0))
+        (-> health-bars (.beginFill 0xFFFFFF shadow-opacity))
+        (-> health-bars
+          (.drawRect x1 y1 bar-width shadow-height))
+        (-> health-bars .endFill)
+        ; bottom darker
+        (-> health-bars (.lineStyle 0))
+        (-> health-bars (.beginFill 0x000000 shadow-opacity))
+        (-> health-bars
+          (.drawRect x1 (+ y1 bar-height (- shadow-height)) bar-width shadow-height))
+        (-> health-bars .endFill)
         (doseq
           [i (range bar-block-width (inc bar-width) bar-block-width)]
+          ; left/right shadow
+          (-> health-bars (.lineStyle 0))
+          (-> health-bars (.beginFill 0x000000 shadow-opacity))
+          (-> health-bars
+            (.drawRect (+ x1 i (- bar-block-width)) y1 shadow-width bar-height))
+          (-> health-bars
+            (.drawRect (+ x1 i (- shadow-width)) y1 shadow-width bar-height))
+          (-> health-bars .endFill)
+          ; block borders
+          (-> health-bars (.lineStyle line-width 0x000000 1))
           (-> health-bars
             (.drawRect x1 y1 i bar-height)))))))
 
