@@ -19,134 +19,11 @@
     [game.shared.macros :as macros :refer [defcom]])
   )
 
-(def shader
-"
-precision mediump float;
-
-varying vec2 vTextureCoord;
-varying vec4 vColor;
-
-uniform sampler2D uSampler;
-uniform float gray;
-
-void main(void)
-{
-  vec4 rgba = texture2D(uSampler, vTextureCoord);
-  vec4 rgba_orig = rgba;
-  const float block_width = 12.0;
-  float width = gl_FragCoord.x / vTextureCoord.x;
-  float height = gl_FragCoord.y / vTextureCoord.y;
-  vec4 neighbourTop = texture2D(uSampler, vec2(vTextureCoord.x, vTextureCoord.y - 1.0 / height));
-  vec4 neighbourTop2 = texture2D(uSampler, vec2(vTextureCoord.x, vTextureCoord.y - 2.0 / height));
-  vec4 neighbourBottom = texture2D(uSampler, vec2(vTextureCoord.x, vTextureCoord.y + 1.0 / height));
-  vec4 neighbourBottom2 = texture2D(uSampler, vec2(vTextureCoord.x, vTextureCoord.y + 2.0 / height));
-  float x = vTextureCoord.x;
-  float y = vTextureCoord.y;
-  //float localX = gl_FragCoord.x - rgba.b * width;
-  float localX = 0.0; // gl_FragCoord.x; // - rgba.b * 12.0;
-
-  for (float i = 0.0; i < 20.0; i += 1.0) {
-    float offset = i * block_width;
-    vec4 left = texture2D(uSampler, vec2(vTextureCoord.x - offset / width, vTextureCoord.y));
-    if (left.a == 0.0) {
-      localX = offset;
-      break;
-    }
-  }
-  float maxX = 0.0;
-  for (float i = 0.0; i < 20.0; i += 1.0) {
-    float offset = i * block_width;
-    vec4 left = texture2D(uSampler, vec2(vTextureCoord.x + offset / width, vTextureCoord.y));
-    if (left != rgba_orig) {
-      maxX = offset;
-      break;
-    }
-  }
-  float bar_width = maxX + localX;
-
-  const float eps = 1.0e-7;
-  float offsetX = localX / bar_width;
-  float health = rgba_orig.b;
-  float health_width = health * bar_width;
-  float remainder = mod(health * bar_width, block_width);
-  health_width -= remainder;
-  float last_block_opacity = remainder / block_width;
-  rgba.b = 0.0;
-  vec3 color = rgba_orig.rgb;
-  if (health < 0.25) {
-    color = vec3(1.0, 0.0, 0.0);
-  } else if (health < 0.5) {
-    color = vec3(1.0, 165.0 / 255.0, 0.0);
-  } else if (health < 0.75) {
-    color = vec3(1.0, 1.0, 0.0);
-  } else {
-    color = vec3(0.0, 1.0, 0.0);
-  }
-  float blockX = gl_FragCoord.x;
-  bool transparent = false;
-  if (rgba.a > 0.0) {
-    if (localX <= health_width) {
-      rgba.rgb = color;
-    } else if (localX - 12.0 <= health_width) {
-      rgba.rgb = color;
-      rgba.a = last_block_opacity;
-    } else {
-      rgba = vec4(0.0);
-      transparent = true;
-    }
-    // block separator
-    if (mod(blockX, 12.0) < 1.0) {
-      rgba.rgba = vec4(vec3(0.0), 1.0);
-    }
-    // shadow left
-    if (mod(blockX - 1.0, 12.0) < 1.0) {
-      if (transparent) {
-        rgba = vec4(vec3(0.0), 0.1);
-      } else {
-        rgba.rgb = mix(color, vec3(0.0), 0.1);
-      }
-    }
-    //shadow right
-    if (mod(blockX + 1.0, 12.0) < 1.0) {
-      if (transparent) {
-        rgba = vec4(vec3(0.0), 0.1);
-      } else {
-        rgba.rgb = mix(color, vec3(0.0), 0.1);
-      }
-    }
-    // border top
-    if (rgba_orig.a != neighbourTop.a) {
-      rgba = vec4(vec3(0.0), 1.0);
-    }
-    // border bottom
-    if (rgba_orig.a != neighbourBottom.a) {
-      rgba = vec4(vec3(0.0), 1.0);
-    }
-    // light top
-    if (neighbourTop.a != neighbourTop2.a) {
-      if (transparent) {
-        //rgba = vec4(vec3(1.0), 0.0);
-      } else {
-        rgba.rgb = mix(rgba.rgb, vec3(1.0), 0.2);
-      }
-    }
-    // shadow bottom
-    if (neighbourBottom.a != neighbourBottom2.a) {
-      if (transparent) {
-        rgba = vec4(vec3(0.0), 0.4);
-      } else {
-        rgba.rgb = mix(rgba.rgb, vec3(0.0), 0.4);
-      }
-    }
-  }
-  gl_FragColor = rgba;
-}
-")
-
 (defn get-pixi-filter
   []
   (let
-    [TestFilter
+    [shader nil
+     TestFilter
      (fn []
        (this-as
          this
@@ -161,6 +38,49 @@ void main(void)
       TestFilter)
     (new js/TestFilter)))
 
+(defn
+  get-texture
+  [pixi-renderer width height color light-opacity shadow-opacity shadow-width shadow-height transparent]
+  (let
+    [
+     line-width 1
+     render-texture (-> js/PIXI .-RenderTexture
+                      (.create (+ width (* 2 line-width)) (+ height (* 2 line-width))))
+     graphics (new js/PIXI.Graphics)
+     x1 line-width
+     y1 line-width
+     ]
+    ; main block
+    (-> graphics (.lineStyle 1 0x000000 1))
+    (-> graphics (.beginFill color (if transparent 0 1)))
+    (-> graphics
+      (.drawRect x1 y1 (- width line-width) height))
+    (-> graphics .endFill)
+    ; top lighter
+    (-> graphics (.lineStyle 0))
+    (-> graphics (.beginFill 0xFFFFFF light-opacity))
+    (-> graphics
+      (.drawRect x1 y1 width shadow-height))
+    (-> graphics .endFill)
+    ; bottom darker
+    (-> graphics (.lineStyle 0))
+    (-> graphics (.beginFill 0x000000 shadow-opacity))
+    (-> graphics
+      (.drawRect x1 (+ height (- shadow-height)) width shadow-height))
+    (-> graphics .endFill)
+    ; left/right shadow
+    (-> graphics (.lineStyle 0))
+    (-> graphics (.beginFill 0x000000 shadow-opacity))
+    (-> graphics
+      (.drawRect x1 y1 shadow-width height))
+    (-> graphics
+      (.drawRect (+ width (- shadow-width) (- x1)) y1 shadow-width height))
+    (-> graphics .endFill)
+
+    (-> pixi-renderer (.render graphics render-texture))
+    render-texture
+    ))
+
 (defn on-render
   [init-renderer component]
   (let
@@ -173,11 +93,38 @@ void main(void)
      scene-width @(get-in component [:scene-properties :width])
      scene-height @(get-in component [:scene-properties :height])
      last-frame-time @(:last-60-average init-renderer)
-     fast-version false ;(> last-frame-time (* 16.67 2))
+     pixi-renderer (:pixi-renderer component)
+     bar-block-width 12
+     bar-height 8
+     light-opacity 0.2
+     shadow-opacity 0.4
+     shadow-width 1
+     shadow-height 2
+     new-version true
+     full-version false
+     get-texture
+     #(get-texture
+         pixi-renderer
+         bar-block-width
+         bar-height
+         %1
+         light-opacity
+         shadow-opacity
+         shadow-width
+         shadow-height
+         %2)
+     green-texture (or @(:green-texture component) (get-texture 0x00FF00 false))
+     yellow-texture (or @(:yellow-texture component) (get-texture 0xFFFF00 false))
+     orange-texture (or @(:orange-texture component) (get-texture 0xFFA500 false))
+     red-texture (or @(:red-texture component) (get-texture 0xFF0000 false))
+     transparent-texture (or @(:transparent-texture component) (get-texture 0x000000 true))
      ]
-;    (-> health-bars .clear)
-    (if fast-version
-      (-> stage .-filters (set! #js [pixi-filter])))
+    (reset! (:green-texture component) green-texture)
+    (reset! (:yellow-texture component) yellow-texture)
+    (reset! (:orange-texture component) orange-texture)
+    (reset! (:red-texture component) red-texture)
+    (reset! (:transparent-texture component) transparent-texture)
+
     (-> stage .removeChildren)
     (-> stage (.addChild health-bars))
     ; draw invisible rectangle so filter works on whole screen
@@ -190,21 +137,15 @@ void main(void)
         [mesh (aget box "mesh")
          unit (engine/get-unit-for-mesh (:units component) mesh)
          line-width 1
-         bar-height 8
-         bar-block-width 12
          min-blocks 4
          ; max-blocks is important for performance, because a screen-box can exceed canvas width
          max-blocks 20
-         shadow-width 2
-         shadow-height 2
-         light-opacity 0.2
-         shadow-opacity 0.4
          [x1 y1 x2 y2] box
          box-width (- x2 x1)
          bar-width (* bar-block-width (min (max (math/round (/ box-width bar-block-width)) min-blocks) max-blocks))
          ; center bar on box horizontally
          x1 (infix (box-width - bar-width) / 2 + x1)
-         x1 (- x1 (rem x1 bar-block-width))
+;         x1 (- x1 (rem x1 bar-block-width))
          height (- y2 y1)
          health (/ (:health unit) (:max-health (:model unit)))
          health-width (* health bar-width)
@@ -222,17 +163,44 @@ void main(void)
            0xFFFF00
            :else
            0x00FF00)
-         ;color (+ color (* (rem x1 bar-block-width) 255))
+         texture
+         (cond
+           (< health 0.25)
+           red-texture
+           (< health 0.5)
+           orange-texture
+           (< health 0.75)
+           yellow-texture
+           :else
+           green-texture)
          ]
-        (if fast-version
+        (cond
+          new-version
           (do
             ; full blocks
-            (-> health-bars (.lineStyle 0))
-            (-> health-bars (.beginFill (* health 255) 1))
-            (-> health-bars
-              (.drawRect x1 y1 bar-width bar-height))
-            (-> health-bars .endFill)
-            )
+            (doseq
+              [i (range 0 health-width bar-block-width)]
+              (let
+                [sprite (new js/PIXI.Sprite texture)]
+                (-> stage (.addChild sprite))
+                (-> sprite .-position .-x (set! (+ x1 i)))
+                (-> sprite .-position .-y (set! y1))))
+            ; last semi-transparent block
+            (let
+              [sprite (new js/PIXI.Sprite texture)]
+              (-> stage (.addChild sprite))
+              (-> sprite .-position .-x (set! (+ x1 health-width)))
+              (-> sprite .-position .-y (set! y1))
+              (-> sprite .-alpha (set! last-block-opacity)))
+            ; transparent blocks
+            (doseq
+              [i (range health-width bar-width bar-block-width)]
+              (let
+                [sprite (new js/PIXI.Sprite transparent-texture)]
+                (-> stage (.addChild sprite))
+                (-> sprite .-position .-x (set! (+ x1 i)))
+                (-> sprite .-position .-y (set! y1)))))
+          full-version
           (do
             ; full blocks
             (-> health-bars (.lineStyle 0))
@@ -280,7 +248,8 @@ void main(void)
 (defcom
   new-overlay
   [$overlay params units camera renderer scene-properties]
-  [pixi-renderer stage]
+  [pixi-renderer stage
+   green-texture orange-texture yellow-texture red-texture transparent-texture]
   (fn [component]
     (let
       [$container (:$page params)
@@ -304,6 +273,11 @@ void main(void)
        stage (new js/PIXI.Container)
        component
        (-> component
+         (assoc :green-texture (atom nil))
+         (assoc :orange-texture (atom nil))
+         (assoc :yellow-texture (atom nil))
+         (assoc :red-texture (atom nil))
+         (assoc :transparent-texture (atom nil))
          (assoc :stage stage)
          (assoc :pixi-renderer pixi-renderer))]
       component))
