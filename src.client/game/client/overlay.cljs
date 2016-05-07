@@ -14,7 +14,9 @@
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  (:require-macros
+    [infix.macros :refer [infix]]
+    [game.shared.macros :as macros :refer [defcom]])
   )
 
 (defn on-render
@@ -33,14 +35,18 @@
          unit (engine/get-unit-for-mesh (:units component) mesh)
          bar-height 8
          bar-block-width 12
+         min-blocks 4
          [x1 y1 x2 y2] box
-         width (- x2 x1)
-         width (max width (* 5 bar-block-width))
+         box-width (- x2 x1)
+         bar-width (max (* (math/round (/ box-width bar-block-width)) bar-block-width) (* min-blocks bar-block-width))
+         ; center bar on box horizontally
+         x1 (infix (box-width - bar-width) / 2 + x1)
          height (- y2 y1)
-;         health (/ (inc i) (count screen-boxes))
          health (/ (:health unit) (:max-health (:model unit)))
-         health-width (* health width)
-         bar-width width
+         health-width (* health bar-width)
+         remainder (rem health-width bar-block-width)
+         last-block-opacity (/ remainder bar-block-width)
+         health-width (- health-width remainder)
          y1 (- y1 bar-height)
          color
          (cond
@@ -57,8 +63,12 @@
         (-> health-bars
           (.drawRect x1 y1 health-width bar-height))
         (-> health-bars .endFill)
+        (-> health-bars (.beginFill color last-block-opacity))
+        (-> health-bars
+          (.drawRect (+ x1 health-width) y1 bar-block-width bar-height))
+        (-> health-bars .endFill)
         (doseq
-          [i (range bar-block-width width bar-block-width)]
+          [i (range bar-block-width (inc bar-width) bar-block-width)]
           (-> health-bars
             (.drawRect x1 y1 i bar-height)))))))
 
