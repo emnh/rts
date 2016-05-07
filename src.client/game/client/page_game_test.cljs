@@ -9,6 +9,7 @@
               [promesa.monad]
               [game.client.common :as common :refer [list-item header data]]
               [game.client.game :as game]
+              [game.client.engine :as engine]
               [game.client.ground-local :as ground]
               [game.client.scene :as scene]
               [game.client.math :as math :refer [round]]
@@ -96,11 +97,10 @@
                 [spread 100.0
                  xpos (- (* (math/random) 2.0 spread) spread)
                  zpos (- (* (math/random) 2.0 spread) spread)
-                 miny (- (-> geometry .-boundingBox .-min .-y))
-                 ypos (+ miny (ground/get-height ground xpos zpos))
                  material (new js/THREE.MeshLambertMaterial #js { :map texture })
                  ;_ (-> material .-needsUpdate (set! true))
                  mesh (new js/THREE.Mesh geometry material)
+                 ypos (engine/align-to-ground ground mesh xpos zpos)
                  unit
                  { 
                   :index index 
