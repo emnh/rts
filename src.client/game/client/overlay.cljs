@@ -66,7 +66,13 @@
     (-> graphics (.lineStyle 0))
     (-> graphics (.beginFill 0x000000 shadow-opacity))
     (-> graphics
-      (.drawRect x1 (+ height (- shadow-height)) width shadow-height))
+      (.drawRect x1 (+ height (- shadow-height) (+ 1)) width 1))
+    (-> graphics .endFill)
+    ; bottom darker level 2
+    (-> graphics (.lineStyle 0))
+    (-> graphics (.beginFill 0x000000 (/ shadow-opacity 2)))
+    (-> graphics
+      (.drawRect x1 (+ height (- shadow-height)) width 1))
     (-> graphics .endFill)
     ; left/right shadow
     (-> graphics (.lineStyle 0))
