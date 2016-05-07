@@ -37,6 +37,7 @@
          min-blocks 4
          shadow-width 2
          shadow-height 2
+         light-opacity 0.2
          shadow-opacity 0.4
          [x1 y1 x2 y2] box
          box-width (- x2 x1)
@@ -74,7 +75,7 @@
         (-> health-bars .endFill)
         ; top lighter
         (-> health-bars (.lineStyle 0))
-        (-> health-bars (.beginFill 0xFFFFFF shadow-opacity))
+        (-> health-bars (.beginFill 0xFFFFFF light-opacity))
         (-> health-bars
           (.drawRect x1 y1 bar-width shadow-height))
         (-> health-bars .endFill)
