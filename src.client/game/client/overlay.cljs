@@ -35,13 +35,15 @@
          bar-height 8
          bar-block-width 12
          min-blocks 4
+         ; max-blocks is important for performance, because a screen-box can exceed canvas width
+         max-blocks 20
          shadow-width 2
          shadow-height 2
          light-opacity 0.2
          shadow-opacity 0.4
          [x1 y1 x2 y2] box
          box-width (- x2 x1)
-         bar-width (* bar-block-width (max (math/round (/ box-width bar-block-width)) min-blocks))
+         bar-width (* bar-block-width (min (max (math/round (/ box-width bar-block-width)) min-blocks) max-blocks))
          ; center bar on box horizontally
          x1 (infix (box-width - bar-width) / 2 + x1)
          height (- y2 y1)
