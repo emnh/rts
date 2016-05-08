@@ -9,6 +9,7 @@
               [promesa.monad]
               [game.client.common :as common :refer [list-item header data]]
               [game.client.game :as game]
+              [game.client.overlay :as overlay]
               [game.client.engine :as engine]
               [game.client.ground-local :as ground]
               [game.client.scene :as scene]
@@ -21,16 +22,58 @@
     [game.shared.macros :as macros :refer [defcom]])
   )
 
+(defn
+  on-click-three-js
+  [component event]
+  (let
+    [camera (data (get-in component [:subsystem :camera]))
+     renderer (data (get-in component [:subsystem :renderer]))
+     scene (data (get-in component [:subsystem :scene]))
+     ]
+    (-> renderer (.render scene camera))))
+
+(defn
+  on-click-pixi-js
+  [component event]
+  (println "pixi js")
+  (let
+    [pixi-renderer (get-in component [:subsystem :pixi-overlay :pixi-renderer])
+     pixi-stage (get-in component [:subsystem :pixi-overlay :stage])
+     pixi-overlay (get-in component [:subsystem :pixi-overlay])
+     init-renderer (get-in component [:subsystem :init-renderer])]
+    (overlay/on-render init-renderer pixi-overlay)
+    (-> pixi-renderer (.render pixi-stage))))
+
+
+(rum/defc
+  test-buttons < rum/static
+  [component]
+  [:ul
+   [:li [:button {
+            :type "button"
+            :class "btn btn-primary"
+            :on-click (partial on-click-three-js component)
+            } "Render Three.js"]]
+   [:li [:button {
+            :type "button"
+            :class "btn btn-primary"
+            :on-click (partial on-click-pixi-js component)
+            } "Render Pixi.js"]]
+   ])
+
 (rum/defc
   game-test < rum/static
   [component]
   (let
     [h (header "Game Test")]
-    (html [:div { :class "container" } h
+    (html [:div { :class "container" }
+           h
            [:div
             {
              :id "game"
-             }]
+             }
+            ]
+          (test-buttons component)
            ])))
 
 (defcom
@@ -150,6 +193,9 @@
 
 (defn start
   [component]
+  ; we mount rum twice, first to get #game element which subsystem will use,
+  ; then with component containing started subsystem for rum event handlers to
+  ; use
   (rum/mount (game-test component) (aget (:$page component) 0))
   (let
     [params
@@ -167,6 +213,7 @@
        (assoc :resources (merge {} (:resources component))))
      subsystem (with-simple-cause #(component/start-system subsystem))
      component (assoc component :subsystem subsystem)]
+    (rum/mount (game-test component) (aget (:$page component) 0))
     component))
 
 (defn stop [component]
