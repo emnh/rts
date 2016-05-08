@@ -19,6 +19,27 @@
     [game.shared.macros :as macros :refer [defcom]])
   )
 
+(defn new-cache [] #js [ #js [] #js [] #js [] #js [] #js [] ])
+(def sprite-cache (new-cache))
+(def new-sprite-cache (new-cache))
+
+(defn get-cached-sprite
+  [texture new-fn]
+  (let
+    [texture-id (-> texture .-rts-id)]
+    (if
+      (> (count (aget (aget sprite-cache 0) texture-id)) 0)
+      (let
+        [cached (-> (aget (aget sprite-cache 0) texture-id) .pop)]
+        (do
+          (-> (aget (aget new-sprite-cache 0) texture-id) (.push cached))
+          cached
+          ))
+      (let
+        [not-cached (new-fn)]
+        (-> (aget (aget new-sprite-cache 0) texture-id) (.push not-cached))
+        not-cached))))
+
 (defn get-pixi-filter
   []
   (let
@@ -106,8 +127,6 @@
      shadow-opacity 0.4
      shadow-width 1
      shadow-height 2
-     new-version true
-     full-version false
      get-texture
      #(get-texture
          pixi-renderer
@@ -125,6 +144,11 @@
      red-texture (or @(:red-texture component) (get-texture 0xFF0000 false))
      transparent-texture (or @(:transparent-texture component) (get-texture 0x000000 true))
      ]
+    (-> green-texture .-rts-id (set! 0))
+    (-> yellow-texture .-rts-id (set! 1))
+    (-> orange-texture .-rts-id (set! 2))
+    (-> red-texture .-rts-id (set! 3))
+    (-> transparent-texture .-rts-id (set! 4))
     (reset! (:green-texture component) green-texture)
     (reset! (:yellow-texture component) yellow-texture)
     (reset! (:orange-texture component) orange-texture)
@@ -159,16 +183,6 @@
          last-block-opacity (/ remainder bar-block-width)
          health-width (- health-width remainder)
          y1 (- y1 bar-height)
-         color
-         (cond
-           (< health 0.25)
-           0xFF0000
-           (< health 0.5)
-           0xFFA500
-           (< health 0.75)
-           0xFFFF00
-           :else
-           0x00FF00)
          texture
          (cond
            (< health 0.25)
@@ -180,76 +194,35 @@
            :else
            green-texture)
          ]
-        (cond
-          new-version
-          (do
-            ; full blocks
-            (doseq
-              [i (range 0 health-width bar-block-width)]
-              (let
-                [sprite (new js/PIXI.Sprite texture)]
-                (-> stage (.addChild sprite))
-                (-> sprite .-position .-x (set! (+ x1 i)))
-                (-> sprite .-position .-y (set! y1))))
-            ; last semi-transparent block
+        (do
+          ; full blocks
+          (doseq
+            [i (range 0 health-width bar-block-width)]
             (let
-              [sprite (new js/PIXI.Sprite texture)]
+              [sprite (get-cached-sprite texture #(new js/PIXI.Sprite texture))]
               (-> stage (.addChild sprite))
-              (-> sprite .-position .-x (set! (+ x1 health-width)))
+              (-> sprite .-position .-x (set! (+ x1 i)))
               (-> sprite .-position .-y (set! y1))
-              (-> sprite .-alpha (set! last-block-opacity)))
-            ; transparent blocks
-            (doseq
-              [i (range health-width bar-width bar-block-width)]
-              (let
-                [sprite (new js/PIXI.Sprite transparent-texture)]
-                (-> stage (.addChild sprite))
-                (-> sprite .-position .-x (set! (+ x1 i)))
-                (-> sprite .-position .-y (set! y1)))))
-          full-version
-          (do
-            ; full blocks
-            (-> health-bars (.lineStyle 0))
-            (-> health-bars (.beginFill color 1))
-            (-> health-bars
-              (.drawRect x1 y1 health-width bar-height))
-            (-> health-bars .endFill)
-            ; last transparent block
-            (-> health-bars (.lineStyle 0))
-            (-> health-bars (.beginFill color last-block-opacity))
-            (-> health-bars
-              (.drawRect (+ x1 health-width) y1 bar-block-width bar-height))
-            (-> health-bars .endFill)
-            ; borders
-            (-> health-bars (.lineStyle line-width 0x000000 1))
-            (-> health-bars
-              (.drawRect x1 y1 bar-width bar-height))
-            ; top lighter
-            (-> health-bars (.lineStyle 0))
-            (-> health-bars (.beginFill 0xFFFFFF light-opacity))
-            (-> health-bars
-              (.drawRect x1 y1 bar-width shadow-height))
-            (-> health-bars .endFill)
-            ; bottom darker
-            (-> health-bars (.lineStyle 0))
-            (-> health-bars (.beginFill 0x000000 shadow-opacity))
-            (-> health-bars
-              (.drawRect x1 (+ y1 bar-height (- shadow-height)) bar-width shadow-height))
-            (-> health-bars .endFill)
-            (doseq
-              [i (range bar-block-width (inc bar-width) bar-block-width)]
-              ; left/right shadow
-              (-> health-bars (.lineStyle 0))
-              (-> health-bars (.beginFill 0x000000 shadow-opacity))
-              (-> health-bars
-                (.drawRect (+ x1 i (- bar-block-width)) y1 shadow-width bar-height))
-              (-> health-bars
-                (.drawRect (+ x1 i (- shadow-width)) y1 shadow-width bar-height))
-              (-> health-bars .endFill)
-              ; block borders
-              (-> health-bars (.lineStyle line-width 0x000000 1))
-              (-> health-bars
-                (.drawRect x1 y1 i bar-height)))))))))
+              (-> sprite .-alpha (set! 1))))
+          ; last semi-transparent block
+          (let
+            [sprite (get-cached-sprite texture #(new js/PIXI.Sprite texture))]
+            (-> stage (.addChild sprite))
+            (-> sprite .-position .-x (set! (+ x1 health-width)))
+            (-> sprite .-position .-y (set! y1))
+            (-> sprite .-alpha (set! last-block-opacity)))
+          ; transparent blocks
+          (doseq
+            [i (range health-width bar-width bar-block-width)]
+            (let
+              [sprite (get-cached-sprite transparent-texture #(new js/PIXI.Sprite transparent-texture))]
+              (-> stage (.addChild sprite))
+              (-> sprite .-position .-x (set! (+ x1 i)))
+              (-> sprite .-position .-y (set! y1)))))))
+      (aset sprite-cache 0 (aget new-sprite-cache 0))
+      (aset new-sprite-cache 0 (new-cache))
+;      (println "green-texture" (count (nth @sprite-cache (-> green-texture .-rts-id))))
+      ))
 
 (defcom
   new-overlay
