@@ -60,19 +60,26 @@
     (assoc :page-component page-component)
     (component/using (component/dependencies page-component))))
 
-(defonce ran (atom false))
+(defonce run-count (atom 0))
 
 (defn main
   []
-  (let [old-ran @ran]
-    (reset! ran true)
-    (println "main" old-ran)
-    (if old-ran
+  (let
+    [old-run-count @run-count]
+    (swap! run-count inc)
+    (println "main" old-run-count)
+    ; main is loading twice in figwheel for some reason
+    ; TODO: figure out why instead of skipping run number 1
+    (if-not
+      (= old-run-count 1)
       (do
-        ;(println "stopping system")
-        (with-simple-cause #(swap! system component/stop-system))))
-    ;(println "starting system")
-    (with-simple-cause #(swap! system component/start-system))))
+        (if
+          (> old-run-count 0)
+          (do
+            ;(println "stopping system")
+            (with-simple-cause #(swap! system component/stop-system))))
+        ;(println "starting system")
+        (with-simple-cause #(swap! system component/start-system))))))
 
 (defonce reloading (atom false))
 
@@ -111,4 +118,4 @@
 (s-add-component system :page-not-found
                  (new-page :not-found (page-not-found/new-page-not-found)))
 
-(if @ran (main) (js/$ (main)))
+(if (> @run-count 0) (main) (js/$ (main)))

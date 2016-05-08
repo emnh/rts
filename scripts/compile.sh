@@ -7,3 +7,9 @@ if [ js/deps.js -nt resources/public/bundle-deps.js ]; then
     js/deps.js --ig --fast --outfile \
     resources/public/bundle-deps.js
 fi
+if [ js/deps-worker.js -nt resources/public/bundle-deps-worker.js ]; then
+  node \
+    ./node_modules/browserify/bin/cmd.js \
+    js/deps-worker.js --ig --fast --outfile \
+    resources/public/bundle-deps-worker.js
+fi

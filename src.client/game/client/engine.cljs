@@ -8,12 +8,87 @@
     [rum.core :as rum]
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.ground-local :as ground]
+    [game.client.math :as math]
+    [game.client.scene :as scene]
+    [game.worker.engine :as worker-engine]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
+
+(defmulti -on-worker-message
+  (fn [component data]
+    (keyword (first data))
+    ))
+
+(defmethod -on-worker-message
+  :default
+  [component [event data]]
+  (println "unhandled worker message" event data))
+
+(defmethod -on-worker-message
+  :loaded
+  [component [event data]]
+  (println "loaded"))
+
+(defmethod -on-worker-message
+  :update
+  [component [event data]]
+  (let
+    [unit-count (:unit-count data)
+     new-state (worker-engine/init-state
+             {
+              :unit-count unit-count
+              :buffer (:buffer data)
+              })
+     get-position (get-in new-state [:functions :positions :get])
+     set-position (get-in new-state [:functions :positions :set])
+     unit-meshes @(get-in component [:units :unit-meshes])]
+    (doseq
+      [[unit-index mesh] (map vector (range unit-count) unit-meshes)]
+      (let
+        [position (get-position unit-index)]
+        (-> mesh .-position (.copy position))))))
+
+(defn on-worker-message
+  [component message]
+  (let
+    [data (-> message .-data)
+     data (js->clj data :keywordize-keys true)
+     ]
+;    (println "on-worker-message" data)
+    (-on-worker-message component data)))
+;    (-on-worker-message component message)))
+
+(defcom
+  new-engine
+  [units]
+  [state worker]
+  (fn [component]
+    (let
+      [unit-count 20
+       worker (new js/Worker "js/worker.js")
+       state (atom 
+               (worker-engine/init-state
+                 {
+                  :unit-count unit-count
+                  :buffer nil
+                  }))
+       component
+       (-> component
+         (assoc :state state)
+         (assoc :worker worker))
+       ]
+      (-> worker
+        (.addEventListener "message" (partial on-worker-message component) false))
+      component))
+  (fn [component]
+    (if worker
+      (do
+        (-> worker .terminate)))
+    component))
 
 (defn
   get-unit-for-mesh
@@ -46,3 +121,76 @@
      y (- (max hc h11 h12 h21 h22)(-> bbox .-min .-y))
      ]
     y))
+
+(defcom
+  new-test-units
+  [ground scene init-scene resources]
+  [starting units unit-meshes mesh-to-unit-map]
+  (fn [component]
+    (let
+      [starting (atom true)
+       units (atom [])
+       unit-meshes (atom [])
+       mesh-to-unit-map (atom {})]
+      (doseq
+        [[index model] (map-indexed vector (:resource-list resources))]
+        (let
+          [texture-loader (new THREE.TextureLoader)
+           material (new js/THREE.MeshLambertMaterial)
+           wrapping (-> js/THREE .-RepeatWrapping)
+           on-load (fn [texture]
+                     (-> texture .-wrapS (set! wrapping))
+                     (-> texture .-wrapT (set! wrapping))
+                     (-> texture .-repeat (.set 1 1))
+                     (-> material .-map (set! texture))
+                     (-> material .-needsUpdate (set! true)))
+           grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
+           ]
+          (m/mlet
+            [geometry (:load-promise model)
+             texture (:texture-load-promise model)]
+            (if @starting
+              (doseq
+                [i (range 10)]
+                (let
+                  [spread 100.0
+                   xpos (- (* (math/random) 2.0 spread) spread)
+                   zpos (- (* (math/random) 2.0 spread) spread)
+                   material (new js/THREE.MeshLambertMaterial #js { :map texture })
+                   ;_ (-> material .-needsUpdate (set! true))
+                   mesh (new js/THREE.Mesh geometry material)
+                   ypos (align-to-ground ground mesh xpos zpos)
+                   unit
+                   {
+                    :index index
+                    :model model
+                    :health (* (math/random) (:max-health model))
+                    }
+                   ]
+  ;                (println "model add" (:name model) mesh)
+                  (swap! unit-meshes conj mesh)
+                  (swap! units conj unit)
+                  (swap! mesh-to-unit-map assoc mesh unit)
+                  (scene/add scene mesh)
+                  (doto (-> mesh .-position)
+                    (aset "x" xpos)
+                    (aset "y" ypos)
+                    (aset "z" zpos))))))))
+      (-> component
+        (assoc :mesh-to-unit-map mesh-to-unit-map)
+        (assoc :units units)
+        (assoc :unit-meshes unit-meshes)
+        (assoc :starting starting))))
+  (fn [component]
+    (println "stopping units")
+    (if starting
+      (reset! starting false))
+    (if unit-meshes
+      (doseq [unit @unit-meshes]
+        (scene/remove scene unit)))
+    (->
+      component
+      (assoc :starting nil)
+      (assoc :units nil)
+      (assoc :unit-meshes nil))))
+

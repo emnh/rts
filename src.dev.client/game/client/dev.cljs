@@ -17,6 +17,6 @@
      })
   );(core/main))
 
-(if 
+(if
   (exists? js/jQuery)
   (js/jQuery main))

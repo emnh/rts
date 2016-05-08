@@ -1,5 +1,6 @@
 /bower_components
 /resources/public/bundle-deps.js
+/resources/public/bundle-deps-worker.js
 /classes/
 figwheel_server.log
 /index.html

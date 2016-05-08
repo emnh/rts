@@ -41,7 +41,7 @@
                 :optimizations :none
                 :source-map true}}
              {:id "dev-client"
-              :source-paths ["src.client" "src.shared" "src.dev.client"]
+              :source-paths ["src.client" "src.shared" "src.dev.client" "src.worker"]
               :figwheel true
               :compiler {
                 :output-to "out.dev.client/game.js"
@@ -59,7 +59,7 @@
                 ;:optimizations :simple}}]}
                 :optimizations :none}}
              {:id "prod-client"
-              :source-paths ["src.client" "src.shared"]
+              :source-paths ["src.client" "src.shared" "src.worker"]
               :compiler {
                 :output-to "out.prod.client/game.js"
                 :output-dir "out.prod.client"

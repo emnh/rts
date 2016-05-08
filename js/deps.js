@@ -1,4 +1,4 @@
-const jQuery = require('jquery');
+var jQuery = require('jquery');
 window.jQuery = jQuery;
 window.$ = jQuery;
 window.bootstrap = require('bootstrap');

@@ -13,6 +13,7 @@
     [game.client.routing :as routing]
     [game.client.scene :as scene]
     [game.client.overlay :as overlay]
+    [game.client.engine :as engine]
     [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
     [sablono.core :as sablono :refer-macros [html]]
@@ -51,6 +52,8 @@
       :resize (scene/new-on-resize)
       :controls (controls/new-controls)
       :selector (selection/new-selector)
+      :engine (engine/new-engine)
+      :units (engine/new-test-units)
       }]
     system
     ))
