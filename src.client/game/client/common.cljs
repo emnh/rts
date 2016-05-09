@@ -1,7 +1,6 @@
 (ns ^:figwheel-always game.client.common
     (:require
               [cljs.pprint :as pprint]
-              [jayq.core :as jayq :refer [$]]
               [rum.core :as rum]
               [com.stuartsierra.component :as component]
               [promesa.core :as p]

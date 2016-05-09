@@ -1,7 +1,6 @@
 (ns ^:figwheel-always game.client.ground-local
     (:require
       [cljs.pprint :as pprint]
-      [jayq.core :as jayq :refer [$]]
       [com.stuartsierra.component :as component]
       [promesa.core :as p]
       [cats.core :as m]
@@ -70,6 +69,25 @@
          fyy (infix ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2)
          ]
         fyy))))
+
+(defn
+  align-to-ground
+  [ground bbox xpos zpos]
+  (let
+    [
+     ; get height of centre and four courners of box
+     x1 (+ xpos (-> bbox .-min .-x))
+     x2 (+ xpos (-> bbox .-max .-x))
+     z1 (+ zpos (-> bbox .-min .-z))
+     z2 (+ zpos (-> bbox .-max .-z))
+     hc (get-height ground xpos zpos)
+     h11 (get-height ground x1 z1)
+     h12 (get-height ground x1 z2)
+     h21 (get-height ground x2 z1)
+     h22 (get-height ground x2 z2)
+     y (- (max hc h11 h12 h21 h22)(-> bbox .-min .-y))
+     ]
+    y))
 
 (defn get-map
   [component config mesh simplex]

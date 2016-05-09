@@ -11,8 +11,6 @@
     [game.client.math :as math]
     [game.client.scene :as scene]
     [game.worker.state :as worker-state]
-    [sablono.core :as sablono :refer-macros [html]]
-    [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
@@ -53,14 +51,16 @@
         :unit-count unit-count
         :buffer nil
         })
-     get-position (get-in new-state [:functions :positions :get])
      set-position (get-in new-state [:functions :positions :set])
+     set-bbox (get-in new-state [:functions :bbox :set])
      ]
     (doseq
       [[index mesh] (map-indexed vector (get-unit-meshes (:units component)))]
       (let
-        [position (-> mesh .-position)]
-        (set-position index position)))
+        [position (-> mesh .-position)
+         bbox (-> mesh .-geometry .-boundingBox)]
+        (set-position index position)
+        (set-bbox index bbox)))
     new-state))
 
 (defmulti -on-worker-message
@@ -83,27 +83,37 @@
      unit-count (count (get-units (:units component)))
      scene-properties (:scene-properties component)
      state (get-current-state component)
-     init-data
-     #js
+     ground (:ground component)
+     map-dict
      {
-      :state-buffer (:buffer state)
-      :camera
-      #js
-      {
-       :matrix (-> camera .-matrix .toArray)
-       :fov (-> camera .-fov)
-       :aspect (-> camera .-aspect)
-       :near (-> camera .-near)
-       :far (-> camera .-far)
-       }
-      :unit-count unit-count
-      :scene-properties
-      #js
-      {
-       :width @(:width scene-properties)
-       :height @(:height scene-properties)
-       }
-      }]
+      ;:height-field (-> (:height-field ground) .-buffer)
+      :height-field (:height-field ground)
+      :width (:width ground)
+      :height (:height ground)
+      :x-faces (:x-faces ground)
+      :y-faces (:y-faces ground)
+      }
+     camera-dict
+     {
+      :matrix (-> camera .-matrix .toArray)
+      :fov (-> camera .-fov)
+      :aspect (-> camera .-aspect)
+      :near (-> camera .-near)
+      :far (-> camera .-far)
+      }
+     init-data
+     (clj->js
+       {
+        :state-buffer (:buffer state)
+        :camera camera-dict
+        :unit-count unit-count
+        :scene-properties
+        {
+         :width @(:width scene-properties)
+         :height @(:height scene-properties)
+         }
+        :map-dict map-dict
+        })]
     (-> worker (.postMessage #js ["initialize" init-data] #js [(:buffer state)]))
     (println "sent initialize")
     (-> worker (.postMessage #js ["start-engine" nil]))
@@ -155,7 +165,7 @@
 
 (defcom
   new-engine
-  [scene-properties camera units engine-stats]
+  [scene-properties camera units engine-stats ground]
   [state worker polling]
   (fn [component]
     (let
@@ -184,26 +194,6 @@
       (do
         (-> worker .terminate)))
     component))
-
-(defn
-  align-to-ground
-  [ground mesh xpos zpos]
-  (let
-    [
-     bbox (-> mesh .-geometry .-boundingBox)
-     ; get height of centre and four courners of box
-     x1 (+ xpos (-> bbox .-min .-x))
-     x2 (+ xpos (-> bbox .-max .-x))
-     z1 (+ zpos (-> bbox .-min .-z))
-     z2 (+ zpos (-> bbox .-max .-z))
-     hc (ground/get-height ground xpos zpos)
-     h11 (ground/get-height ground x1 z1)
-     h12 (ground/get-height ground x1 z2)
-     h21 (ground/get-height ground x2 z1)
-     h22 (ground/get-height ground x2 z2)
-     y (- (max hc h11 h12 h21 h22)(-> bbox .-min .-y))
-     ]
-    y))
 
 (defcom
   new-test-units
@@ -243,7 +233,8 @@
                    material (new js/THREE.MeshLambertMaterial #js { :map texture })
                    ;_ (-> material .-needsUpdate (set! true))
                    mesh (new js/THREE.Mesh geometry material)
-                   ypos (align-to-ground ground mesh xpos zpos)
+                   bbox (-> mesh .-geometry .-boundingBox)
+                   ypos (ground/align-to-ground ground bbox xpos zpos)
                    unit
                    {
                     :index index

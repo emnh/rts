@@ -4,8 +4,7 @@
 (def int32-size 4)
 (def xyz-size 3)
 
-(defn
-  -get-position
+(defn -get-vector3
   [int32-buffer float32-buffer float32-offset index]
   (let
     [x-offset (+ float32-offset (* index xyz-size))
@@ -17,8 +16,7 @@
       (aget float32-buffer y-offset)
       (aget float32-buffer z-offset))))
 
-(defn
-  -set-position
+(defn -set-vector3
   [int32-buffer float32-buffer float32-offset index vector3]
   (let
     [x-offset (+ float32-offset (* index xyz-size))
@@ -27,6 +25,18 @@
     (aset float32-buffer x-offset (-> vector3 .-x))
     (aset float32-buffer y-offset (-> vector3 .-y))
     (aset float32-buffer z-offset (-> vector3 .-z))))
+
+(defn -set-bbox
+  [int32-buffer float32-buffer float32-offset index bbox]
+  (-set-vector3 int32-buffer float32-buffer float32-offset (* index 2) (-> bbox .-min))
+  (-set-vector3 int32-buffer float32-buffer float32-offset (inc (* index 2)) (-> bbox .-max)))
+
+(defn -get-bbox
+  [int32-buffer float32-buffer float32-offset index]
+  (new
+    js/THREE.Box3
+    (-get-vector3 int32-buffer float32-buffer float32-offset (* index 2))
+    (-get-vector3 int32-buffer float32-buffer float32-offset (inc (* index 2)))))
 
 (defn
   init-state
@@ -38,14 +48,20 @@
       {
        :name :positions
        :length (* unit-count xyz-size float32-size)
-       :get -get-position
-       :set -set-position
+       :get -get-vector3
+       :set -set-vector3
+       }
+      {
+       :name :bbox
+       :length (* unit-count 2 xyz-size float32-size)
+       :get -get-bbox
+       :set -set-bbox
        }
       {
        :name :move-targets
        :length (* unit-count xyz-size float32-size)
-       :get -get-position 
-       :set -set-position
+       :get -get-vector3
+       :set -set-vector3
        }
       ]
      reduce-length (fn [offset {:keys [length]}] (+ offset length))

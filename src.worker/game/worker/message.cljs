@@ -22,10 +22,13 @@
   :initialize
   [component [event data]]
   (let
-    [{:keys [state-buffer camera unit-count scene-properties]} data
+    [{:keys [state-buffer camera unit-count scene-properties map-dict]} data
      {:keys [matrix fov near far aspect]} camera
      {:keys [width height]} scene-properties
      camera (new js/THREE.PerspectiveCamera fov aspect near far)
+;     map-dict
+;     (-> map-dict
+;       (assoc :height-field (new js/Float32Array (:height-field map-dict))))
      state
      (state/init-state
        {
@@ -39,6 +42,7 @@
         (-> camera .-position)
         (-> camera .-quaternion)
         (-> camera .-scale)))
+    (reset! (:map-dict component) map-dict)
     (reset! (:state component) state)
     (reset! (:camera component) camera)
     (reset! (:unit-count component) unit-count)
@@ -68,7 +72,7 @@
 (defcom
   new-core
   []
-  [state camera unit-count width height poll-state]
+  [state camera unit-count width height poll-state map-dict]
   (fn [component]
     (let
       [state (atom nil)
@@ -76,6 +80,7 @@
        unit-count (atom 0)
        component
        (-> component
+         (assoc :map-dict (atom nil))
          (assoc :poll-state (atom false))
          (assoc :width (atom nil))
          (assoc :height (atom nil))
