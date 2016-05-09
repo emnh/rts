@@ -19,6 +19,13 @@
   )
 
 (defn
+  get-screenbox-for-mesh
+  [component mesh]
+  (let
+    [mesh-to-screenbox-map @(:mesh-to-screenbox-map component)]
+    (mesh-to-screenbox-map mesh)))
+
+(defn
   get-unit-for-mesh
   [component mesh]
   (let
@@ -201,12 +208,13 @@
 (defcom
   new-test-units
   [ground scene init-scene resources]
-  [starting units unit-meshes mesh-to-unit-map]
+  [starting units unit-meshes mesh-to-screenbox-map mesh-to-unit-map]
   (fn [component]
     (let
       [starting (atom true)
        units (atom [])
        unit-meshes (atom [])
+       mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})]
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
@@ -254,6 +262,7 @@
                     (aset "z" zpos))))))))
       (-> component
         (assoc :mesh-to-unit-map mesh-to-unit-map)
+        (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
         (assoc :unit-meshes unit-meshes)
         (assoc :starting starting))))

@@ -183,6 +183,8 @@
     [health-bars (:health-bars component)
      t (common/game-time)
      screen-boxes (selection/get-screen-boxes component)
+     mesh-to-screenbox-map (get-in component [:units :mesh-to-screenbox-map])
+     new-mts-map (reduce (fn [dict box] (assoc dict (aget box "mesh") box)) {} screen-boxes)
      pixi-filter (get-pixi-filter)
      stage (:stage component)
      health-bars (new js/PIXI.Graphics)
@@ -198,6 +200,7 @@
      transparent-texture (or @(:transparent-texture component) (get-texture 0x000000 true))
      partial-select-texture (partial select-texture red-texture orange-texture yellow-texture green-texture)
      ]
+    (reset! mesh-to-screenbox-map new-mts-map)
     (-> green-texture .-rts-id (set! 0))
     (-> yellow-texture .-rts-id (set! 1))
     (-> orange-texture .-rts-id (set! 2))

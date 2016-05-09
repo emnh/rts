@@ -24,15 +24,21 @@
 
 (defn mark
   [component mesh]
-  (let
-    [radius (-> mesh .-geometry .-boundingSphere .-radius)
-     geometry (new THREE.CircleGeometry radius 32)
-     mat (-> (new THREE.Matrix4) (.makeRotationX (/ pi -2)))
-     _ (-> geometry (.applyMatrix mat))
-     material (new THREE.MeshLambertMaterial #js { :color 0x00FF00 :opacity 0.5 :transparent true })
-     circle (new THREE.Mesh geometry material)]
-    (-> mesh (.add circle))
-    circle))
+  (if-let
+    [circle (aget mesh "mark")]
+    (do
+      (-> circle .-visible (set! true))
+      circle)
+    (let
+      [radius (-> mesh .-geometry .-boundingSphere .-radius)
+       geometry (new THREE.CircleGeometry radius 32)
+       mat (-> (new THREE.Matrix4) (.makeRotationX (/ pi -2)))
+       _ (-> geometry (.applyMatrix mat))
+       material (new THREE.MeshLambertMaterial #js { :color 0x00FF00 :opacity 0.5 :transparent true })
+       circle (new THREE.Mesh geometry material)]
+      (-> mesh (.add circle))
+      (aset mesh "mark" circle)
+      circle)))
 
 (defn unmark-all
   [component]
@@ -41,10 +47,8 @@
     (let
       [mesh (:mesh selected)
        mark (:mark selected)]
-      (-> mesh (.remove mark))
-      (-> mark .-geometry .dispose)
-      (-> mark .-material .dispose))
-    (reset! (:selected component) [])))
+      (-> mark .-visible (set! false))))
+  (reset! (:selected component) []))
 
 (defn get-bounding-box-geometry
   [mesh]
@@ -128,12 +132,22 @@
             (-> screen-boxes (.push box))))))
       screen-boxes))
 
+(defn get-screen-boxes-from-last-overlay-render
+  [component]
+  (let
+    [units (:units component)
+     boxes #js []]
+    (doseq
+      [box (vals @(:mesh-to-screenbox-map units))]
+      (-> boxes (.push box)))
+    boxes))
+
 (defn
   check-intersect-screen
   [component x1 y1 x2 y2]
 ;  (println "check-intersect-screen" x1 y1 x2 y2)
   (let
-    [screen-boxes (get-screen-boxes component)
+    [screen-boxes (get-screen-boxes-from-last-overlay-render component)
      flat-selection-box #js [ #js [x1 y1 x2 y2]]
      selected-indices (js/boxIntersect screen-boxes flat-selection-box)]
     (unmark-all component)
@@ -155,8 +169,9 @@
 (defn
   rectangle-select
   [component x2 y2 update]
+  (reset! (:frame-queued? component) false)
   (if
-    @(:selecting component)
+    @(:selecting? component)
     (let
       [start-pos @(:start-pos component)
        x1 (:x start-pos)
@@ -191,7 +206,7 @@
        y (-> event-data .-offsetY)]
       (reset! (:start-pos component) { :x (- x eps) :y (- y eps) })
       (reset! (:end-pos component) { :x (+ x eps) :y (+ y eps) })
-      (reset! (:selecting component) true)
+      (reset! (:selecting? component) true)
       (->
         (:$selection-div component)
         (.removeClass "invisible")
@@ -215,26 +230,29 @@
   (let
     [x2 (-> event-data .-offsetX)
      y2 (-> event-data .-offsetY)]
-    (rectangle-select component x2 y2 true)))
+    (if-not @(:frame-queued? component)
+      (reset! (:frame-queued? component) true)
+      (js/requestAnimationFrame #(rectangle-select component x2 y2 true)))))
 
 (defn on-mouse-up
   [component event-data]
-  (reset! (:selecting component) false)
+  (reset! (:selecting? component) false)
   (-> (:$selection-div component)
     (.addClass "invisible")))
 
 (defcom
   new-selector
   [scene init-scene params $overlay renderer camera units scene-properties]
-  [$selection-layer $selection-div start-pos end-pos selecting selected]
+  [$selection-layer $selection-div start-pos end-pos selecting? selected frame-queued?]
   (fn [component]
     (let
       [$selection-div (or $selection-div ($ "<div/>"))
        $selection-layer (or $selection-layer ($ "<canvas/>"))
        start-pos (or start-pos (atom nil))
-       selecting (or selecting (atom false))
+       selecting? (or selecting? (atom false))
        selected (or selected (atom []))
        end-pos (or end-pos (atom nil))
+       frame-queued? (or frame-queued? (atom false))
        bindns (str "selector" (unique-id (aget (data $overlay) 0)))
        mousedownevt (str "mousedown." bindns)
        mousemoveevt (str "mousemove." bindns)
@@ -246,8 +264,9 @@
        component
        (->
          component
+         (assoc :frame-queued? frame-queued?)
          (assoc :selected selected)
-         (assoc :selecting selecting)
+         (assoc :selecting? selecting?)
          (assoc :start-pos start-pos)
          (assoc :end-pos end-pos)
          (assoc :$selection-layer $selection-layer)
