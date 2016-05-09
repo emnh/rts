@@ -55,29 +55,28 @@
      scene (data (:scene component))
      camera (data (:camera component))
      renderer (data (:renderer component))
-     $overlay (data (:$overlay component))
      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
+     $game-content ($ (str "." page-class))
+     $game-canvases ($ (str ".autoresize." page-class))
      ]
     (-> renderer (.setSize width height))
     (-> pixi-renderer (.resize width height))
-    (-> ($ (-> renderer .-domElement)) (.width width))
-    (-> ($ (-> renderer .-domElement)) (.height height))
     (if
       fullscreen?
       (do
-        (-> ($ (str "." page-class))
+        (-> $game-content
           (.addClass "fullscreen"))
         (-> ($ "body")
           (.addClass "fullscreen")))
       (do
-        (-> ($ (str "." page-class))
+        (-> $game-content
           (.removeClass "fullscreen"))
         (-> ($ "body")
           (.removeClass "fullscreen"))))
     (-> camera .-aspect (set! (/ width height)))
     (-> camera .updateProjectionMatrix)
-    (-> $overlay (.width width))
-    (-> $overlay (.height height))
+    (-> $game-canvases (.width width))
+    (-> $game-canvases (.height height))
     (reset! (get-in component [:scene-properties :width]) width)
     (reset! (get-in component [:scene-properties :height]) height)
     ))
@@ -162,11 +161,13 @@
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-soft (set! true))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
-          (#(-> ($ (-> % .-domElement)) (.addClass "game3d"))))
+          (#(-> ($ (-> % .-domElement)) (.addClass "game3d")))
+          (#(-> ($ (-> % .-domElement)) (.addClass "autoresize"))))
         (doto
           (data $overlay)
           (.addClass page-class)
-          (.addClass "overlay"))
+          (.addClass "overlay")
+          (.addClass "autoresize"))
         (add scene (data camera))
         (-> (data camera) .-position (.copy (get-in config [:controls :origin])))
         (let

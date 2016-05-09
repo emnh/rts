@@ -255,6 +255,8 @@
          (assoc :$selection-div $selection-div))
        ]
       (-> (data $overlay) (.after $selection-layer))
+      (-> $selection-layer (.addClass scene/page-class))
+      (-> $selection-layer (.addClass "autoresize"))
       (-> $selection-layer (.addClass "selection-layer"))
       (controls/rebind $selection-layer mousedownevt (partial on-mouse-down component))
       (controls/rebind $selection-layer mousemoveevt (partial on-mouse-move component))

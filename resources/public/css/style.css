@@ -68,6 +68,16 @@ body.fullscreen {
   overflow: hidden;
 }
 
+.game-content.fullscreen {
+  position: fixed;
+}
+
+#page-game-test #game.fullscreen {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
 .game-content {
   position: absolute;
   left: 0;
@@ -78,18 +88,8 @@ body.fullscreen {
 	-ms-user-select: none; /* IE10+ */
 }
 
-.game-content.fullscreen {
-  position: fixed;
-}
-
 .overlay {
   z-index: 1;
-}
-
-#page-game-test #game.fullscreen {
-  position: fixed;
-  width: 100%;
-  height: 100%;
 }
 
 .selection-rect {
