@@ -19,6 +19,9 @@
     [game.shared.macros :as macros :refer [defcom]])
   )
 
+(def xyz-size 3)
+(def xyzw-size 4)
+
 (defn new-cache [] #js [ #js [] #js [] #js [] #js [] #js [] ])
 (defonce sprite-cache (new-cache))
 (defonce new-sprite-cache (new-cache))
@@ -256,3 +259,344 @@
          (assoc :pixi-renderer pixi-renderer))]
       component))
   (fn [component] component))
+
+(def vertex-shader
+"
+attribute vec3 corner1;
+attribute vec3 corner2;
+attribute vec3 corner3;
+attribute vec3 corner4;
+attribute vec3 corner5;
+attribute vec3 corner6;
+attribute vec3 corner7;
+attribute vec3 corner8;
+attribute float health;
+attribute vec4 wmat1;
+attribute vec4 wmat2;
+attribute vec4 wmat3;
+attribute vec4 wmat4;
+
+uniform float screen_width;
+uniform float screen_height;
+uniform mat4 matrixWorldInverse;
+
+varying vec2 vSize;
+varying float vHealth;
+
+void main() {
+
+  mat4 matrixWorld = mat4(wmat1, wmat2, wmat3, wmat4);
+
+  mat4 mvMatrix = matrixWorldInverse * matrixWorld;
+
+  mat4 mm = projectionMatrix * mvMatrix;
+
+	//vec4 mvPosition = mvMatrix * vec4(position, 1.0);
+	vec4 mvPosition = mvMatrix * vec4(vec3(0.0), 1.0);
+
+  vec2 corner1_2d = (mm * vec4(corner1, 1.0)).xy;
+  vec2 corner2_2d = (mm * vec4(corner2, 1.0)).xy;
+  vec2 corner3_2d = (mm * vec4(corner3, 1.0)).xy;
+  vec2 corner4_2d = (mm * vec4(corner4, 1.0)).xy;
+  vec2 corner5_2d = (mm * vec4(corner5, 1.0)).xy;
+  vec2 corner6_2d = (mm * vec4(corner6, 1.0)).xy;
+  vec2 corner7_2d = (mm * vec4(corner7, 1.0)).xy;
+  vec2 corner8_2d = (mm * vec4(corner8, 1.0)).xy;
+
+  float minX = min(corner1_2d.x, corner2_2d.x);
+  minX = min(minX, corner3_2d.x);
+  minX = min(minX, corner4_2d.x);
+  minX = min(minX, corner5_2d.x);
+  minX = min(minX, corner6_2d.x);
+  minX = min(minX, corner7_2d.x);
+  minX = min(minX, corner8_2d.x);
+  
+  float maxX = max(corner1_2d.x, corner2_2d.x);
+  maxX = max(maxX, corner3_2d.x);
+  maxX = max(maxX, corner4_2d.x);
+  maxX = max(maxX, corner5_2d.x);
+  maxX = max(maxX, corner6_2d.x);
+  maxX = max(maxX, corner7_2d.x);
+  maxX = max(maxX, corner8_2d.x);
+
+  float minY = min(corner1_2d.y, corner2_2d.y);
+  minY = min(minY, corner3_2d.y);
+  minY = min(minY, corner4_2d.y);
+  minY = min(minY, corner5_2d.y);
+  minY = min(minY, corner6_2d.y);
+  minY = min(minY, corner7_2d.y);
+  minY = min(minY, corner8_2d.y);
+  
+  float maxY = max(corner1_2d.y, corner2_2d.y);
+  maxY = max(maxY, corner3_2d.y);
+  maxY = max(maxY, corner4_2d.y);
+  maxY = max(maxY, corner5_2d.y);
+  maxY = max(maxY, corner6_2d.y);
+  maxY = max(maxY, corner7_2d.y);
+  maxY = max(maxY, corner8_2d.y);
+
+  float orig_width = maxX - minX;
+  float orig_height = maxY - minY;
+
+  const float block_width = 14.0;
+  const float block_height = 10.0;
+
+	gl_Position = projectionMatrix * mvPosition;
+	
+  float width = orig_width;
+  width = max(block_width * 4.0, width);
+  width = min(block_width * 20.0, width);
+  width = width - mod(width, block_width);
+
+  vSize = vec2(width, orig_height);
+  vHealth = health;
+
+  gl_PointSize = width;
+
+  gl_Position.x = minX + orig_width / 2.0;
+  gl_Position.y = maxY - orig_width / 2.0;
+}
+")
+
+; TODO: externalize
+(def fragment-shader
+"
+
+varying vec2 vSize;
+varying float vHealth;
+
+uniform sampler2D green_texture;
+uniform sampler2D yellow_texture;
+uniform sampler2D orange_texture;
+uniform sampler2D red_texture;
+uniform sampler2D transparent_texture;
+
+void main() {
+  vec4 color = vec4(0.0);
+  float maxY = 10.0 / vSize.x;
+  float step = 0.0 / vSize.x;
+  if (gl_PointCoord.y <= maxY) {
+    float modX = 14.0 / vSize.x;
+    float newX = (mod(gl_PointCoord.x, modX) + step) / (modX + 2.0 * step);
+    newX *= 0.85;
+    float newY = gl_PointCoord.y / maxY;
+    float block = floor(gl_PointCoord.x / modX);
+    float last_block = floor(vHealth / modX);
+    float remainder = mod(vHealth, modX);
+    float last_block_opacity = remainder / modX;
+    vec2 texCoord = vec2(newX, newY);
+    if (gl_PointCoord.x < vHealth + modX - remainder) {
+      if (vHealth < 0.25) {
+        color = vec4(1.0, 0.0, 0.0, 1.0);
+        color = texture2D(red_texture, texCoord);
+      } else if (vHealth < 0.5) {
+        color = vec4(1.0, 165.0 / 255.0, 0.0, 1.0);
+        color = texture2D(orange_texture, texCoord);
+      } else if (vHealth < 0.75) {
+        color = vec4(1.0, 1.0, 0.0, 1.0);
+        color = texture2D(yellow_texture, texCoord);
+      } else {
+        color = vec4(0.0, 1.0, 0.0, 1.0);
+        color = texture2D(green_texture, texCoord);
+      }
+      if (block == last_block) {
+        color = mix(texture2D(transparent_texture, texCoord), color, last_block_opacity);
+      }
+    } else {
+      color = texture2D(transparent_texture, texCoord);
+    }
+  }
+  gl_FragColor = color;
+}
+"
+)
+
+(defn set-corners
+  [corners index vertices]
+  (aset (nth corners 0) (+ (* index xyz-size) 0) (-> (nth vertices 0) .-x))
+  (aset (nth corners 0) (+ (* index xyz-size) 1) (-> (nth vertices 0) .-y))
+  (aset (nth corners 0) (+ (* index xyz-size) 2) (-> (nth vertices 0) .-z))
+  (aset (nth corners 1) (+ (* index xyz-size) 0) (-> (nth vertices 1) .-x))
+  (aset (nth corners 1) (+ (* index xyz-size) 1) (-> (nth vertices 1) .-y))
+  (aset (nth corners 1) (+ (* index xyz-size) 2) (-> (nth vertices 1) .-z))
+  (aset (nth corners 2) (+ (* index xyz-size) 0) (-> (nth vertices 2) .-x))
+  (aset (nth corners 2) (+ (* index xyz-size) 1) (-> (nth vertices 2) .-y))
+  (aset (nth corners 2) (+ (* index xyz-size) 2) (-> (nth vertices 2) .-z))
+  (aset (nth corners 3) (+ (* index xyz-size) 0) (-> (nth vertices 3) .-x))
+  (aset (nth corners 3) (+ (* index xyz-size) 1) (-> (nth vertices 3) .-y))
+  (aset (nth corners 3) (+ (* index xyz-size) 2) (-> (nth vertices 3) .-z))
+  (aset (nth corners 4) (+ (* index xyz-size) 0) (-> (nth vertices 4) .-x))
+  (aset (nth corners 4) (+ (* index xyz-size) 1) (-> (nth vertices 4) .-y))
+  (aset (nth corners 4) (+ (* index xyz-size) 2) (-> (nth vertices 4) .-z))
+  (aset (nth corners 5) (+ (* index xyz-size) 0) (-> (nth vertices 5) .-x))
+  (aset (nth corners 5) (+ (* index xyz-size) 1) (-> (nth vertices 5) .-y))
+  (aset (nth corners 5) (+ (* index xyz-size) 2) (-> (nth vertices 5) .-z))
+  (aset (nth corners 6) (+ (* index xyz-size) 0) (-> (nth vertices 6) .-x))
+  (aset (nth corners 6) (+ (* index xyz-size) 1) (-> (nth vertices 6) .-y))
+  (aset (nth corners 6) (+ (* index xyz-size) 2) (-> (nth vertices 6) .-z))
+  (aset (nth corners 7) (+ (* index xyz-size) 0) (-> (nth vertices 7) .-x))
+  (aset (nth corners 7) (+ (* index xyz-size) 1) (-> (nth vertices 7) .-y))
+  (aset (nth corners 7) (+ (* index xyz-size) 2) (-> (nth vertices 7) .-z)))
+
+(defn
+  on-xp-render
+  [init-renderer component]
+  (let
+    [meshes (engine/get-unit-meshes (:units component))
+     geo (new js/THREE.BufferGeometry)
+     c (* (count meshes) xyz-size)
+     d (* (count meshes) xyzw-size)
+     positions (new js/Float32Array c)
+     healths (new js/Float32Array (count meshes))
+     corners
+     [(new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)
+      (new js/Float32Array c)]
+     world-matrix-array
+     [(new js/Float32Array d)
+      (new js/Float32Array d)
+      (new js/Float32Array d)
+      (new js/Float32Array d)
+      ]
+     ]
+    (doseq
+      [[index mesh] (map-indexed vector meshes)]
+      (let
+        [unit (engine/get-unit-for-mesh (:units component) mesh)
+         health (/ (:health unit) (:max-health (:model unit)))]
+        (aset healths index health))
+      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
+      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
+      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
+
+      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 0))
+      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 1))
+      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 2))
+      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 3))
+
+      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 4))
+      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 5))
+      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 6))
+      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 7))
+
+      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 8))
+      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 9))
+      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 10))
+      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 11))
+
+      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 12))
+      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 13))
+      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 14))
+      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15))
+      (let
+        [bbox-geometry (selection/get-bounding-box-geometry mesh false)
+         vertices (-> bbox-geometry .-vertices)]
+        (set-corners corners index vertices)))
+    (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
+    (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
+    (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
+    (-> geo (.addAttribute "wmat2" (new js/THREE.BufferAttribute (nth world-matrix-array 1) xyzw-size)))
+    (-> geo (.addAttribute "wmat3" (new js/THREE.BufferAttribute (nth world-matrix-array 2) xyzw-size)))
+    (-> geo (.addAttribute "wmat4" (new js/THREE.BufferAttribute (nth world-matrix-array 3) xyzw-size)))
+    (-> geo (.addAttribute "corner1" (new js/THREE.BufferAttribute (nth corners 0) xyz-size)))
+    (-> geo (.addAttribute "corner2" (new js/THREE.BufferAttribute (nth corners 1) xyz-size)))
+    (-> geo (.addAttribute "corner3" (new js/THREE.BufferAttribute (nth corners 2) xyz-size)))
+    (-> geo (.addAttribute "corner4" (new js/THREE.BufferAttribute (nth corners 3) xyz-size)))
+    (-> geo (.addAttribute "corner5" (new js/THREE.BufferAttribute (nth corners 4) xyz-size)))
+    (-> geo (.addAttribute "corner6" (new js/THREE.BufferAttribute (nth corners 5) xyz-size)))
+    (-> geo (.addAttribute "corner7" (new js/THREE.BufferAttribute (nth corners 6) xyz-size)))
+    (-> geo (.addAttribute "corner8" (new js/THREE.BufferAttribute (nth corners 7) xyz-size)))
+    (let
+      [scene (data (:overlay-scene component))
+       ;material (-> (:material component) .clone)
+       material (:material component)
+       mesh (new js/THREE.Points geo material)
+       width @(get-in component [:scene-properties :width])
+       height @(get-in component [:scene-properties :height])
+       ]
+      (-> material .-uniforms .-screen_width .-value (set! width))
+      (-> material .-uniforms .-screen_height .-value (set! height))
+      (if
+        (> (count (-> scene .-children)) 0)
+        (let
+          [oldmesh (-> scene .-children (aget 0))]
+          (-> scene (.remove oldmesh))
+          (-> oldmesh .-geometry .dispose)
+;          (-> oldmesh .-material .dispose)
+          ))
+      (if
+        (> c 0)
+        (-> scene (.add mesh))))))
+
+(defcom
+  new-xp-overlay
+  [$overlay2 overlay-scene init-scene scene-properties units pixi-overlay camera]
+  [overlay-renderer material]
+  (fn [component]
+    (let
+      [canvas (aget (data $overlay2) 0)
+       overlay-renderer
+       (or overlay-renderer
+           (new js/THREE.WebGLRenderer #js { :antialias true :canvas canvas :alpha true }))
+       
+       pixi-renderer (:pixi-renderer pixi-overlay)
+       three-texture
+       (fn [x] 
+         (let
+           [i (-> pixi-renderer .-extract (.image x))
+            t (new js/THREE.Texture i)]
+           (-> t .-needsUpdate (set! true))
+           (-> t .-minFilter (set! js/THREE.LinearFilter))
+           t))
+       get-texture
+       (fn
+         [color transparent?]
+         (->
+           (get-texture pixi-renderer bar-block-width bar-height color transparent?)
+           three-texture))
+       green-texture (get-texture 0x00FF00 false)
+       yellow-texture (get-texture 0xFFFF00 false)
+       orange-texture (get-texture 0xFFA500 false)
+       red-texture (get-texture 0xFF0000 false)
+       transparent-texture (get-texture 0x000000 true)
+       camera (data camera)
+       uniforms
+       #js
+       {
+        :screen_width #js { :value @(:width scene-properties) }
+        :screen_height #js { :value @(:height scene-properties) }
+        :green_texture #js { :type "t" :value green-texture }
+        :yellow_texture #js { :value yellow-texture }
+        :orange_texture #js { :value orange-texture }
+        :red_texture #js { :value red-texture }
+        :transparent_texture #js { :value transparent-texture }
+        :matrixWorldInverse #js { :value (-> camera .-matrixWorldInverse) }
+        }
+       material
+       (new js/THREE.ShaderMaterial
+            #js
+            {
+             :uniforms uniforms
+             :vertexShader vertex-shader
+             :fragmentShader fragment-shader
+             :depthTest false
+             :transparent true
+             }
+            )
+       component
+       (-> component
+         (assoc :material material)
+         (assoc :overlay-renderer overlay-renderer))
+;       sphere (new js/THREE.SphereGeometry 5 32 32)
+;       material (new js/THREE.MeshBasicMaterial #js { :color 0xFF0000 })
+;       mesh (new js/THREE.Mesh sphere material)
+       overlay-scene (data overlay-scene)
+       ]
+      component))
+  (fn [component]
+    component))

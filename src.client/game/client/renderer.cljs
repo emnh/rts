@@ -16,7 +16,10 @@
    [start-time (common/game-time)
     camera (data (:camera component))
     scene (data (:scene component))
+    overlay-scene (data (:overlay-scene component))
     renderer (data (:renderer component))
+    three-overlay (:three-overlay component)
+    overlay-renderer (:overlay-renderer three-overlay)
     render-stats (data (:render-stats component))
     pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
     pixi-stage (get-in component [:pixi-overlay :stage])
@@ -26,6 +29,8 @@
     (-> renderer (.render scene camera))
     (overlay/on-render component (:pixi-overlay component))
     (-> pixi-renderer (.render pixi-stage))
+;    (overlay/on-xp-render component three-overlay)
+;    (-> overlay-renderer (.render overlay-scene camera))
     (let
       [end-time (common/game-time)
        elapsed (- end-time start-time)]
@@ -40,7 +45,7 @@
 
 (defcom
   new-init-renderer
-  [renderer camera scene render-stats pixi-overlay]
+  [renderer overlay-scene three-overlay camera scene render-stats pixi-overlay]
   [running last-frame-time last-60-frame-times last-60-average]
   (fn [component]
     (let

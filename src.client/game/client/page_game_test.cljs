@@ -86,8 +86,8 @@
        y-faces (:y-faces ground)
        width (:width ground)
        height (:height ground)
-       geometry (new THREE.SphereGeometry 1 4 4)
-       material (new THREE.MeshBasicMaterial #js { :color 0xFF0000 })]
+       geometry (new js/THREE.SphereGeometry 1 4 4)
+       material (new js/THREE.MeshBasicMaterial #js { :color 0xFF0000 })]
       (doseq
         [x (range x-faces)
          y (range y-faces)]

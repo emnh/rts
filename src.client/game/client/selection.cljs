@@ -51,34 +51,38 @@
   (reset! (:selected component) []))
 
 (defn get-bounding-box-geometry
-  [mesh]
-  (let
-    [geometry
-     (if
-       (and
-         (-> mesh (.hasOwnProperty "rts-bbox-geometry"))
-         (not (undefined? (aget mesh "rts-bbox-geometry"))))
-       (-> (aget mesh "rts-bbox-geometry") .clone)
-       (let
-         [bbox (-> mesh .-geometry .-boundingBox)
-          bbox-geometry (new THREE.BoxGeometry
-                        (- (-> bbox .-max .-x) (-> bbox .-min .-x))
-                        (- (-> bbox .-max .-y) (-> bbox .-min .-y))
-                        (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
-          geo-translation (-> (new THREE.Vector3)
-                            (.add (-> bbox .-min))
-                            (.add (-> bbox .-max))
-                            (.divideScalar 2))
-          ]
-         (-> bbox-geometry (.translate
-                        (-> geo-translation .-x)
-                        (-> geo-translation .-y)
-                        (-> geo-translation .-z)))
-         (aset mesh "rts-bbox-geometry" bbox-geometry)
-         (-> bbox-geometry .clone)))
-     ]
-    (-> geometry (.applyMatrix (-> mesh .-matrixWorld)))
-    geometry))
+  ([mesh]
+   (get-bounding-box-geometry mesh true))
+  ([mesh clone?]
+   (let
+     [clone #(if clone? (.clone %) %)
+      geometry
+      (if
+        (and
+          (-> mesh (.hasOwnProperty "rts-bbox-geometry"))
+          (not (undefined? (aget mesh "rts-bbox-geometry"))))
+        (-> (aget mesh "rts-bbox-geometry") clone)
+        (let
+          [bbox (-> mesh .-geometry .-boundingBox)
+           bbox-geometry (new THREE.BoxGeometry
+                         (- (-> bbox .-max .-x) (-> bbox .-min .-x))
+                         (- (-> bbox .-max .-y) (-> bbox .-min .-y))
+                         (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
+           geo-translation (-> (new THREE.Vector3)
+                             (.add (-> bbox .-min))
+                             (.add (-> bbox .-max))
+                             (.divideScalar 2))
+           ]
+          (-> bbox-geometry (.translate
+                         (-> geo-translation .-x)
+                         (-> geo-translation .-y)
+                         (-> geo-translation .-z)))
+          (aset mesh "rts-bbox-geometry" bbox-geometry)
+          (-> bbox-geometry clone)))
+      ]
+     (if clone?
+       (-> geometry (.applyMatrix (-> mesh .-matrixWorld))))
+     geometry)))
 
 ; http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current
 (defn get-screen-boxes

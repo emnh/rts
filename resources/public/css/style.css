@@ -92,19 +92,23 @@ body.fullscreen {
   z-index: 1;
 }
 
+.overlay2 {
+  z-index: 2;
+}
+
 .selection-rect {
   position: absolute;
   color: #00FF00;
   background: rgba(0, 255, 0, 0.5);
   border: 1px solid #00FF00;
-  z-index: 2;
+  z-index: 3;
 }
 
 .selection-layer {
   position: absolute;
   width: 100%;
   height: 100%;
-  z-index: 3;
+  z-index: 4;
 }
 
 #page-game-test ul {
