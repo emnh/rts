@@ -26,9 +26,6 @@
      {:keys [matrix fov near far aspect]} camera
      {:keys [width height]} scene-properties
      camera (new js/THREE.PerspectiveCamera fov aspect near far)
-;     map-dict
-;     (-> map-dict
-;       (assoc :height-field (new js/Float32Array (:height-field map-dict))))
      state
      (state/init-state
        {

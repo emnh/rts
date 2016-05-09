@@ -225,9 +225,9 @@
              texture (:texture-load-promise model)]
             (if @starting
               (doseq
-                [i (range 10)]
+                [i (range 20)]
                 (let
-                  [spread 100.0
+                  [spread 150.0
                    xpos (- (* (math/random) 2.0 spread) spread)
                    zpos (- (* (math/random) 2.0 spread) spread)
                    material (new js/THREE.MeshLambertMaterial #js { :map texture })

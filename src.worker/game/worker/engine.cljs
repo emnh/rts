@@ -13,7 +13,7 @@
     [start-time (-> (new js/Date) .getTime)
      unit-count @(:unit-count component)
      state (:state component)
-     buffer (if @state (:buffer @state) nil)
+     buffer (:buffer @state)
      new-state
      (state/init-state
        {
@@ -23,20 +23,17 @@
      get-position (get-in new-state [:functions :positions :get])
      set-position (get-in new-state [:functions :positions :set])
      get-bbox (get-in new-state [:functions :bbox :get])
+     get-move-target (get-in new-state [:functions :move-targets :get])
      ]
     (doseq
       [unit-index (range unit-count)]
       (let
         [position (get-position unit-index)
          bbox (get-bbox unit-index)
-         ;_ (if (= unit-index 0) (.log js/console "bbox" bbox))
-         spread 5.0
+         spread 0.0
+         move-target (get-move-target unit-index)
          x (+ (-> position .-x) (* spread (+ (math/random) -0.5)))
          z (+ (-> position .-z) (* spread (+ (math/random) -0.5)))
-;         y (+ (-> position .-y) (* spread (+ (math/random) -0.5)))
-;         _ (if (= unit-index 0)
-;             (.log js/console "ghei"
-;               (ground/get-height (:map-dict component) x z)))
          y (ground/align-to-ground @(:map-dict component) bbox x z)
          ]
         (set-position unit-index (new js/THREE.Vector3 x y z))))

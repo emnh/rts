@@ -76,23 +76,8 @@
                         (-> geo-translation .-z)))
          (aset mesh "rts-bbox-geometry" bbox-geometry)
          (-> bbox-geometry .clone)))
-     rotation-matrix (-> (new THREE.Matrix4)
-                       (.makeRotationFromQuaternion
-                         (-> mesh .-quaternion)))
-     scale-matrix (-> (new THREE.Matrix4)
-                    (.makeScale
-                      (-> mesh .-scale .-x)
-                      (-> mesh .-scale .-y)
-                      (-> mesh .-scale .-z)))
-     translation-matrix (-> (new THREE.Matrix4)
-                          (.makeTranslation
-                            (-> mesh .-position .-x)
-                            (-> mesh .-position .-y)
-                            (-> mesh .-position .-z)))
      ]
-    (-> geometry (.applyMatrix rotation-matrix))
-    (-> geometry (.applyMatrix scale-matrix))
-    (-> geometry (.applyMatrix translation-matrix))
+    (-> geometry (.applyMatrix (-> mesh .-matrixWorld)))
     geometry))
 
 ; http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current
@@ -120,7 +105,7 @@
           (doseq [vertex (-> (get-bounding-box-geometry mesh) .-vertices)]
             (-> screen-box
               (.expandByPoint
-                (scene/world-to-screen width height (:camera component) vertex))))
+                (scene/world-to-screen-fast width height camera-view-projection-matrix vertex))))
           (let
             [box #js [
                       (-> screen-box .-min .-x)

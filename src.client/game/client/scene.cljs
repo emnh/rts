@@ -288,3 +288,14 @@
      y (infix -(y - 1) * height / 2)
      v2 (new THREE.Vector2 x y)]
     v2))
+
+(defn world-to-screen-fast
+  [width height matrix pos]
+  (let
+    [v (-> pos .clone (.applyProjection matrix))
+     x (-> v .-x)
+     y (-> v .-y)
+     x (infix (x + 1) * width / 2)
+     y (infix -(y - 1) * height / 2)
+     v2 (new THREE.Vector2 x y)]
+    v2))
