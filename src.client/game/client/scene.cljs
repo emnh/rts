@@ -99,15 +99,15 @@
 
 (defcom
   new-init-stats
-  [params render-stats physics-stats]
+  [params render-stats engine-stats]
   []
   (fn [component]
     (let
       [
        render-stats (data render-stats)
-       physics-stats (data physics-stats)
+       engine-stats (data engine-stats)
        $render-stats ($ (-> render-stats .-domElement))
-       $physics-stats ($ (-> physics-stats .-domElement))
+       $engine-stats ($ (-> engine-stats .-domElement))
        $container (:$page params)
        ]
       (-> $container (.append $render-stats))
@@ -119,11 +119,11 @@
          :top 0
          :z-index 100
          })
-      (-> $container (.append $physics-stats))
-      (-> $physics-stats (.addClass page-class))
-      (-> $physics-stats (.addClass "physics-stats"))
+      (-> $container (.append $engine-stats))
+      (-> $engine-stats (.addClass page-class))
+      (-> $engine-stats (.addClass "engine-stats"))
       (jayq/css
-        $physics-stats
+        $engine-stats
         {
          :top "50px"
          :z-index 100
@@ -150,19 +150,13 @@
 (defcom
   new-init-scene
   ; depends on init-stats because stats elements must be appended first
-  [params renderer $overlay camera scene config ground physics-stats init-stats]
+  [params renderer $overlay camera scene config ground init-stats]
   [done]
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
     (if-not done
-      (let
-        [$physics-stats ($ (-> (data physics-stats) .-domElement))
-         margin-top (+
-                      (-> $physics-stats .position .-top)
-                      (-> $physics-stats .height))
-         margin-top (str (- margin-top) "px")]
-
+      (do
         (doto
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))

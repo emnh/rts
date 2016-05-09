@@ -238,9 +238,9 @@
      $element ($ element)
      $overlay (data (:$overlay component))
      render-stats (data (:render-stats component))
-     physics-stats (data (:physics-stats component))
+     engine-stats (data (:engine-stats component))
      $render-stats ($ (-> render-stats .-domElement))
-     $physics-stats ($ (-> physics-stats .-domElement))
+     $engine-stats ($ (-> engine-stats .-domElement))
      bindns (str "controls" (unique-id element))
      contextevt (str "contextmenu." bindns)
      keydownevt (str "keydown." bindns)
@@ -258,7 +258,7 @@
     (rebind $element contextevt prevent-default)
     (rebind $overlay contextevt prevent-default)
     (rebind $render-stats contextevt prevent-default)
-    (rebind $physics-stats contextevt prevent-default)
+    (rebind $engine-stats contextevt prevent-default)
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
     (js/requestAnimationFrame interval-handler)
@@ -270,7 +270,7 @@
 
 (defcom
   new-controls
-  [renderer config camera scene init-scene $overlay render-stats physics-stats]
+  [renderer config camera scene init-scene $overlay render-stats engine-stats]
   [old-interval-handler-enabled keydownevt keyupevt]
   (fn [component]
     (let

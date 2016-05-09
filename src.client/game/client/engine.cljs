@@ -10,13 +10,30 @@
     [game.client.ground-local :as ground]
     [game.client.math :as math]
     [game.client.scene :as scene]
-    [game.worker.engine :as worker-engine]
+    [game.worker.state :as worker-state]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
+
+(defn
+  get-unit-for-mesh
+  [component mesh]
+  (let
+    [mesh-to-unit-map @(:mesh-to-unit-map component)]
+    (mesh-to-unit-map mesh)))
+
+(defn
+  get-unit-meshes
+  [units]
+  @(:unit-meshes units))
+
+(defn
+  get-units
+  [units]
+  @(:units units))
 
 (defmulti -on-worker-message
   (fn [component data]
@@ -37,8 +54,9 @@
   :update
   [component [event data]]
   (let
-    [unit-count (:unit-count data)
-     new-state (worker-engine/init-state
+    [engine-stats (common/data (:engine-stats component))
+     unit-count (:unit-count data)
+     new-state (worker-state/init-state
              {
               :unit-count unit-count
               :buffer (:buffer data)
@@ -50,7 +68,8 @@
       [[unit-index mesh] (map vector (range unit-count) unit-meshes)]
       (let
         [position (get-position unit-index)]
-        (-> mesh .-position (.copy position))))))
+        (-> mesh .-position (.copy position))))
+    (-> engine-stats .update)))
 
 (defn on-worker-message
   [component message]
@@ -64,14 +83,14 @@
 
 (defcom
   new-engine
-  [units]
+  [units engine-stats]
   [state worker]
   (fn [component]
     (let
-      [unit-count 20
+      [unit-count (count (get-units units))
        worker (new js/Worker "js/worker.js")
-       state (atom 
-               (worker-engine/init-state
+       state (atom
+               (worker-state/init-state
                  {
                   :unit-count unit-count
                   :buffer nil
@@ -89,18 +108,6 @@
       (do
         (-> worker .terminate)))
     component))
-
-(defn
-  get-unit-for-mesh
-  [component mesh]
-  (let
-    [mesh-to-unit-map @(:mesh-to-unit-map component)]
-    (mesh-to-unit-map mesh)))
-
-(defn
-  get-unit-meshes
-  [units]
-  @(:unit-meshes units))
 
 (defn
   align-to-ground

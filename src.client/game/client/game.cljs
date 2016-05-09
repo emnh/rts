@@ -44,7 +44,7 @@
       :light4 (new-jsobj #(new js/THREE.DirectionalLight))
       :ground (ground-local/new-init-ground)
       :render-stats (new-jsobj #(new js/Stats))
-      :physics-stats (new-jsobj #(new js/Stats))
+      :engine-stats (new-jsobj #(new js/Stats))
       :init-scene (scene/new-init-scene)
       :init-light (scene/new-init-light)
       :init-stats (scene/new-init-stats)

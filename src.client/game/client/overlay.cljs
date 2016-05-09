@@ -20,8 +20,8 @@
   )
 
 (defn new-cache [] #js [ #js [] #js [] #js [] #js [] #js [] ])
-(def sprite-cache (new-cache))
-(def new-sprite-cache (new-cache))
+(defonce sprite-cache (new-cache))
+(defonce new-sprite-cache (new-cache))
 
 (defn get-cached-sprite
   [texture new-fn]
