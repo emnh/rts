@@ -135,8 +135,7 @@
   (let
     [screen-boxes (get-screen-boxes component)
      flat-selection-box #js [ #js [x1 y1 x2 y2]]
-     selected-indices (js/boxIntersect screen-boxes flat-selection-box)
-     meshes @(:unit-meshes (:units component))]
+     selected-indices (js/boxIntersect screen-boxes flat-selection-box)]
     (unmark-all component)
     (reset!
       (:selected component)
@@ -145,7 +144,7 @@
         (for
           [[i j] selected-indices]
           (let
-            [mesh (nth meshes i)
+            [mesh (aget (nth screen-boxes i) "mesh")
              circle (mark component mesh)]
             {
              :unit (engine/get-unit-for-mesh (:units component) mesh)
