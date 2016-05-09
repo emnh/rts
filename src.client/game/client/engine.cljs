@@ -35,6 +35,27 @@
   [units]
   @(:units units))
 
+(defn
+  get-current-state
+  [component]
+  (let
+    [unit-count (count (get-units (:units component)))
+     new-state
+     (worker-state/init-state
+       {
+        :unit-count unit-count
+        :buffer nil
+        })
+     get-position (get-in new-state [:functions :positions :get])
+     set-position (get-in new-state [:functions :positions :set])
+     ]
+    (doseq
+      [[index mesh] (map-indexed vector (get-unit-meshes (:units component)))]
+      (let
+        [position (-> mesh .-position)]
+        (set-position index position)))
+    new-state))
+
 (defmulti -on-worker-message
   (fn [component data]
     (keyword (first data))
@@ -48,28 +69,62 @@
 (defmethod -on-worker-message
   :loaded
   [component [event data]]
-  (println "loaded"))
+  (println "loaded")
+  (let
+    [worker (:worker component)
+     camera (common/data (:camera component))
+     unit-count (count (get-units (:units component)))
+     scene-properties (:scene-properties component)
+     state (get-current-state component)
+     init-data
+     #js
+     {
+      :state-buffer (:buffer state)
+      :camera
+      #js
+      {
+       :matrix (-> camera .-matrix .toArray)
+       :fov (-> camera .-fov)
+       :aspect (-> camera .-aspect)
+       :near (-> camera .-near)
+       :far (-> camera .-far)
+       }
+      :unit-count unit-count
+      :scene-properties
+      #js
+      {
+       :width @(:width scene-properties)
+       :height @(:height scene-properties)
+       }
+      }]
+    (-> worker (.postMessage #js ["initialize" init-data] #js [(:buffer state)]))
+    (println "sent initialize")
+    (-> worker (.postMessage #js ["start-engine" nil]))
+    (println "sent start-engine")
+    ))
 
 (defmethod -on-worker-message
   :update
   [component [event data]]
   (let
-    [engine-stats (common/data (:engine-stats component))
-     unit-count (:unit-count data)
-     new-state (worker-state/init-state
-             {
-              :unit-count unit-count
-              :buffer (:buffer data)
-              })
-     get-position (get-in new-state [:functions :positions :get])
-     set-position (get-in new-state [:functions :positions :set])
-     unit-meshes @(get-in component [:units :unit-meshes])]
-    (doseq
-      [[unit-index mesh] (map vector (range unit-count) unit-meshes)]
+    [engine-stats (common/data (:engine-stats component))]
+    (-> engine-stats .update)
+    (if data
       (let
-        [position (get-position unit-index)]
-        (-> mesh .-position (.copy position))))
-    (-> engine-stats .update)))
+        [unit-count (:unit-count data)
+         new-state (worker-state/init-state
+                 {
+                  :unit-count unit-count
+                  :buffer (:buffer data)
+                  })
+         get-position (get-in new-state [:functions :positions :get])
+         set-position (get-in new-state [:functions :positions :set])
+         unit-meshes @(get-in component [:units :unit-meshes])]
+        (doseq
+          [[unit-index mesh] (map vector (range unit-count) unit-meshes)]
+          (let
+            [position (get-position unit-index)]
+            (-> mesh .-position (.copy position))))))))
 
 (defn on-worker-message
   [component message]
@@ -81,10 +136,20 @@
     (-on-worker-message component data)))
 ;    (-on-worker-message component message)))
 
+(defn poll-state
+  [component]
+  (if
+    @(:polling component)
+    (do
+      (let
+        [worker (:worker component)]
+        (-> worker (.postMessage #js ["poll-state" nil])))
+      (js/requestAnimationFrame (partial poll-state component)))))
+
 (defcom
   new-engine
-  [units engine-stats]
-  [state worker]
+  [scene-properties camera units engine-stats]
+  [state worker polling]
   (fn [component]
     (let
       [unit-count (count (get-units units))
@@ -97,13 +162,17 @@
                   }))
        component
        (-> component
+         (assoc :polling (atom true))
          (assoc :state state)
          (assoc :worker worker))
        ]
       (-> worker
         (.addEventListener "message" (partial on-worker-message component) false))
+      (poll-state component)
       component))
   (fn [component]
+    (if polling
+      (reset! polling false))
     (if worker
       (do
         (-> worker .terminate)))
