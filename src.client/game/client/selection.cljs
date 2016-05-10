@@ -246,7 +246,6 @@
         (.removeClass "invisible")
         (jayq/css
           {
-           :position "absolute"
            :left x
            :top y
            :width eps
@@ -316,6 +315,7 @@
       (controls/rebind $selection-layer contextevt controls/prevent-default)
       (controls/rebind $selection-layer mousedblclickevt controls/prevent-default)
       (-> $page (.append $selection-div))
+      (-> $selection-div (.addClass scene/page-class))
       (-> $selection-div (.addClass "invisible"))
       (-> $selection-div (.addClass "selection-rect"))
       component))
