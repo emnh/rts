@@ -27,10 +27,10 @@
     ; TODO: generic component render
     (-> render-stats .update)
     (-> renderer (.render scene camera))
-    (overlay/on-render component (:pixi-overlay component))
-    (-> pixi-renderer (.render pixi-stage))
-;    (overlay/on-xp-render component three-overlay)
-;    (-> overlay-renderer (.render overlay-scene camera))
+;    (overlay/on-render component (:pixi-overlay component))
+;    (-> pixi-renderer (.render pixi-stage))
+    (overlay/on-xp-render component three-overlay)
+    (-> overlay-renderer (.render overlay-scene camera))
     (let
       [end-time (common/game-time)
        elapsed (- end-time start-time)]

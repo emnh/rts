@@ -15,7 +15,9 @@
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
+  (:require-macros 
+    [infix.macros :refer [infix]]
+    [game.shared.macros :as macros :refer [defcom]])
   )
 
 (def LEFT_MOUSE_BUTTON 1)
@@ -132,6 +134,48 @@
     boxes))
 
 (defn
+  frustum-check
+  [component x1 y1 x2 y2]
+	(let
+    [camera (data (:camera component))
+     z (-> camera .-near)
+     screen-width @(:width (:scene-properties component))
+     screen-height @(:height (:scene-properties component))
+     x1 (- (* (/ x1 screen-width) 2) 1)
+     x2 (- (* (/ x2 screen-width) 2) 1)
+     y1 (+ (* (/ y1 screen-height) -2) 1)
+     y2 (+ (* (/ y2 screen-height) -2) 1)
+     proj-mat (new THREE.Matrix4)
+     view-proj-mat (new THREE.Matrix4)
+     frustum (new THREE.Frustum)
+     ]
+    (-> camera .updateMatrixWorld)
+    (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
+    (-> proj-mat
+      (.makeFrustum x1 x2 y1 y2 (-> camera .-near) (-> camera .-far)))
+    (-> view-proj-mat
+      (.multiplyMatrices proj-mat (-> camera .-matrixWorldInverse)))
+    (-> frustum
+      (.setFromMatrix view-proj-mat))
+    (unmark-all component)
+    (reset!
+      (:selected component)
+      (into
+        []
+        (remove nil?
+          (for [mesh (engine/get-unit-meshes (:units component))]
+            (if
+              (-> frustum (.intersectsObject mesh))
+              (let
+                [circle (mark component mesh)]
+                {
+                 :unit (engine/get-unit-for-mesh (:units component) mesh)
+                 :mesh mesh
+                 :mark circle
+                 })
+              nil)))))))
+
+(defn
   check-intersect-screen
   [component x1 y1 x2 y2]
 ;  (println "check-intersect-screen" x1 y1 x2 y2)
@@ -181,7 +225,8 @@
              :height (- y2 y1)
              }
             ))
-        (check-intersect-screen component x1 y1 x2 y2)))))
+        ;(check-intersect-screen component x1 y1 x2 y2)))))
+        (frustum-check component x1 y1 x2 y2)))))
 
 (defn
   on-mouse-down

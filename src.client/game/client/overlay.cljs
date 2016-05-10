@@ -10,6 +10,7 @@
     [game.client.math :as math]
     [game.client.selection :as selection]
     [game.client.engine :as engine]
+    [game.client.scene :as scene]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
@@ -294,6 +295,7 @@ void main() {
 	//vec4 mvPosition = mvMatrix * vec4(position, 1.0);
 	vec4 mvPosition = mvMatrix * vec4(vec3(0.0), 1.0);
 
+  /*
   vec2 corner1_2d = (mm * vec4(corner1, 1.0)).xy;
   vec2 corner2_2d = (mm * vec4(corner2, 1.0)).xy;
   vec2 corner3_2d = (mm * vec4(corner3, 1.0)).xy;
@@ -347,14 +349,18 @@ void main() {
   width = max(block_width * 4.0, width);
   width = min(block_width * 20.0, width);
   width = width - mod(width, block_width);
+  */
+  float width = 14.0 * 4.0;
+  float orig_height = width;
 
   vSize = vec2(width, orig_height);
   vHealth = health;
 
+	gl_Position = projectionMatrix * mvPosition;
   gl_PointSize = width;
 
-  gl_Position.x = minX + orig_width / 2.0;
-  gl_Position.y = maxY - orig_width / 2.0;
+  // gl_Position.x = minX + orig_width / 2.0;
+  // gl_Position.y = maxY - orig_width / 2.0;
 }
 ")
 
@@ -379,7 +385,7 @@ void main() {
     float modX = 14.0 / vSize.x;
     float newX = (mod(gl_PointCoord.x, modX) + step) / (modX + 2.0 * step);
     newX *= 0.85;
-    float newY = gl_PointCoord.y / maxY;
+    float newY = 1.0 - gl_PointCoord.y / maxY;
     float block = floor(gl_PointCoord.x / modX);
     float last_block = floor(vHealth / modX);
     float remainder = mod(vHealth, modX);
@@ -413,30 +419,30 @@ void main() {
 
 (defn set-corners
   [corners index vertices]
-  (aset (nth corners 0) (+ (* index xyz-size) 0) (-> (nth vertices 0) .-x))
-  (aset (nth corners 0) (+ (* index xyz-size) 1) (-> (nth vertices 0) .-y))
-  (aset (nth corners 0) (+ (* index xyz-size) 2) (-> (nth vertices 0) .-z))
-  (aset (nth corners 1) (+ (* index xyz-size) 0) (-> (nth vertices 1) .-x))
-  (aset (nth corners 1) (+ (* index xyz-size) 1) (-> (nth vertices 1) .-y))
-  (aset (nth corners 1) (+ (* index xyz-size) 2) (-> (nth vertices 1) .-z))
-  (aset (nth corners 2) (+ (* index xyz-size) 0) (-> (nth vertices 2) .-x))
-  (aset (nth corners 2) (+ (* index xyz-size) 1) (-> (nth vertices 2) .-y))
-  (aset (nth corners 2) (+ (* index xyz-size) 2) (-> (nth vertices 2) .-z))
-  (aset (nth corners 3) (+ (* index xyz-size) 0) (-> (nth vertices 3) .-x))
-  (aset (nth corners 3) (+ (* index xyz-size) 1) (-> (nth vertices 3) .-y))
-  (aset (nth corners 3) (+ (* index xyz-size) 2) (-> (nth vertices 3) .-z))
-  (aset (nth corners 4) (+ (* index xyz-size) 0) (-> (nth vertices 4) .-x))
-  (aset (nth corners 4) (+ (* index xyz-size) 1) (-> (nth vertices 4) .-y))
-  (aset (nth corners 4) (+ (* index xyz-size) 2) (-> (nth vertices 4) .-z))
-  (aset (nth corners 5) (+ (* index xyz-size) 0) (-> (nth vertices 5) .-x))
-  (aset (nth corners 5) (+ (* index xyz-size) 1) (-> (nth vertices 5) .-y))
-  (aset (nth corners 5) (+ (* index xyz-size) 2) (-> (nth vertices 5) .-z))
-  (aset (nth corners 6) (+ (* index xyz-size) 0) (-> (nth vertices 6) .-x))
-  (aset (nth corners 6) (+ (* index xyz-size) 1) (-> (nth vertices 6) .-y))
-  (aset (nth corners 6) (+ (* index xyz-size) 2) (-> (nth vertices 6) .-z))
-  (aset (nth corners 7) (+ (* index xyz-size) 0) (-> (nth vertices 7) .-x))
-  (aset (nth corners 7) (+ (* index xyz-size) 1) (-> (nth vertices 7) .-y))
-  (aset (nth corners 7) (+ (* index xyz-size) 2) (-> (nth vertices 7) .-z)))
+  (aset (nth corners 0) (+ (* index xyz-size) 0) (-> (aget vertices 0) .-x))
+  (aset (nth corners 0) (+ (* index xyz-size) 1) (-> (aget vertices 0) .-y))
+  (aset (nth corners 0) (+ (* index xyz-size) 2) (-> (aget vertices 0) .-z))
+  (aset (nth corners 1) (+ (* index xyz-size) 0) (-> (aget vertices 1) .-x))
+  (aset (nth corners 1) (+ (* index xyz-size) 1) (-> (aget vertices 1) .-y))
+  (aset (nth corners 1) (+ (* index xyz-size) 2) (-> (aget vertices 1) .-z))
+  (aset (nth corners 2) (+ (* index xyz-size) 0) (-> (aget vertices 2) .-x))
+  (aset (nth corners 2) (+ (* index xyz-size) 1) (-> (aget vertices 2) .-y))
+  (aset (nth corners 2) (+ (* index xyz-size) 2) (-> (aget vertices 2) .-z))
+  (aset (nth corners 3) (+ (* index xyz-size) 0) (-> (aget vertices 3) .-x))
+  (aset (nth corners 3) (+ (* index xyz-size) 1) (-> (aget vertices 3) .-y))
+  (aset (nth corners 3) (+ (* index xyz-size) 2) (-> (aget vertices 3) .-z))
+  (aset (nth corners 4) (+ (* index xyz-size) 0) (-> (aget vertices 4) .-x))
+  (aset (nth corners 4) (+ (* index xyz-size) 1) (-> (aget vertices 4) .-y))
+  (aset (nth corners 4) (+ (* index xyz-size) 2) (-> (aget vertices 4) .-z))
+  (aset (nth corners 5) (+ (* index xyz-size) 0) (-> (aget vertices 5) .-x))
+  (aset (nth corners 5) (+ (* index xyz-size) 1) (-> (aget vertices 5) .-y))
+  (aset (nth corners 5) (+ (* index xyz-size) 2) (-> (aget vertices 5) .-z))
+  (aset (nth corners 6) (+ (* index xyz-size) 0) (-> (aget vertices 6) .-x))
+  (aset (nth corners 6) (+ (* index xyz-size) 1) (-> (aget vertices 6) .-y))
+  (aset (nth corners 6) (+ (* index xyz-size) 2) (-> (aget vertices 6) .-z))
+  (aset (nth corners 7) (+ (* index xyz-size) 0) (-> (aget vertices 7) .-x))
+  (aset (nth corners 7) (+ (* index xyz-size) 1) (-> (aget vertices 7) .-y))
+  (aset (nth corners 7) (+ (* index xyz-size) 2) (-> (aget vertices 7) .-z)))
 
 (defn
   on-xp-render
@@ -448,6 +454,7 @@ void main() {
      d (* (count meshes) xyzw-size)
      positions (new js/Float32Array c)
      healths (new js/Float32Array (count meshes))
+     camera (data (:camera component))
      corners
      [(new js/Float32Array c)
       (new js/Float32Array c)
@@ -470,9 +477,9 @@ void main() {
         [unit (engine/get-unit-for-mesh (:units component) mesh)
          health (/ (:health unit) (:max-health (:model unit)))]
         (aset healths index health))
-      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
-      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
-      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
+;      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
+;      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
+;      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
 
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 0))
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 1))
@@ -493,10 +500,12 @@ void main() {
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 13))
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 14))
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15))
-      (let
-        [bbox-geometry (selection/get-bounding-box-geometry mesh false)
-         vertices (-> bbox-geometry .-vertices)]
-        (set-corners corners index vertices)))
+;      (let
+;        [bbox-geometry (selection/get-bounding-box-geometry mesh false)
+;         vertices (-> bbox-geometry .-vertices)]
+;        (set-corners corners index vertices)))
+        )
+      
     (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
     (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
     (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
@@ -519,6 +528,7 @@ void main() {
        width @(get-in component [:scene-properties :width])
        height @(get-in component [:scene-properties :height])
        ]
+      (-> mesh .-position (.set (scene/get-camera-focus camera 0 0)))
       (-> material .-uniforms .-screen_width .-value (set! width))
       (-> material .-uniforms .-screen_height .-value (set! height))
       (if
