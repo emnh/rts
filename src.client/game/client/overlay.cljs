@@ -23,7 +23,7 @@
 (def xyz-size 3)
 (def xyzw-size 4)
 
-(defn new-cache [] #js [ #js [] #js [] #js [] #js [] #js [] ])
+(defn new-cache [] #js [ #js [ #js [] #js [] #js [] #js [] #js [] ] ])
 (defonce sprite-cache (new-cache))
 (defonce new-sprite-cache (new-cache))
 
@@ -221,7 +221,7 @@
       [[i box] (map-indexed vector screen-boxes)]
       (draw-health-bar component stage partial-select-texture transparent-texture i box))
     (aset sprite-cache 0 (aget new-sprite-cache 0))
-    (aset new-sprite-cache 0 (new-cache))))
+    (aset new-sprite-cache 0 (aget (new-cache) 0))))
 
 (defcom
   new-overlay
