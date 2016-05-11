@@ -136,7 +136,7 @@
      v (-> camera .-position .clone)
      _ (-> v (.sub position))
      d (-> v .length)
-     r2 (infix (height / tan(fov)) * r3 / √(d * d - r3 * r3))
+     r2 (infix (height / (2 * tan(fov))) * r3 / √(d * d - r3 * r3))
      ]
     r2))
 
@@ -319,11 +319,11 @@
              }))))))
 
 ; METHOD 1 slow and accurate
-(def check-intersect check-intersect-screen)
+; (def check-intersect check-intersect-screen)
 ; METHOD 2 fast and innacurate
 ;(def check-intersect frustum-check)
-; METHOD 3 fast and inaccurate
-;(def check-intersect check-intersect-screen-circles)
+; METHOD 3 fast and accurate
+(def check-intersect check-intersect-screen-circles)
 
 (defn
   rectangle-select
