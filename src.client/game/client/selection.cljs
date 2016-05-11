@@ -15,7 +15,7 @@
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
     )
-  (:require-macros 
+  (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]])
   )
@@ -52,6 +52,7 @@
       (-> mark .-visible (set! false))))
   (reset! (:selected component) []))
 
+; function belongs to alternative METHOD 1
 (defn get-bounding-box-geometry
   ([mesh]
    (get-bounding-box-geometry mesh true))
@@ -86,6 +87,7 @@
        (-> geometry (.applyMatrix (-> mesh .-matrixWorld))))
      geometry)))
 
+; function belongs to alternative METHOD 1
 ; http://stackoverflow.com/questions/17624021/determine-if-a-mesh-is-visible-on-the-viewport-according-to-current
 (defn get-screen-boxes
   [component]
@@ -123,6 +125,65 @@
             (-> screen-boxes (.push box))))))
       screen-boxes))
 
+; function belongs to alternative METHOD 3
+; http://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
+(defn get-screen-radius
+  "get screen radius of 3d sphere"
+  [height camera position r3]
+  (let
+    [fovy (-> camera .-fov)
+     fov (infix (fovy / 2) * (π / 180.0))
+     v (-> camera .-position .clone)
+     _ (-> v (.sub position))
+     d (-> v .length)
+     r2 (infix (height / tan(fov)) * r3 / √(d * d - r3 * r3))
+     ]
+    r2))
+
+; function belongs to alternative METHOD 3
+(defn get-screen-circles
+  [component]
+  (let
+    [frustum (new THREE.Frustum)
+     camera-view-projection-matrix (new THREE.Matrix4)
+     camera (data (:camera component))
+     width @(get-in component [:scene-properties :width])
+     height @(get-in component [:scene-properties :height])
+     ]
+    (-> camera .updateMatrixWorld)
+    (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
+    (-> camera-view-projection-matrix
+      (.multiplyMatrices (-> camera .-projectionMatrix) (-> camera .-matrixWorldInverse)))
+    (-> frustum (.setFromMatrix camera-view-projection-matrix))
+    (into
+      []
+      (remove
+        nil?
+        (for
+          [mesh (engine/get-unit-meshes (:units component))]
+          (if
+            (-> frustum (.intersectsObject mesh))
+            (let
+              [screen-position (scene/world-to-screen-fast width height camera-view-projection-matrix (-> mesh .-position))
+;               w (- (-> mesh .-geometry .-boundingBox .-max .-x) (-> mesh .-geometry .-boundingBox .-min .-x))
+;               h (- (-> mesh .-geometry .-boundingBox .-max .-y) (-> mesh .-geometry .-boundingBox .-min .-y))
+;               d (- (-> mesh .-geometry .-boundingBox .-max .-z) (-> mesh .-geometry .-boundingBox .-min .-z))
+;               r3 (max w h d)
+               r3 (-> mesh .-geometry .-boundingSphere .-radius)
+               screen-radius (get-screen-radius height camera (-> mesh .-position) r3)
+               ]
+              {
+               :x (-> screen-position .-x)
+               :y (-> screen-position .-y)
+               :r screen-radius
+               :mesh mesh
+               })
+            nil))))))
+
+
+; function belongs to alternative METHOD 1, as replacement for
+; get-screen-boxes, but depends on pixi overlay rendering having called
+; get-screen-boxes and stored the result
 (defn get-screen-boxes-from-last-overlay-render
   [component]
   (let
@@ -133,6 +194,7 @@
       (-> boxes (.push box)))
     boxes))
 
+; function belongs to alternative METHOD 2
 (defn
   frustum-check
   [component x1 y1 x2 y2]
@@ -175,12 +237,12 @@
                  })
               nil)))))))
 
+; function belongs to alternative METHOD 1
 (defn
   check-intersect-screen
   [component x1 y1 x2 y2]
-;  (println "check-intersect-screen" x1 y1 x2 y2)
   (let
-    [screen-boxes (get-screen-boxes-from-last-overlay-render component)
+    [screen-boxes (get-screen-boxes component)
      flat-selection-box #js [ #js [x1 y1 x2 y2]]
      selected-indices (js/boxIntersect screen-boxes flat-selection-box)]
     (unmark-all component)
@@ -198,6 +260,70 @@
              :mesh mesh
              :mark circle
              }))))))
+
+; function belongs to alternative METHOD 3
+; http://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
+(defn
+  circle-rectangle-intersects?
+  [circle rect-x1 rect-y1 rect-x2 rect-y2]
+  (let
+    [circle-x (:x circle)
+     circle-y (:y circle)
+		 circle-r (:r circle)
+     rect-width (infix rect-x2 - rect-x1)
+     rect-height (infix rect-y2 - rect-y1)
+     circle-distance-x (infix abs(circle-x - rect-x1 + rect-width / 2))
+     circle-distance-y (infix abs(circle-y - rect-y1 + rect-height / 2))
+     check1 (fn [_] (infix circle-distance-x > (rect-width / 2 + circle-r)))
+		 check2 (fn [_] (infix circle-distance-y > (rect-height / 2 + circle-r)))
+		 check3 (fn [_] (infix circle-distance-x <= (rect-width / 2)))
+		 check4 (fn [_] (infix circle-distance-y <= (rect-height / 2)))
+		 corner-distance-sq (fn [_] (infix (circle-distance-x - rect-width / 2) ** 2 + (circle-distance-y - rect-height / 2) ** 2))
+		 check5 #(infix corner-distance-sq(0) <= circle-r ** 2)
+     ]
+		(if
+     (infix check1(0) || check2(0))
+     false
+     (if
+       (infix check3(0) || check4(0))
+       true
+       (check5)))))
+
+; function belongs to alternative METHOD 3
+(defn
+  check-intersect-screen-circles
+  [component x1 y1 x2 y2]
+  (let
+    [screen-circles (get-screen-circles component)
+     map-fn
+     (fn [i circle]
+       (if
+         (circle-rectangle-intersects? circle x1 y1 x2 y2)
+         i
+         nil))
+     selected-indices (remove nil? (map-indexed map-fn screen-circles))]
+    (unmark-all component)
+    (reset!
+      (:selected component)
+      (into
+        []
+        (for
+          [i selected-indices]
+          (let
+            [mesh (:mesh (nth screen-circles i))
+             circle (mark component mesh)]
+            {
+             :unit (engine/get-unit-for-mesh (:units component) mesh)
+             :mesh mesh
+             :mark circle
+             }))))))
+
+; METHOD 1 slow and accurate
+(def check-intersect check-intersect-screen)
+; METHOD 2 fast and innacurate
+;(def check-intersect frustum-check)
+; METHOD 3 fast and inaccurate
+;(def check-intersect check-intersect-screen-circles)
 
 (defn
   rectangle-select
@@ -225,8 +351,7 @@
              :height (- y2 y1)
              }
             ))
-        ;(check-intersect-screen component x1 y1 x2 y2)))))
-        (frustum-check component x1 y1 x2 y2)))))
+        (check-intersect component x1 y1 x2 y2)))))
 
 (defn
   on-mouse-down
@@ -251,7 +376,7 @@
            :width eps
            :height eps
            }))
-      (check-intersect-screen component (- x eps) (- y eps) (+ x eps) (+ y eps)))
+      (check-intersect component (- x eps) (- y eps) (+ x eps) (+ y eps)))
     (= (-> event-data .-which) RIGHT_MOUSE_BUTTON)
     (do
       (println "TODO")
