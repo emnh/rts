@@ -264,6 +264,7 @@
 ; TODO: externalize
 (def vertex-shader
 "
+attribute float boundingSphereRadius;
 attribute float health;
 attribute vec4 wmat1;
 attribute vec4 wmat2;
@@ -272,28 +273,38 @@ attribute vec4 wmat4;
 
 uniform float screen_width;
 uniform float screen_height;
-uniform mat4 cameraMatrixWorldInverse;
+uniform float fov;
 
 varying vec2 vSize;
 varying float vHealth;
+
+const float PI = 3.141592653589793238462643383;
+
+float getScreenRadius() {
+  float fov2 = fov / 2.0 * PI / 180.0;
+  float d = length(cameraPosition - position);
+  float r3 = boundingSphereRadius;
+  float r2 = 1.0 / tan(fov) * r3 / sqrt(d * d - r3 * r3);
+  return r2;
+}
 
 void main() {
 
   mat4 matrixWorld = mat4(wmat1, wmat2, wmat3, wmat4);
 
-  mat4 mvMatrix = cameraMatrixWorldInverse * matrixWorld;
-
-  mat4 mm = projectionMatrix * mvMatrix;
-
-	vec4 mvPosition = mvMatrix * vec4(vec3(0.0), 1.0);
-
-  float width = 14.0 * 4.0;
+  float radius = getScreenRadius();
+  const float block_width = 14.0;
+  const float max_blocks = 20.0;
+  const float min_blocks = 4.0;
+  float width = min(max(block_width * min_blocks, radius * screen_width), block_width * max_blocks);
+  width = width - mod(width, block_width);
   float orig_height = width;
 
   vSize = vec2(width, orig_height);
   vHealth = health;
 
-	gl_Position = projectionMatrix * mvPosition;
+  gl_Position = projectionMatrix * viewMatrix * matrixWorld * vec4(vec3(0.0), 1.0);
+  gl_Position.y += (radius - width / (2.0 * screen_width)) * gl_Position.w;
   gl_PointSize = width;
 }
 ")
@@ -361,6 +372,7 @@ void main() {
      d (* (count meshes) xyzw-size)
      positions (new js/Float32Array c)
      healths (new js/Float32Array (count meshes))
+     bounding-sphere-radiuses (new js/Float32Array (count meshes))
      camera (data (:camera component))
      world-matrix-array
      [(new js/Float32Array d)
@@ -375,6 +387,12 @@ void main() {
         [unit (engine/get-unit-for-mesh (:units component) mesh)
          health (/ (:health unit) (:max-health (:model unit)))]
         (aset healths index health))
+
+      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
+      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
+      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
+      
+      (aset bounding-sphere-radiuses index (-> mesh .-geometry .-boundingSphere .-radius))
 
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 0))
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 1))
@@ -396,10 +414,11 @@ void main() {
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 14))
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15)))
 
-    ; TODO: unused attribute, position but can't remove because getting:
+    ; TODO: unused attribute position, but can't remove because getting:
     ; "[.CommandBufferContext]RENDER WARNING: Render count or primcount is 0."
     (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
     (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
+    (-> geo (.addAttribute "boundingSphereRadius" (new js/THREE.BufferAttribute bounding-sphere-radiuses 1)))
     (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
     (-> geo (.addAttribute "wmat2" (new js/THREE.BufferAttribute (nth world-matrix-array 1) xyzw-size)))
     (-> geo (.addAttribute "wmat3" (new js/THREE.BufferAttribute (nth world-matrix-array 2) xyzw-size)))
@@ -467,7 +486,7 @@ void main() {
         :orange_texture #js { :value orange-texture }
         :red_texture #js { :value red-texture }
         :transparent_texture #js { :value transparent-texture }
-        :cameraMatrixWorldInverse #js { :value (-> camera .-matrixWorldInverse) }
+        :fov #js { :value (-> camera .-fov) }
         }
        material
        (new js/THREE.ShaderMaterial
@@ -484,9 +503,6 @@ void main() {
        (-> component
          (assoc :material material)
          (assoc :overlay-renderer overlay-renderer))
-;       sphere (new js/THREE.SphereGeometry 5 32 32)
-;       material (new js/THREE.MeshBasicMaterial #js { :color 0xFF0000 })
-;       mesh (new js/THREE.Mesh sphere material)
        overlay-scene (data overlay-scene)
        ]
       component))
