@@ -274,18 +274,18 @@
      rect-height (infix rect-y2 - rect-y1)
      circle-distance-x (infix abs(circle-x - rect-x1 + rect-width / 2))
      circle-distance-y (infix abs(circle-y - rect-y1 + rect-height / 2))
-     check1 (fn [_] (infix circle-distance-x > (rect-width / 2 + circle-r)))
-		 check2 (fn [_] (infix circle-distance-y > (rect-height / 2 + circle-r)))
-		 check3 (fn [_] (infix circle-distance-x <= (rect-width / 2)))
-		 check4 (fn [_] (infix circle-distance-y <= (rect-height / 2)))
-		 corner-distance-sq (fn [_] (infix (circle-distance-x - rect-width / 2) ** 2 + (circle-distance-y - rect-height / 2) ** 2))
-		 check5 #(infix corner-distance-sq(0) <= circle-r ** 2)
+     check1 #(infix circle-distance-x > (rect-width / 2 + circle-r))
+		 check2 #(infix circle-distance-y > (rect-height / 2 + circle-r))
+		 check3 #(infix circle-distance-x <= (rect-width / 2))
+		 check4 #(infix circle-distance-y <= (rect-height / 2))
+		 corner-distance-sq #(infix (circle-distance-x - rect-width / 2) ** 2 + (circle-distance-y - rect-height / 2) ** 2)
+		 check5 #(infix corner-distance-sq() <= circle-r ** 2)
      ]
 		(if
-     (infix check1(0) || check2(0))
+     (infix check1() || check2())
      false
      (if
-       (infix check3(0) || check4(0))
+       (infix check3() || check4())
        true
        (check5)))))
 
