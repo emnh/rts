@@ -261,16 +261,9 @@
       component))
   (fn [component] component))
 
+; TODO: externalize
 (def vertex-shader
 "
-attribute vec3 corner1;
-attribute vec3 corner2;
-attribute vec3 corner3;
-attribute vec3 corner4;
-attribute vec3 corner5;
-attribute vec3 corner6;
-attribute vec3 corner7;
-attribute vec3 corner8;
 attribute float health;
 attribute vec4 wmat1;
 attribute vec4 wmat2;
@@ -292,64 +285,8 @@ void main() {
 
   mat4 mm = projectionMatrix * mvMatrix;
 
-	//vec4 mvPosition = mvMatrix * vec4(position, 1.0);
 	vec4 mvPosition = mvMatrix * vec4(vec3(0.0), 1.0);
 
-  /*
-  vec2 corner1_2d = (mm * vec4(corner1, 1.0)).xy;
-  vec2 corner2_2d = (mm * vec4(corner2, 1.0)).xy;
-  vec2 corner3_2d = (mm * vec4(corner3, 1.0)).xy;
-  vec2 corner4_2d = (mm * vec4(corner4, 1.0)).xy;
-  vec2 corner5_2d = (mm * vec4(corner5, 1.0)).xy;
-  vec2 corner6_2d = (mm * vec4(corner6, 1.0)).xy;
-  vec2 corner7_2d = (mm * vec4(corner7, 1.0)).xy;
-  vec2 corner8_2d = (mm * vec4(corner8, 1.0)).xy;
-
-  float minX = min(corner1_2d.x, corner2_2d.x);
-  minX = min(minX, corner3_2d.x);
-  minX = min(minX, corner4_2d.x);
-  minX = min(minX, corner5_2d.x);
-  minX = min(minX, corner6_2d.x);
-  minX = min(minX, corner7_2d.x);
-  minX = min(minX, corner8_2d.x);
-
-  float maxX = max(corner1_2d.x, corner2_2d.x);
-  maxX = max(maxX, corner3_2d.x);
-  maxX = max(maxX, corner4_2d.x);
-  maxX = max(maxX, corner5_2d.x);
-  maxX = max(maxX, corner6_2d.x);
-  maxX = max(maxX, corner7_2d.x);
-  maxX = max(maxX, corner8_2d.x);
-
-  float minY = min(corner1_2d.y, corner2_2d.y);
-  minY = min(minY, corner3_2d.y);
-  minY = min(minY, corner4_2d.y);
-  minY = min(minY, corner5_2d.y);
-  minY = min(minY, corner6_2d.y);
-  minY = min(minY, corner7_2d.y);
-  minY = min(minY, corner8_2d.y);
-
-  float maxY = max(corner1_2d.y, corner2_2d.y);
-  maxY = max(maxY, corner3_2d.y);
-  maxY = max(maxY, corner4_2d.y);
-  maxY = max(maxY, corner5_2d.y);
-  maxY = max(maxY, corner6_2d.y);
-  maxY = max(maxY, corner7_2d.y);
-  maxY = max(maxY, corner8_2d.y);
-
-  float orig_width = maxX - minX;
-  float orig_height = maxY - minY;
-
-  const float block_width = 14.0;
-  const float block_height = 10.0;
-
-	gl_Position = projectionMatrix * mvPosition;
-
-  float width = orig_width;
-  width = max(block_width * 4.0, width);
-  width = min(block_width * 20.0, width);
-  width = width - mod(width, block_width);
-  */
   float width = 14.0 * 4.0;
   float orig_height = width;
 
@@ -358,9 +295,6 @@ void main() {
 
 	gl_Position = projectionMatrix * mvPosition;
   gl_PointSize = width;
-
-  // gl_Position.x = minX + orig_width / 2.0;
-  // gl_Position.y = maxY - orig_width / 2.0;
 }
 ")
 
@@ -417,33 +351,6 @@ void main() {
 "
 )
 
-(defn set-corners
-  [corners index vertices]
-  (aset (nth corners 0) (+ (* index xyz-size) 0) (-> (aget vertices 0) .-x))
-  (aset (nth corners 0) (+ (* index xyz-size) 1) (-> (aget vertices 0) .-y))
-  (aset (nth corners 0) (+ (* index xyz-size) 2) (-> (aget vertices 0) .-z))
-  (aset (nth corners 1) (+ (* index xyz-size) 0) (-> (aget vertices 1) .-x))
-  (aset (nth corners 1) (+ (* index xyz-size) 1) (-> (aget vertices 1) .-y))
-  (aset (nth corners 1) (+ (* index xyz-size) 2) (-> (aget vertices 1) .-z))
-  (aset (nth corners 2) (+ (* index xyz-size) 0) (-> (aget vertices 2) .-x))
-  (aset (nth corners 2) (+ (* index xyz-size) 1) (-> (aget vertices 2) .-y))
-  (aset (nth corners 2) (+ (* index xyz-size) 2) (-> (aget vertices 2) .-z))
-  (aset (nth corners 3) (+ (* index xyz-size) 0) (-> (aget vertices 3) .-x))
-  (aset (nth corners 3) (+ (* index xyz-size) 1) (-> (aget vertices 3) .-y))
-  (aset (nth corners 3) (+ (* index xyz-size) 2) (-> (aget vertices 3) .-z))
-  (aset (nth corners 4) (+ (* index xyz-size) 0) (-> (aget vertices 4) .-x))
-  (aset (nth corners 4) (+ (* index xyz-size) 1) (-> (aget vertices 4) .-y))
-  (aset (nth corners 4) (+ (* index xyz-size) 2) (-> (aget vertices 4) .-z))
-  (aset (nth corners 5) (+ (* index xyz-size) 0) (-> (aget vertices 5) .-x))
-  (aset (nth corners 5) (+ (* index xyz-size) 1) (-> (aget vertices 5) .-y))
-  (aset (nth corners 5) (+ (* index xyz-size) 2) (-> (aget vertices 5) .-z))
-  (aset (nth corners 6) (+ (* index xyz-size) 0) (-> (aget vertices 6) .-x))
-  (aset (nth corners 6) (+ (* index xyz-size) 1) (-> (aget vertices 6) .-y))
-  (aset (nth corners 6) (+ (* index xyz-size) 2) (-> (aget vertices 6) .-z))
-  (aset (nth corners 7) (+ (* index xyz-size) 0) (-> (aget vertices 7) .-x))
-  (aset (nth corners 7) (+ (* index xyz-size) 1) (-> (aget vertices 7) .-y))
-  (aset (nth corners 7) (+ (* index xyz-size) 2) (-> (aget vertices 7) .-z)))
-
 (defn
   on-xp-render
   [init-renderer component]
@@ -455,15 +362,6 @@ void main() {
      positions (new js/Float32Array c)
      healths (new js/Float32Array (count meshes))
      camera (data (:camera component))
-     corners
-     [(new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)
-      (new js/Float32Array c)]
      world-matrix-array
      [(new js/Float32Array d)
       (new js/Float32Array d)
@@ -477,9 +375,6 @@ void main() {
         [unit (engine/get-unit-for-mesh (:units component) mesh)
          health (/ (:health unit) (:max-health (:model unit)))]
         (aset healths index health))
-;      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
-;      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
-;      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
 
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 0))
       (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 1))
@@ -499,30 +394,18 @@ void main() {
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 12))
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 13))
       (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 14))
-      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15))
-;      (let
-;        [bbox-geometry (selection/get-bounding-box-geometry mesh false)
-;         vertices (-> bbox-geometry .-vertices)]
-;        (set-corners corners index vertices)))
-        )
+      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15)))
 
+    ; TODO: unused attribute, position but can't remove because getting:
+    ; "[.CommandBufferContext]RENDER WARNING: Render count or primcount is 0."
     (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
     (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
     (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
     (-> geo (.addAttribute "wmat2" (new js/THREE.BufferAttribute (nth world-matrix-array 1) xyzw-size)))
     (-> geo (.addAttribute "wmat3" (new js/THREE.BufferAttribute (nth world-matrix-array 2) xyzw-size)))
     (-> geo (.addAttribute "wmat4" (new js/THREE.BufferAttribute (nth world-matrix-array 3) xyzw-size)))
-    (-> geo (.addAttribute "corner1" (new js/THREE.BufferAttribute (nth corners 0) xyz-size)))
-    (-> geo (.addAttribute "corner2" (new js/THREE.BufferAttribute (nth corners 1) xyz-size)))
-    (-> geo (.addAttribute "corner3" (new js/THREE.BufferAttribute (nth corners 2) xyz-size)))
-    (-> geo (.addAttribute "corner4" (new js/THREE.BufferAttribute (nth corners 3) xyz-size)))
-    (-> geo (.addAttribute "corner5" (new js/THREE.BufferAttribute (nth corners 4) xyz-size)))
-    (-> geo (.addAttribute "corner6" (new js/THREE.BufferAttribute (nth corners 5) xyz-size)))
-    (-> geo (.addAttribute "corner7" (new js/THREE.BufferAttribute (nth corners 6) xyz-size)))
-    (-> geo (.addAttribute "corner8" (new js/THREE.BufferAttribute (nth corners 7) xyz-size)))
     (let
       [scene (data (:overlay-scene component))
-       ;material (-> (:material component) .clone)
        material (:material component)
        mesh (new js/THREE.Points geo material)
        width @(get-in component [:scene-properties :width])
@@ -537,7 +420,6 @@ void main() {
           [oldmesh (-> scene .-children (aget 0))]
           (-> scene (.remove oldmesh))
           (-> oldmesh .-geometry .dispose)
-;          (-> oldmesh .-material .dispose)
           ))
       (if
         (> c 0)
