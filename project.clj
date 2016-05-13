@@ -14,7 +14,7 @@
                  [hiccups "0.3.0"]
                  [jayq/jayq "2.5.4"]
                  [prismatic/schema "1.1.0"]
-                 [rm-hull/infix "0.2.6"]
+                 [rm-hull/infix "0.2.7"]
                  [rum "0.8.2"]
                  [sablono "0.7.0"]
                  ]
