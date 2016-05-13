@@ -279,7 +279,7 @@ attribute vec4 wmat4;
 
 uniform float screen_width;
 uniform float screen_height;
-uniform mat4 matrixWorldInverse;
+uniform mat4 cameraMatrixWorldInverse;
 
 varying vec2 vSize;
 varying float vHealth;
@@ -288,7 +288,7 @@ void main() {
 
   mat4 matrixWorld = mat4(wmat1, wmat2, wmat3, wmat4);
 
-  mat4 mvMatrix = matrixWorldInverse * matrixWorld;
+  mat4 mvMatrix = cameraMatrixWorldInverse * matrixWorld;
 
   mat4 mm = projectionMatrix * mvMatrix;
 
@@ -312,7 +312,7 @@ void main() {
   minX = min(minX, corner6_2d.x);
   minX = min(minX, corner7_2d.x);
   minX = min(minX, corner8_2d.x);
-  
+
   float maxX = max(corner1_2d.x, corner2_2d.x);
   maxX = max(maxX, corner3_2d.x);
   maxX = max(maxX, corner4_2d.x);
@@ -328,7 +328,7 @@ void main() {
   minY = min(minY, corner6_2d.y);
   minY = min(minY, corner7_2d.y);
   minY = min(minY, corner8_2d.y);
-  
+
   float maxY = max(corner1_2d.y, corner2_2d.y);
   maxY = max(maxY, corner3_2d.y);
   maxY = max(maxY, corner4_2d.y);
@@ -344,7 +344,7 @@ void main() {
   const float block_height = 10.0;
 
 	gl_Position = projectionMatrix * mvPosition;
-	
+
   float width = orig_width;
   width = max(block_width * 4.0, width);
   width = min(block_width * 20.0, width);
@@ -505,7 +505,7 @@ void main() {
 ;         vertices (-> bbox-geometry .-vertices)]
 ;        (set-corners corners index vertices)))
         )
-      
+
     (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
     (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
     (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
@@ -528,7 +528,7 @@ void main() {
        width @(get-in component [:scene-properties :width])
        height @(get-in component [:scene-properties :height])
        ]
-      (-> mesh .-position (.set (scene/get-camera-focus camera 0 0)))
+      (-> mesh .-frustumCulled (set! false))
       (-> material .-uniforms .-screen_width .-value (set! width))
       (-> material .-uniforms .-screen_height .-value (set! height))
       (if
@@ -553,10 +553,10 @@ void main() {
        overlay-renderer
        (or overlay-renderer
            (new js/THREE.WebGLRenderer #js { :antialias true :canvas canvas :alpha true }))
-       
+
        pixi-renderer (:pixi-renderer pixi-overlay)
        three-texture
-       (fn [x] 
+       (fn [x]
          (let
            [i (-> pixi-renderer .-extract (.image x))
             t (new js/THREE.Texture i)]
@@ -585,7 +585,7 @@ void main() {
         :orange_texture #js { :value orange-texture }
         :red_texture #js { :value red-texture }
         :transparent_texture #js { :value transparent-texture }
-        :matrixWorldInverse #js { :value (-> camera .-matrixWorldInverse) }
+        :cameraMatrixWorldInverse #js { :value (-> camera .-matrixWorldInverse) }
         }
        material
        (new js/THREE.ShaderMaterial
