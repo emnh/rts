@@ -15,10 +15,42 @@
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
 
-(def standard-vertex-shader
+(def simple-vertex-shader
+"
+varying vec2 vUV;
+varying vec3 vPosition;
+varying vec3 vLightFront;
+
+void main() {
+  vUV = uv;
+
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  if (gl_Position.x > 100.0) {
+    gl_PointSize = 1.0;
+  }
+}
+"
+)
+
+(def simple-fragment-shader
+"
+varying vec2 vUV;
+uniform sampler2D map;
+
+void main() {
+  gl_FragColor = texture2D(map, vUV);
+}
+")
+
+(def shared-vertex-shader
 "
 #define PI 3.141592653589793238462643383
 #define saturate(a) clamp(a, 0.0, 1.0)
+
+varying vec2 vUV;
+varying vec3 vLightFront;
+varying vec3 vPosition;
+varying float visible;
 
 uniform float time;
 uniform float isCloud;
@@ -27,77 +59,91 @@ uniform vec3 lightDirection;
 uniform vec3 boundingBoxMin;
 uniform vec3 boundingBoxMax;
 
-varying vec2 vUV;
-varying vec3 vLightFront;
-varying vec3 vPosition;
-
 // Simple random function
 float random(float co)
 {
 		return fract(sin(co*12.989) * 43758.545);
 }
 
+float getMaxY() {
+  const float interval = 10000.0;
+  float timePart = mod(time, interval) / interval;
+  float maxY = timePart * (boundingBoxMax.y - boundingBoxMin.y) + boundingBoxMin.y;
+  return maxY;
+}
+"
+)
+
+(def magic-vertex-shader
+  (str shared-vertex-shader
+"
+void main() {
+  vPosition = position;
+
+  gl_PointSize = (boundingBoxMax.y - boundingBoxMin.y) * 1.0;
+
+  const float interval = 1500.0;
+  float timePart = mod(time + interval * random(position.x + position.y + position.z), interval) / interval;
+  vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  const float factor = 1.0;
+  vec4 startPos = vec4(vec3(0.0, factor * (boundingBoxMax.y - boundingBoxMin.y), 0.0), 1.0);
+  startPos = projectionMatrix * modelViewMatrix * startPos;
+  startPos /= startPos.w;
+  vec4 endPos = mvPosition;
+  endPos /= endPos.w;
+
+  mvPosition = mix(startPos, endPos, timePart);
+  mvPosition /= mvPosition.w;
+  mvPosition.z = -1.0;
+  gl_Position = mvPosition;
+
+  float maxY = getMaxY();
+  if (position.y <= maxY) {
+    visible = 0.0;
+  } else {
+    visible = 1.0;
+  }
+}
+"))
+
+
+(def standard-vertex-shader
+  (str shared-vertex-shader
+"
 void main() {
 
-  vUV = uv * offsetRepeat.zw + offsetRepeat.xy;
+  //vUV = uv * offsetRepeat.zw + offsetRepeat.xy;
+  vUV = uv; // * offsetRepeat.zw + offsetRepeat.xy;
 	vPosition = position;
 
   const vec3 directLightColor = vec3(1.0);
 
-  //vec3 geometryNormal = normalize(normalMatrix * normal);
   vec3 geometryNormal = normalize(normal);
   float dotNL = dot(geometryNormal, normalize(lightDirection));
   vec3 directLightColor_diffuse = PI * directLightColor;
   vLightFront = saturate(dotNL) * directLightColor_diffuse;
 
-  //vec4 center = modelMatrix * vec4(vec3(0.0), 1.0);
-
-  float newY = 0.0;
-
-  const float eps = 1.0e-7;
-  if (abs(isCloud - 1.0) <= eps) {
-
-    gl_PointSize = (boundingBoxMax.y - boundingBoxMin.y) * 1.0;
-
-    const float interval = 1500.0;
-    float timePart = mod(time + interval * random(position.x + position.y + position.z), interval) / interval;
-    vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    const float factor = 1.0;
-    vec4 startPos = vec4(vec3(0.0, factor * (boundingBoxMax.y - boundingBoxMin.y), 0.0), 1.0);
-    startPos = projectionMatrix * modelViewMatrix * startPos;
-    startPos /= startPos.w;
-    vec4 endPos = mvPosition;
-    endPos /= endPos.w;
-
-    mvPosition = mix(startPos, endPos, timePart);
-		mvPosition /= mvPosition.w;
-		mvPosition.z = -1.0;
-    gl_Position = mvPosition;
-  } else {
-
-    const float interval = 10000.0;
-    float timePart = mod(time, interval) / interval;
-    float maxY = timePart * (boundingBoxMax.y - boundingBoxMin.y) + boundingBoxMin.y;
-    newY = min(maxY, position.y);
-    vec3 newPosition = vec3(position.x, newY, position.z);
-    vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
-    gl_Position = mvPosition;
-  }
+  float maxY = getMaxY();
+  float newY = min(maxY, position.y);
+  vec3 newPosition = vec3(position.x, newY, position.z);
+  vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+  mvPosition /= mvPosition.w;
+  gl_Position = mvPosition;
 }
-")
+"))
 
 (def standard-fragment-shader
 "
 #define RECIPROCAL_PI 0.31830988618
+#define TWOPI 6.28319
 
 varying vec2 vUV;
 varying vec3 vLightFront;
 varying vec3 vPosition;
+varying float visible;
 uniform sampler2D map;
 uniform float time;
 uniform float isCloud;
-
-#define twopi 6.28319
 
 const float hue_time_factor = 0.035;                          // Time-based hue shift
 const float mp_hue = 0.5;                                     // Hue (shift) of the main particle
@@ -128,12 +174,7 @@ const vec2 part_stardiag_dfac = vec2(13., 0.61);              // x-y transformat
 const float part_stardiag_ifac = 0.19;                        // Intensity factor of the diagonal star branches
 
 // Variables
-float pst;
-float plt;
-float runnr;
-float time2;
-float time3;
-float time4;
+float time2 = 0.0;
 
 // Simple random function
 float random(float co)
@@ -144,7 +185,7 @@ float random(float co)
 // From https://www.shadertoy.com/view/ldtGDn
 vec3 hsv2rgb (vec3 hsv) { // from HSV to RGB color vector
 	hsv.yz = clamp (hsv.yz, 0.0, 1.0);
-	return hsv.z*(0.63*hsv.y*(cos(twopi*(hsv.x + vec3(0.0, 2.0/3.0, 1.0/3.0))) - 1.0) + 1.0);
+	return hsv.z*(0.63*hsv.y*(cos(TWOPI*(hsv.x + vec3(0.0, 2.0/3.0, 1.0/3.0))) - 1.0) + 1.0);
 }
 
 // Gets the rgb color the main particle in function of its intensity
@@ -189,23 +230,27 @@ float getStar(vec2 uv) {
 void main() {
   const float eps = 1.0e-7;
   if (abs(isCloud - 1.0) <= eps) {
-    vec2 pos = (gl_PointCoord.xy - 0.5) * 2.0;
-    float a = 1.0;
-    float length = length(pos);
-    if (length >= 1.0) {
-      a = 0.0;
-    }
-    gl_FragColor = vec4(vec3(1.0 - length), a);
+    if (visible == 1.0) {
+      vec2 pos = (gl_PointCoord.xy - 0.5) * 2.0;
+      float a = 1.0;
+      float length = length(pos);
+      if (length >= 1.0) {
+        a = 0.0;
+      }
+      gl_FragColor = vec4(vec3(1.0 - length), a);
 
-		float intensity = getStar(gl_PointCoord);
-		if (intensity < 0.5) {
-			a = 0.0;
-		} else {
-			a = intensity;
-		}
-		time2 = 20.0 * random(vPosition.x + vPosition.y + vPosition.z);
-		vec3 pcol = getParticleColor_mp(intensity);
-		gl_FragColor = vec4(pcol, a);
+      float intensity = getStar(gl_PointCoord);
+      if (intensity < 0.5) {
+        a = 0.0;
+      } else {
+        a = intensity;
+      }
+      time2 = 20.0 * random(vPosition.x + vPosition.y + vPosition.z);
+      vec3 pcol = getParticleColor_mp(intensity);
+      gl_FragColor = vec4(pcol, a);
+    } else {
+      gl_FragColor = vec4(0.0);
+    }
   } else {
     vec4 diffuseColor = texture2D(map, vUV);
     vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
@@ -213,10 +258,9 @@ void main() {
     vec3 outgoingLight = directDiffuse + emissive;
 
     const float interval = 10000.0;
-    // diffuseColor.a = mod(time, interval) / interval;
+    diffuseColor.a = mod(time, interval) / interval;
 
     gl_FragColor = vec4(outgoingLight, diffuseColor.a);
-    gl_FragColor = diffuseColor;
   }
 }
 ")
@@ -228,8 +272,6 @@ void main() {
      unit-clouds (engine/get-unit-clouds (:units component))
      divisor 1000.0
      t (- (common/game-time) (:start-time (:magic component)))
-;     t (/ (common/game-time) divisor)
-;     t (math/random)
      ]
     (doseq
       [mesh unit-meshes]
@@ -255,7 +297,7 @@ void main() {
     component)
   )
 
-(defn get-standard-material
+(defn get-materials
   [component]
   (let
     [light1 (data (:light1 component))
@@ -264,33 +306,43 @@ void main() {
      uniforms
      #js
      {
+      :map #js { :value nil }
       :isCloud #js { :value 0.0 }
-      :time #js { :type "f" :value 0.0 }
-      :map #js { :type "t" :value nil }
-      :offsetRepeat #js { :type "v4" :value (new THREE.Vector4 0 0 1 1) }
-      :lightDirection #js { :type "v3" :value light-direction }
-      :boundingBoxMin # js { :type "v3" :value (new js/THREE.Vector3) }
-      :boundingBoxMax # js { :type "v3" :value (new js/THREE.Vector3) }
+      :time #js { :value 0.0 }
+      :offsetRepeat #js { :value (new THREE.Vector4 0 0 1 1) }
+      :lightDirection #js { :value light-direction }
+      :boundingBoxMin # js { :value (new js/THREE.Vector3) }
+      :boundingBoxMax # js { :value (new js/THREE.Vector3) }
       }]
-    (new js/THREE.ShaderMaterial
+    {:standard-material
+     (new js/THREE.ShaderMaterial
          #js
          {
           :uniforms uniforms
           :vertexShader standard-vertex-shader
           :fragmentShader standard-fragment-shader
           :transparent true
-					;:blending THREE.AdditiveBlending
-          })))
+          })
+     :magic-material
+     (new js/THREE.ShaderMaterial
+         #js
+         {
+          :uniforms uniforms
+          :vertexShader magic-vertex-shader
+          :fragmentShader standard-fragment-shader
+          :transparent true
+          })}))
 
 (defcom
   new-magic
   [light1 init-light]
   [standard-material]
   (fn [component]
-    (-> component
-      ;(assoc :standard-material (or standard-material (get-standard-material)))))
-      (assoc :start-time (common/game-time))
-      (assoc :standard-material (get-standard-material component))))
+    (let
+      [{:keys [standard-material magic-material]} (get-materials component)]
+      (-> component
+        (assoc :start-time (common/game-time))
+        (assoc :standard-material standard-material)
+        (assoc :magic-material magic-material))))
   (fn [component]
-    component)
-  )
+    component))
