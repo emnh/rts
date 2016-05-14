@@ -34,6 +34,11 @@
   @(:unit-meshes units))
 
 (defn
+  get-unit-clouds
+  [units]
+  @(:unit-clouds units))
+
+(defn
   get-units
   [units]
   @(:units units))
@@ -196,72 +201,71 @@
 (defcom
   new-test-units
   [ground scene init-scene resources magic]
-  [starting units unit-meshes mesh-to-screenbox-map mesh-to-unit-map]
+  [starting units unit-meshes unit-clouds mesh-to-screenbox-map mesh-to-unit-map]
   (fn [component]
     (let
       [starting (atom true)
        units (atom [])
        unit-meshes (atom [])
+       unit-clouds (atom [])
        mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})]
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
-        (let
-          [texture-loader (new THREE.TextureLoader)
-           material (-> (:standard-material magic) .clone)
-           wrapping (-> js/THREE .-RepeatWrapping)
-           on-load (fn [texture]
-                     (-> texture .-wrapS (set! wrapping))
-                     (-> texture .-wrapT (set! wrapping))
-                     (-> texture .-repeat (.set 1 1))
-                     (-> material .-map (set! texture))
-                     (-> material .-needsUpdate (set! true)))
-           ]
-          (m/mlet
-            [geometry (:load-promise model)
-             texture (:texture-load-promise model)]
-            (if @starting
-              (doseq
-                [i (range 1)]
-                (let
-                  [spread 150.0
-                   xpos (- (* (math/random) 2.0 spread) spread)
-                   zpos (- (* (math/random) 2.0 spread) spread)
-                   ;material (new js/THREE.MeshLambertMaterial #js { :map texture })
-                   material (-> (:standard-material magic) .clone)
-                   _ (-> material .-uniforms .-map .-value (set! texture))
-                   rep (new js/THREE.Vector4
-                            (-> texture .-offset .-x)
-                            (-> texture .-offset .-y)
-                            (-> texture .-repeat .-x)
-                            (-> texture .-repeat .-y))
-                   _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
-                   bounding-box-size (-> geometry .-boundingBox .-max .clone)
-                   _ (-> bounding-box-size (.sub (-> geometry .-boundingBox .-min)))
-                   _ (-> material .-uniforms .-boundingBoxSize .-value (set! bounding-box-size))
-                   mesh (new js/THREE.Mesh geometry material)
-                   bbox (-> mesh .-geometry .-boundingBox)
-                   ypos (ground/align-to-ground ground bbox xpos zpos)
-                   unit
-                   {
-                    :index index
-                    :model model
-                    :health (* (math/random) (:max-health model))
-                    }
-                   ]
-                  (swap! unit-meshes conj mesh)
-                  (swap! units conj unit)
-                  (swap! mesh-to-unit-map assoc mesh unit)
-                  (scene/add scene mesh)
-                  (doto (-> mesh .-position)
-                    (aset "x" xpos)
-                    (aset "y" ypos)
-                    (aset "z" zpos))))))))
+        (m/mlet
+          [geometry (:load-promise model)
+           texture (:texture-load-promise model)]
+          (if @starting
+            (doseq
+              [i (range 1)]
+              (let
+                [spread 150.0
+                 xpos (- (* (math/random) 2.0 spread) spread)
+                 zpos (- (* (math/random) 2.0 spread) spread)
+                 ;material (new js/THREE.MeshLambertMaterial #js { :map texture })
+                 material (-> (:standard-material magic) .clone)
+                 _ (-> material .-uniforms .-map .-value (set! texture))
+                 _ (-> material .-uniforms .-map .-needsUpdate (set! true))
+                 _ (-> material .-needsUpdate (set! true))
+                 rep (new js/THREE.Vector4
+                          (-> texture .-offset .-x)
+                          (-> texture .-offset .-y)
+                          (-> texture .-repeat .-x)
+                          (-> texture .-repeat .-y))
+                 _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
+                 bounding-box-min (-> geometry .-boundingBox .-min)
+                 bounding-box-max (-> geometry .-boundingBox .-max)
+                 _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
+                 _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
+                 mesh (new js/THREE.Mesh geometry material)
+                 cloud-material (-> material .clone)
+                 _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
+                 cloud (new js/THREE.Points geometry cloud-material)
+                 bbox (-> mesh .-geometry .-boundingBox)
+                 ypos (ground/align-to-ground ground bbox xpos zpos)
+                 unit
+                 {
+                  :index index
+                  :model model
+                  :health (* (math/random) (:max-health model))
+                  }
+                 ]
+                (swap! unit-clouds conj cloud)
+                (swap! unit-meshes conj mesh)
+                (swap! units conj unit)
+                (swap! mesh-to-unit-map assoc mesh unit)
+                (-> mesh (.add cloud))
+                (scene/add scene mesh)
+                (doto (-> mesh .-position)
+                  (aset "x" xpos)
+                  (aset "y" ypos)
+                  (aset "z" zpos)))))))
       (-> component
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
         (assoc :unit-meshes unit-meshes)
+        (assoc :unit-clouds unit-clouds)
         (assoc :starting starting))))
   (fn [component]
     (println "stopping units")

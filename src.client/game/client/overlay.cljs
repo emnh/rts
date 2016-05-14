@@ -479,14 +479,14 @@ void main() {
        uniforms
        #js
        {
-        :screen_width #js { :value @(:width scene-properties) }
-        :screen_height #js { :value @(:height scene-properties) }
-        :green_texture #js { :value green-texture }
-        :yellow_texture #js { :value yellow-texture }
-        :orange_texture #js { :value orange-texture }
-        :red_texture #js { :value red-texture }
-        :transparent_texture #js { :value transparent-texture }
-        :fov #js { :value (-> camera .-fov) }
+        :screen_width #js { :type "f" :value @(:width scene-properties) }
+        :screen_height #js { :type "f" :value @(:height scene-properties) }
+        :green_texture #js { :type "t" :value green-texture }
+        :yellow_texture #js { :type "t" :value yellow-texture }
+        :orange_texture #js { :type "t" :value orange-texture }
+        :red_texture #js { :type "t" :value red-texture }
+        :transparent_texture #js { :type "t" :value transparent-texture }
+        :fov #js { :type "f" :value (-> camera .-fov) }
         }
        material
        (new js/THREE.ShaderMaterial
