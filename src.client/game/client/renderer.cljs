@@ -5,6 +5,7 @@
     [game.client.common :as common :refer [data]]
     [game.client.config :as config]
     [game.client.overlay :as overlay]
+    [game.client.magic :as magic]
     [com.stuartsierra.component :as component]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
@@ -26,6 +27,7 @@
     ]
     ; TODO: generic component render
     (-> render-stats .update)
+    (magic/on-render component (:update-magic component))
     (-> renderer (.render scene camera))
 ;    (overlay/on-render component (:pixi-overlay component))
 ;    (-> pixi-renderer (.render pixi-stage))
@@ -45,7 +47,7 @@
 
 (defcom
   new-init-renderer
-  [renderer overlay-scene three-overlay camera scene render-stats pixi-overlay]
+  [renderer overlay-scene three-overlay camera scene render-stats pixi-overlay update-magic]
   [running last-frame-time last-60-frame-times last-60-average]
   (fn [component]
     (let

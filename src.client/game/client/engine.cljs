@@ -2,7 +2,6 @@
   (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
-    [jayq.core :as jayq :refer [$]]
     [promesa.core :as p]
     [cats.core :as m]
     [rum.core :as rum]
@@ -11,7 +10,6 @@
     [game.client.math :as math]
     [game.client.scene :as scene]
     [game.worker.state :as worker-state]
-    [game.shared.state :as state :refer [with-simple-cause]]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   )
@@ -197,7 +195,7 @@
 
 (defcom
   new-test-units
-  [ground scene init-scene resources]
+  [ground scene init-scene resources magic]
   [starting units unit-meshes mesh-to-screenbox-map mesh-to-unit-map]
   (fn [component]
     (let
@@ -210,7 +208,7 @@
         [[index model] (map-indexed vector (:resource-list resources))]
         (let
           [texture-loader (new THREE.TextureLoader)
-           material (new js/THREE.MeshLambertMaterial)
+           material (-> (:standard-material magic) .clone)
            wrapping (-> js/THREE .-RepeatWrapping)
            on-load (fn [texture]
                      (-> texture .-wrapS (set! wrapping))
@@ -218,20 +216,29 @@
                      (-> texture .-repeat (.set 1 1))
                      (-> material .-map (set! texture))
                      (-> material .-needsUpdate (set! true)))
-           grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
            ]
           (m/mlet
             [geometry (:load-promise model)
              texture (:texture-load-promise model)]
             (if @starting
               (doseq
-                [i (range 20)]
+                [i (range 1)]
                 (let
                   [spread 150.0
                    xpos (- (* (math/random) 2.0 spread) spread)
                    zpos (- (* (math/random) 2.0 spread) spread)
-                   material (new js/THREE.MeshLambertMaterial #js { :map texture })
-                   ;_ (-> material .-needsUpdate (set! true))
+                   ;material (new js/THREE.MeshLambertMaterial #js { :map texture })
+                   material (-> (:standard-material magic) .clone)
+                   _ (-> material .-uniforms .-map .-value (set! texture))
+                   rep (new js/THREE.Vector4
+                            (-> texture .-offset .-x)
+                            (-> texture .-offset .-y)
+                            (-> texture .-repeat .-x)
+                            (-> texture .-repeat .-y))
+                   _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
+                   bounding-box-size (-> geometry .-boundingBox .-max .clone)
+                   _ (-> bounding-box-size (.sub (-> geometry .-boundingBox .-min)))
+                   _ (-> material .-uniforms .-boundingBoxSize .-value (set! bounding-box-size))
                    mesh (new js/THREE.Mesh geometry material)
                    bbox (-> mesh .-geometry .-boundingBox)
                    ypos (ground/align-to-ground ground bbox xpos zpos)
@@ -242,7 +249,6 @@
                     :health (* (math/random) (:max-health model))
                     }
                    ]
-  ;                (println "model add" (:name model) mesh)
                   (swap! unit-meshes conj mesh)
                   (swap! units conj unit)
                   (swap! mesh-to-unit-map assoc mesh unit)

@@ -481,7 +481,7 @@ void main() {
        {
         :screen_width #js { :value @(:width scene-properties) }
         :screen_height #js { :value @(:height scene-properties) }
-        :green_texture #js { :type "t" :value green-texture }
+        :green_texture #js { :value green-texture }
         :yellow_texture #js { :value yellow-texture }
         :orange_texture #js { :value orange-texture }
         :red_texture #js { :value red-texture }

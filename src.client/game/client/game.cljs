@@ -16,6 +16,7 @@
     [game.client.engine :as engine]
     [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
+    [game.client.magic :as magic]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]]
@@ -57,6 +58,8 @@
       :selector (selection/new-selector)
       :engine (engine/new-engine)
       :units (engine/new-test-units)
+      :magic (magic/new-magic)
+      :update-magic (magic/new-update-magic)
       }]
     system
     ))
