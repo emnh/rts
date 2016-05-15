@@ -50,9 +50,11 @@ void main() {
 varying vec2 vUV;
 varying vec3 vLightFront;
 varying vec3 vPosition;
-varying float visible;
+varying float vVisible;
+varying float vParticleLifeTime;
 
 uniform float time;
+uniform float buildTime;
 uniform float isCloud;
 uniform vec4 offsetRepeat;
 uniform vec3 lightDirection;
@@ -66,7 +68,7 @@ float random(float co)
 }
 
 float getMaxY() {
-  const float interval = 10000.0;
+  float interval = buildTime;
   float timePart = mod(time, interval) / interval;
   float maxY = timePart * (boundingBoxMax.y - boundingBoxMin.y) + boundingBoxMin.y;
   return maxY;
@@ -80,10 +82,16 @@ float getMaxY() {
 void main() {
   vPosition = position;
 
-  gl_PointSize = (boundingBoxMax.y - boundingBoxMin.y) * 1.0;
+  float width = boundingBoxMax.x - boundingBoxMin.x;
+  float height = boundingBoxMax.y - boundingBoxMin.y;
+  float depth = boundingBoxMax.z - boundingBoxMin.z;
+  float upperBound = 30.0;
+  float maxSize = min(max(width, max(height, depth)) / 2.0, upperBound);
+  gl_PointSize = maxSize;
 
-  const float interval = 1500.0;
+  const float interval = PARTICLE_LIFE_TIME;
   float timePart = mod(time + interval * random(position.x + position.y + position.z), interval) / interval;
+  vParticleLifeTime = timePart;
   vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
   const float factor = 1.0;
   vec4 startPos = vec4(vec3(0.0, factor * (boundingBoxMax.y - boundingBoxMin.y), 0.0), 1.0);
@@ -97,11 +105,15 @@ void main() {
   mvPosition.z = -1.0;
   gl_Position = mvPosition;
 
+  vec3 currentPosition = (modelMatrix * vec4(vec3(0.0), 1.0)).xyz;
+  gl_PointSize *= 500.0 / length(cameraPosition - currentPosition);
+  gl_PointSize = min(gl_PointSize, upperBound);
+
   float maxY = getMaxY();
   if (position.y <= maxY) {
-    visible = 0.0;
+    vVisible = 1.0;
   } else {
-    visible = 1.0;
+    vVisible = 1.0;
   }
 }
 "))
@@ -124,7 +136,8 @@ void main() {
   vLightFront = saturate(dotNL) * directLightColor_diffuse;
 
   float maxY = getMaxY();
-  float newY = min(maxY, position.y);
+  //float newY = min(maxY, position.y);
+  float newY = position.y;
   vec3 newPosition = vec3(position.x, newY, position.z);
   vec4 mvPosition = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
   mvPosition /= mvPosition.w;
@@ -140,10 +153,13 @@ void main() {
 varying vec2 vUV;
 varying vec3 vLightFront;
 varying vec3 vPosition;
-varying float visible;
+varying float vVisible;
+varying float vParticleLifeTime;
+
 uniform sampler2D map;
 uniform float time;
 uniform float isCloud;
+uniform float buildTime;
 
 const float hue_time_factor = 0.035;                          // Time-based hue shift
 const float mp_hue = 0.5;                                     // Hue (shift) of the main particle
@@ -194,17 +210,17 @@ vec3 getParticleColor_mp( float pint)
    float hue;
    float saturation;
 
-   saturation = 0.75/pow(pint, 2.5) + mp_saturation;
+   saturation = 0.75/pow(abs(pint), 2.5) + mp_saturation;
    hue = hue_time_factor*time2 + mp_hue;
 
    return hsv2rgb(vec3(hue, saturation, pint));
 }
 
 // https://www.shadertoy.com/view/Xs33R2
-float getStar(vec2 uv) {
+float getStar(vec2 uv, float sizeFactor) {
 	// Main particle
 	vec2 ppos = vec2(0.5, 0.275);
-	const float factor = 10.0;
+	float factor = sizeFactor;
 	float dist = distance(uv, ppos) / factor;
 	// Draws the eight-branched star
 	// Horizontal and vertical branches
@@ -221,7 +237,7 @@ float getStar(vec2 uv) {
 	float pint = 0.0;
 	if (part_int_factor_max*pint1>6.)
 	{
-			pint = part_int_factor_max*(pow(pint1, ppow)/part_int_div)*mp_int;
+			pint = part_int_factor_max*(pow(abs(pint1), ppow)/part_int_div)*mp_int;
 	}
 
 	return pint;
@@ -229,8 +245,12 @@ float getStar(vec2 uv) {
 
 void main() {
   const float eps = 1.0e-7;
+
+  float interval = buildTime;
+  float buildLifeTime = mod(time, interval) / interval;
+
   if (abs(isCloud - 1.0) <= eps) {
-    if (visible == 1.0) {
+    if (vVisible == 1.0) {
       vec2 pos = (gl_PointCoord.xy - 0.5) * 2.0;
       float a = 1.0;
       float length = length(pos);
@@ -239,11 +259,13 @@ void main() {
       }
       gl_FragColor = vec4(vec3(1.0 - length), a);
 
-      float intensity = getStar(gl_PointCoord);
-      if (intensity < 0.5) {
+      float starSize = STAR_SIZE * (1.0 - vParticleLifeTime + 0.5);
+      // starSize *= (1.0 - buildLifeTime);
+      float intensity = getStar(gl_PointCoord, starSize);
+      if (intensity < STAR_OPACITY) {
         a = 0.0;
       } else {
-        a = intensity;
+        a = (intensity - STAR_OPACITY) * (1.0 - vParticleLifeTime);
       }
       time2 = 20.0 * random(vPosition.x + vPosition.y + vPosition.z);
       vec3 pcol = getParticleColor_mp(intensity);
@@ -257,10 +279,11 @@ void main() {
     vec3 emissive = diffuseColor.rgb / 3.0;
     vec3 outgoingLight = directDiffuse + emissive;
 
-    const float interval = 10000.0;
-    diffuseColor.a = mod(time, interval) / interval;
+    diffuseColor.a = 0.25 + buildLifeTime;
+    vec3 color = mix(outgoingLight + vec3(0.0, 1.0, 0.0), outgoingLight, buildLifeTime);
+    //vec3 color = mix(vec3(0.0, 1.0, 0.0), outgoingLight, buildLifeTime);
 
-    gl_FragColor = vec4(outgoingLight, diffuseColor.a);
+    gl_FragColor = vec4(color, diffuseColor.a);
   }
 }
 ")
@@ -303,9 +326,17 @@ void main() {
     [light1 (data (:light1 component))
      light-direction (-> light1 .-position .clone)
      _ (-> light-direction (.sub (-> light1 .-target .-position)))
+     defines
+     #js
+     {
+      :STAR_OPACITY 0.5
+      :STAR_SIZE 10.1
+      :PARTICLE_LIFE_TIME 1500.1
+      }
      uniforms
      #js
      {
+      :buildTime #js { :value 10000.0 }
       :map #js { :value nil }
       :isCloud #js { :value 0.0 }
       :time #js { :value 0.0 }
@@ -318,6 +349,7 @@ void main() {
      (new js/THREE.ShaderMaterial
          #js
          {
+          :defines defines
           :uniforms uniforms
           :vertexShader standard-vertex-shader
           :fragmentShader standard-fragment-shader
@@ -327,6 +359,7 @@ void main() {
      (new js/THREE.ShaderMaterial
          #js
          {
+          :defines defines
           :uniforms uniforms
           :vertexShader magic-vertex-shader
           :fragmentShader standard-fragment-shader

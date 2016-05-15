@@ -242,6 +242,7 @@
                  _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  cloud (new js/THREE.Points geometry cloud-material)
+                 _ (-> cloud .-renderOrder (set! 1))
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  unit
