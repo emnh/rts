@@ -9,6 +9,7 @@
     [game.client.ground-local :as ground]
     [game.client.math :as math]
     [game.client.scene :as scene]
+    [game.client.voxelize :as voxelize]
     [game.worker.state :as worker-state]
     )
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
@@ -222,7 +223,6 @@
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
                  zpos (- (* (math/random) 2.0 spread) spread)
-                 ;material (new js/THREE.MeshLambertMaterial #js { :map texture })
                  material (-> (:standard-material magic) .clone)
                  _ (-> material .-uniforms .-map .-value (set! texture))
                  rep (new js/THREE.Vector4
@@ -235,7 +235,6 @@
                  bounding-box-max (-> geometry .-boundingBox .-max)
                  _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-;                 lambert-material (new js/THREE.MeshLambertMaterial #js { :map texture })
                  mesh (new js/THREE.Mesh geometry material)
                  cloud-material (-> (:magic-material magic) .clone)
                  _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
@@ -243,6 +242,19 @@
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  cloud (new js/THREE.Points geometry cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
+                 voxel-mesh
+                 (if
+                   (= (:name model) "headquarters")
+                   (let
+                     [voxel-count 20
+                      voxel-dict (voxelize/voxelize-geometry geometry voxel-count)
+                      voxel-geometry (voxelize/voxelize-output voxel-dict)
+                      voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
+                      ;voxel-geometry (new js/THREE.BoxBufferGeometry 100 100 100)
+                      voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                      ]
+                     voxel-mesh)
+                   nil)
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  unit
@@ -257,6 +269,10 @@
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (-> mesh (.add cloud))
+                (if voxel-mesh
+                  (do
+                    (-> voxel-mesh .-position .-y (set! 100))
+                    (-> mesh (.add voxel-mesh))))
                 (scene/add scene mesh)
                 (doto (-> mesh .-position)
                   (aset "x" xpos)

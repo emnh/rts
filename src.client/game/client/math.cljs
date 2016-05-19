@@ -8,6 +8,7 @@
 (def atan2 #(-> js/Math (.atan2 %1 %2)))
 (def pi (-> js/Math .-PI))
 (def floor #(-> js/Math (.floor %)))
+(def ceil #(-> js/Math (.ceil %)))
 (def round #(-> js/Math (.round %)))
 (def random #(-> js/Math (.random)))
 (def isNaN #(js/isNaN %))
