@@ -1,12 +1,14 @@
 (ns ^:figwheel-always game.client.resources
     (:require
               [cljs.pprint :as pprint]
+              [clojure.string :as string :refer [replace]]
               [jayq.core :as jayq :refer [$]]
               [rum.core :as rum]
               [com.stuartsierra.component :as component]
               [promesa.core :as p]
               [game.client.math :as math :refer [pi]]
               [game.client.config :as config]
+              [game.client.voxelize :as voxelize]
               [game.client.progress-manager
                :as progress-manager
                :refer [update-progress-item]]
@@ -134,8 +136,6 @@
     :scale 1
     :rotation [0 0 0]
     :texture-path "models/images/camouflage.jpg"
-    ;:voxels-path "models/voxels/moonbase.msgpack"
-    :voxels-path "models/voxels/missile.msgpack"
     :texture-repeat [1 1]
     :opacity 1
     :type :unit-type/ground
@@ -188,25 +188,6 @@
                )))]
         (load-resource path on-success on-progress reject)))))
 
-(defn load-voxels
-  [model path on-progress]
-  (p/promise
-    (fn [resolve reject]
-      (let
-        [on-success
-         (fn []
-           (this-as
-             this
-             (let
-               [buffer (.-response this)
-                uint8array (new js/Uint8Array buffer)
-                decoded (-> js/msgpack (.decode uint8array))
-                clj (js->clj decoded :keywordize-keys true)
-                _ (.log js/console "decoded" decoded)
-                _ (println "msgpack" clj)]
-               (resolve clj))))]
-        (load-resource path on-success on-progress reject)))))
-
 (defn transform-geometry
   [model geo]
   (let
@@ -227,6 +208,27 @@
     (-> geo (.computeFaceNormals))
     (-> geo (.computeVertexNormals))
     geo))
+
+(defn load-voxels
+  [model path on-progress]
+  (p/promise
+    (fn [resolve reject]
+      (let
+        [on-success
+         (fn []
+           (this-as
+             this
+             (let
+               [buffer (.-response this)
+                uint8array (new js/Uint8Array buffer)
+                decoded (-> js/msgpack (.decode uint8array))
+                clj (js->clj decoded :keywordize-keys true)
+                voxel-geometry (voxelize/voxelize-output clj)
+                voxel-geometry (transform-geometry model voxel-geometry)
+                clj (assoc clj :geometry voxel-geometry)]
+               (resolve clj))))]
+        (load-resource path on-success on-progress reject)))))
+
 
 (defn load-geometry
   [model path on-progress]
@@ -261,7 +263,7 @@
            (let
              [path (:path model)
               texture-path (:texture-path model)
-              voxels-path (:voxels-path model)
+              voxels-path (replace (replace (:path model) #"/3d/" "/voxels/") #"\.json$" ".msgpack")
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)
               on-voxels-progress (partial on-progress progress-manager voxels-path)

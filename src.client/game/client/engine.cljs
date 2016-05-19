@@ -244,7 +244,7 @@
                  _ (-> cloud .-renderOrder (set! 1))
                  voxel-mesh
                  (let
-                   [voxel-geometry (voxelize/voxelize-output voxel-dict)
+                   [voxel-geometry (:geometry voxel-dict)
                     voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
                     voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
