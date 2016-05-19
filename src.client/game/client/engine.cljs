@@ -4,7 +4,6 @@
     [com.stuartsierra.component :as component]
     [promesa.core :as p]
     [cats.core :as m]
-    [rum.core :as rum]
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.ground-local :as ground]
     [game.client.math :as math]
@@ -215,7 +214,8 @@
         [[index model] (map-indexed vector (:resource-list resources))]
         (m/mlet
           [geometry (:load-promise model)
-           texture (:texture-load-promise model)]
+           texture (:texture-load-promise model)
+           voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
               [i (range 1)]
@@ -243,19 +243,12 @@
                  cloud (new js/THREE.Points geometry cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
                  voxel-mesh
-                 (if
-                   (= (:name model) "headquarters")
-                   (let
-                     [voxel-count 20
-                      voxel-dict (voxelize/voxelize-geometry geometry voxel-count)
-                      voxel-dict (voxelize/fill-inside voxel-dict)
-                      voxel-geometry (voxelize/voxelize-output voxel-dict)
-                      voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
-                      ;voxel-geometry (new js/THREE.BoxBufferGeometry 100 100 100)
-                      voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
-                      ]
-                     voxel-mesh)
-                   nil)
+                 (let
+                   [voxel-geometry (voxelize/voxelize-output voxel-dict)
+                    voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
+                    voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                    ]
+                   voxel-mesh)
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  unit

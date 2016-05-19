@@ -4,10 +4,7 @@
     [com.stuartsierra.component :as component]
     [promesa.core :as p]
     [cats.core :as m]
-    [rum.core :as rum]
-    [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.math :as math]
-    [game.client.scene :as scene]
     )
   (:require-macros
     [infix.macros :refer [infix]]
@@ -217,7 +214,7 @@
              (touch-voxel v3)))))
      ]
     (doseq [i (range triangle-count)]
-      (if (= 0 (mod i (quot triangle-count 100)))
+      (if (= 0 (mod i (max 1 (quot triangle-count 100))))
         (println "%:" (* 100 (/ i triangle-count))))
       (let
         [index (* i attr-size)

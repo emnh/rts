@@ -15,6 +15,7 @@ npm-debug.log
 /out.dev.client/
 /out.prod/
 /out.prod.client/
+/out.scripts/
 pom.xml
 *.swp
 /target/

@@ -134,6 +134,8 @@
     :scale 1
     :rotation [0 0 0]
     :texture-path "models/images/camouflage.jpg"
+    ;:voxels-path "models/voxels/moonbase.msgpack"
+    :voxels-path "models/voxels/missile.msgpack"
     :texture-repeat [1 1]
     :opacity 1
     :type :unit-type/ground
@@ -144,12 +146,10 @@
     })
 
 (defn
-  load-image
+  load-resource
   [path on-success on-progress on-error]
   (let
-    [xhr (new js/XMLHttpRequest)
-
-     ]
+    [xhr (new js/XMLHttpRequest)]
     (doto
       xhr
       (.open "GET" path true)
@@ -186,7 +186,26 @@
                (aset img "onerror" #(reject (str "image load error: " path)))
                (aset img "src" (-> js/window .-URL (.createObjectURL blob)))
                )))]
-        (load-image path on-success on-progress reject)))))
+        (load-resource path on-success on-progress reject)))))
+
+(defn load-voxels
+  [model path on-progress]
+  (p/promise
+    (fn [resolve reject]
+      (let
+        [on-success
+         (fn []
+           (this-as
+             this
+             (let
+               [buffer (.-response this)
+                uint8array (new js/Uint8Array buffer)
+                decoded (-> js/msgpack (.decode uint8array))
+                clj (js->clj decoded :keywordize-keys true)
+                _ (.log js/console "decoded" decoded)
+                _ (println "msgpack" clj)]
+               (resolve clj))))]
+        (load-resource path on-success on-progress reject)))))
 
 (defn transform-geometry
   [model geo]
@@ -242,15 +261,19 @@
            (let
              [path (:path model)
               texture-path (:texture-path model)
+              voxels-path (:voxels-path model)
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)
+              on-voxels-progress (partial on-progress progress-manager voxels-path)
               load-promise (load-geometry model path on-geo-progress)
-              texture-load-promise (load-texture model texture-path on-texture-progress)]
+              texture-load-promise (load-texture model texture-path on-texture-progress)
+              voxels-load-promise (load-voxels model voxels-path on-voxels-progress)]
              (merge
                model
                {
                 :load-promise load-promise
                 :texture-load-promise texture-load-promise
+                :voxels-load-promise voxels-load-promise
                 }))))]
          (-> component
            (assoc
@@ -259,6 +282,10 @@
                (into
                  []
                  (concat
-                   (map #(vector (:load-promise %) (:texture-load-promise %)) resource-list)))))
+                   (map
+                     #(vector
+                        (:load-promise %)
+                        (:texture-load-promise %)
+                        (:voxels-load-promise %)) resource-list)))))
            (assoc :resource-list resource-list))))
   (fn [component] component))

@@ -49,6 +49,13 @@
                 :optimizations :none
                 :source-map true
                 :source-map-timestamp true}}
+             {:id "scripts"
+              :source-paths ["src.client" "src.shared" "src.worker" "src.scripts"]
+              :compiler {
+                :output-to "out.scripts/game.js"
+                :output-dir "out.scripts"
+                :target :nodejs
+                :optimizations :none}}
              {:id "prod"
               :source-paths ["src" "src.shared"]
               :compiler {
