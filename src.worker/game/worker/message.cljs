@@ -19,6 +19,11 @@
   (reset! (:poll-state component) true))
 
 (defmethod -on-message
+  :update-move-targets
+  [component [event data]]
+  )
+
+(defmethod -on-message
   :initialize
   [component [event data]]
   (let
