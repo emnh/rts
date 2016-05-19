@@ -222,11 +222,11 @@
                [buffer (.-response this)
                 uint8array (new js/Uint8Array buffer)
                 decoded (-> js/msgpack (.decode uint8array))
-                clj (js->clj decoded :keywordize-keys true)
-                voxel-geometry (voxelize/voxelize-output clj)
+                voxel-dict (js->clj decoded :keywordize-keys true)
+                voxel-geometry (voxelize/voxelize-output voxel-dict)
                 voxel-geometry (transform-geometry model voxel-geometry)
-                clj (assoc clj :geometry voxel-geometry)]
-               (resolve clj))))]
+                voxel-dict (assoc voxel-dict :geometry voxel-geometry)]
+               (resolve voxel-dict))))]
         (load-resource path on-success on-progress reject)))))
 
 

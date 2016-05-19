@@ -14,6 +14,9 @@
 (def int32-size-bytes 4)
 (def int32-size-bits 32)
 (def all-bits-set -1)
+(def box-vertices 12)
+(def v3-size 3)
+(def triangle-size 3)
 
 (defn
   voxelize-output
@@ -27,14 +30,16 @@
      voxel-height (:voxel-height voxel-dict)
      voxel-depth (:voxel-depth voxel-dict)
      box (new js/THREE.BoxGeometry voxel-width voxel-height voxel-depth)
-     ;box (new js/THREE.BoxGeometry (/ voxel-width 5) (/ voxel-height 5) (/ voxel-depth 5))
      min-offset-x (:offset-x voxel-dict)
      min-offset-y (:offset-y voxel-dict)
      min-offset-z (:offset-z voxel-dict)
      voxels (:voxels voxel-dict)
+     total-voxels (* voxel-count voxel-count voxel-count)
+     set-voxels #js [0]
+     box-translations #js []
      ]
     (doseq
-      [index (range (* voxel-count voxel-count voxel-count))]
+      [index (range total-voxels)]
       (let
         [
          index-main (quot index int32-size-bits)
@@ -54,10 +59,34 @@
              box-clone (-> box .clone)
              mat (new js/THREE.Matrix4)
              ]
+            (aset set-voxels 0 (inc (aget set-voxels 0)))
+            (doseq
+              [i (range (* box-vertices triangle-size))]
+              (-> box-translations (.push x-offset))
+              (-> box-translations (.push y-offset))
+              (-> box-translations (.push z-offset)))
             (-> mat (.makeTranslation x-offset y-offset z-offset))
             (-> new-geometry (.merge box-clone mat))
             ))))
     (-> bgeo (.fromGeometry new-geometry))
+    (let
+      [box-count (aget set-voxels 0)
+       box-indices (new js/Float32Array (* box-count box-vertices triangle-size))
+       box-indices-attr (new js/THREE.BufferAttribute box-indices 1)
+       box-translations (new js/Float32Array box-translations)
+       _ (println "box-count" box-count)
+       _ (println "box-indices" (-> box-indices .-length))
+       _ (println "box-translations" (-> box-translations .-length))
+       _ (println "position" (-> bgeo (.getAttribute "position") .-count))
+       box-translations-attr (new js/THREE.BufferAttribute box-translations 3)]
+      (doseq
+        [index (range box-count)]
+        ; TODO: use instanced attributes
+        (doseq
+          [i (range box-vertices)]
+          (aset box-indices (+ (* index box-vertices) i) index)))
+      (-> bgeo (.addAttribute "boxIndex" box-indices-attr))
+      (-> bgeo (.addAttribute "boxTranslation" box-translations-attr)))
     bgeo))
 
 (defn
@@ -153,8 +182,6 @@
   (let
     [position (-> geometry (.getAttribute "position"))
      array (-> position .-array)
-     v3-size 3
-     triangle-size 3
      attr-size (* v3-size triangle-size)
      triangle-count (/ (-> position .-count) triangle-size)
      _ (println "triangle-count" triangle-count)

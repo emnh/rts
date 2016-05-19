@@ -29,6 +29,11 @@
     (mesh-to-unit-map mesh)))
 
 (defn
+  get-unit-voxels
+  [units]
+  @(:unit-voxels units))
+
+(defn
   get-unit-meshes
   [units]
   @(:unit-meshes units))
@@ -200,14 +205,16 @@
 
 (defcom
   new-test-units
-  [ground scene init-scene resources magic]
-  [starting units unit-meshes unit-clouds mesh-to-screenbox-map mesh-to-unit-map]
+  [ground scene init-scene resources magic explosion]
+  [starting units unit-meshes unit-clouds unit-voxels
+   mesh-to-screenbox-map mesh-to-unit-map]
   (fn [component]
     (let
       [starting (atom true)
        units (atom [])
        unit-meshes (atom [])
        unit-clouds (atom [])
+       unit-voxels (atom [])
        mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})]
       (doseq
@@ -245,7 +252,9 @@
                  voxel-mesh
                  (let
                    [voxel-geometry (:geometry voxel-dict)
-                    voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
+                    ;voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 1.0 })
+                    ;voxel-material (new js/THREE.MeshLambertMaterial)
+                    voxel-material (:material explosion)
                     voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
                    voxel-mesh)
@@ -260,13 +269,13 @@
                  ]
                 (swap! unit-clouds conj cloud)
                 (swap! unit-meshes conj mesh)
+                (swap! unit-voxels conj voxel-mesh)
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-                (-> mesh (.add cloud))
-                (if voxel-mesh
-                  (do
-                    (-> voxel-mesh .-position .-y (set! 100))
-                    (-> mesh (.add voxel-mesh))))
+                ;(-> mesh (.add cloud))
+                (do
+                  ;(-> voxel-mesh .-position .-y (set! 100))
+                  (-> mesh (.add voxel-mesh)))
                 (scene/add scene mesh)
                 (doto (-> mesh .-position)
                   (aset "x" xpos)
@@ -278,6 +287,7 @@
         (assoc :units units)
         (assoc :unit-meshes unit-meshes)
         (assoc :unit-clouds unit-clouds)
+        (assoc :unit-voxels unit-voxels)
         (assoc :starting starting))))
   (fn [component]
     (println "stopping units")

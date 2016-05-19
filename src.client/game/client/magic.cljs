@@ -369,7 +369,7 @@ void main() {
 (defcom
   new-magic
   [light1 init-light]
-  [standard-material]
+  [start-time standard-material magic-material]
   (fn [component]
     (let
       [{:keys [standard-material magic-material]} (get-materials component)]
