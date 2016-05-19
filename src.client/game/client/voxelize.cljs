@@ -16,20 +16,21 @@
 
 (def int32-size-bytes 4)
 (def int32-size-bits 32)
+(def all-bits-set -1)
 
 (defn
   voxelize-output
   "Returns geometry of cubes representing voxels"
   [voxel-dict]
   (let
-    [; just use a zero-width plane to get position and uv attr
-     new-geometry (new js/THREE.Geometry)
+    [new-geometry (new js/THREE.Geometry)
      bgeo (new js/THREE.BufferGeometry)
      voxel-count (:voxel-count voxel-dict)
      voxel-width (:voxel-width voxel-dict)
      voxel-height (:voxel-height voxel-dict)
      voxel-depth (:voxel-depth voxel-dict)
      box (new js/THREE.BoxGeometry voxel-width voxel-height voxel-depth)
+     ;box (new js/THREE.BoxGeometry (/ voxel-width 5) (/ voxel-height 5) (/ voxel-depth 5))
      min-offset-x (:offset-x voxel-dict)
      min-offset-y (:offset-y voxel-dict)
      min-offset-z (:offset-z voxel-dict)
@@ -61,6 +62,91 @@
             ))))
     (-> bgeo (.fromGeometry new-geometry))
     bgeo))
+
+(defn
+  is-set?
+  [voxels voxel-count x y z]
+  (let
+    [index (infix (x + voxel-count * (y + voxel-count * z)))
+     index-main (quot index int32-size-bits)
+     index-bit (mod index int32-size-bits)
+     int32 (aget voxels index-main)
+     bit (bit-and int32 (bit-shift-left 1 index-bit))
+     ]
+    (not= 0 bit)))
+
+(defn
+  set-unset-voxel
+  [voxels voxel-count x y z f]
+  (let
+    [index (infix (x + voxel-count * (y + voxel-count * z)))
+     index-main (quot index int32-size-bits)
+     index-bit (mod index int32-size-bits)
+     int32 (aget voxels index-main)
+     new-value (f int32 index-bit)
+     ]
+    (aset voxels index-main new-value)))
+
+(defn
+  set-voxel
+  [voxels voxel-count x y z]
+  (set-unset-voxel voxels voxel-count x y z bit-set))
+
+(defn
+  unset-voxel
+  [voxels voxel-count x y z]
+  (set-unset-voxel voxels voxel-count x y z bit-clear))
+
+(defn fill-inside
+  [voxel-dict]
+  (let
+    [
+     voxel-count (:voxel-count voxel-dict)
+     voxel-width (:voxel-width voxel-dict)
+     voxel-height (:voxel-height voxel-dict)
+     voxel-depth (:voxel-depth voxel-dict)
+     min-offset-x (:offset-x voxel-dict)
+     min-offset-y (:offset-y voxel-dict)
+     min-offset-z (:offset-z voxel-dict)
+     voxels (:voxels voxel-dict)
+     voxels-size (-> voxels .-length)
+     new-voxels (new js/Int32Array voxels-size)
+     _ (-> new-voxels (.fill all-bits-set))
+     flood-fill
+     (fn
+       flood-fill
+       [x y z]
+       (if
+         (and
+           (not (is-set? voxels voxel-count x y z))
+           (is-set? new-voxels voxel-count x y z))
+         (let
+           [neighbours
+            [
+             ; 6-neighbours, sharing a voxel face
+             (if (< (inc x) voxel-count) [(inc x) y z])
+             (if (>= (dec x) 0) [(dec x) y z])
+             (if (< (inc y) voxel-count) [x (inc y) z])
+             (if (>= (dec y) 0) [x (dec y) z])
+             (if (< (inc z) voxel-count) [x y (inc z)])
+             (if (>= (dec z) 0) [x y (dec z)])
+             ]
+            neighbours (remove nil? neighbours)]
+           (unset-voxel new-voxels voxel-count x y z)
+           (doseq
+             [[x y z] neighbours]
+             (flood-fill x y z)))))
+     ]
+    ; do flood fill starting from all 6 faces
+    ; just in case the voxels are touching the faces
+    (doseq
+      [x (range voxel-count)
+       y (range voxel-count)
+       border [0 (dec voxel-count)]]
+      (flood-fill x y border)
+      (flood-fill x border y)
+      (flood-fill border x y))
+    (assoc voxel-dict :voxels new-voxels)))
 
 (defn
   voxelize-geometry
@@ -98,12 +184,8 @@
           y-index (if (= y-index voxel-count) (dec y-index) y-index)
           z-index (infix (math/floor (z-offset / voxel-depth)))
           z-index (if (= z-index voxel-count) (dec z-index) z-index)
-          index (infix (x-index + voxel-count * (y-index + voxel-count * z-index)))
-          index-main (quot index int32-size-bits)
-          index-bit (mod index int32-size-bits)
-          new-value (bit-or (aget voxels index-main) (bit-shift-left 1 index-bit))
           ]
-         (aset voxels index-main new-value)))
+         (set-voxel voxels voxel-count x-index y-index z-index)))
      voxelize-triangle
      (fn
        voxelize-triangle

@@ -248,6 +248,7 @@
                    (let
                      [voxel-count 20
                       voxel-dict (voxelize/voxelize-geometry geometry voxel-count)
+                      voxel-dict (voxelize/fill-inside voxel-dict)
                       voxel-geometry (voxelize/voxelize-output voxel-dict)
                       voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 0.3 })
                       ;voxel-geometry (new js/THREE.BoxBufferGeometry 100 100 100)
