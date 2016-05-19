@@ -25,6 +25,7 @@
     "js-beautify": "1.5.10",
     "mongodb": "2.1.18",
     "morgan": "1.6.1",
+    "msgpack-lite": "0.1.20",
     "passport": "0.3.0",
     "passport-facebook": "2.0.0",
     "passport-github": "1.0.0",
