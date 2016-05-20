@@ -48,6 +48,7 @@ attribute float boxIndex;
 attribute vec3 boxTranslation;
 
 varying vec3 vLightFront;
+varying float vBoxIndex;
 
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -71,6 +72,8 @@ float random(float co)
 
 void main() {
   const vec3 directLightColor = vec3(1.0);
+
+  vBoxIndex = boxIndex;
 	
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
@@ -108,10 +111,18 @@ void main() {
 "
 #define RECIPROCAL_PI 0.31830988618
 
+// Simple random function
+float random(float co)
+{
+		return fract(sin(co*12.989) * 43758.545);
+}
+
 varying vec3 vLightFront;
+varying float vBoxIndex;
 
 void main() {
-  vec4 diffuseColor = vec4(1.0, 0.5, 0.5, 1.0);
+  float rnd = random(vBoxIndex);
+  vec4 diffuseColor = vec4(rnd, 0.0, 0.0, 1.0);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
   gl_FragColor = vec4(directDiffuse, diffuseColor.a);
 }
