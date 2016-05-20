@@ -79,7 +79,15 @@ float getMaxY() {
 (def magic-vertex-shader
   (str shared-vertex-shader
 "
+
+attribute float boxIndex;
+
 void main() {
+  const float vertices = 20.0 * 20.0 * 20.0 * 12.0 * 3.0;
+  const float eliminate = vertices / 1000.0;
+  if (mod(boxIndex, eliminate) < (eliminate - 1.0)) {
+    return;
+  }
   vPosition = position;
 
   float width = boundingBoxMax.x - boundingBoxMin.x;

@@ -89,7 +89,7 @@ void main() {
 	
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
-  float interval = 5000.0;
+  float interval = 750.0;
   float factor = 2.0; // give time to finish falling
   float timePart = factor * mod(time, interval) / interval;
 	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;

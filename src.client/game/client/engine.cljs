@@ -247,13 +247,11 @@
                  _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
                  _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-                 cloud (new js/THREE.Points geometry cloud-material)
+                 cloud (new js/THREE.Points (:geometry voxel-dict) cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
                  voxel-mesh
                  (let
                    [voxel-geometry (:geometry voxel-dict)
-                    ;voxel-material (new js/THREE.MeshLambertMaterial #js { :transparent true :opacity 1.0 })
-                    ;voxel-material (new js/THREE.MeshLambertMaterial)
                     voxel-material (:material explosion)
                     voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
@@ -272,7 +270,7 @@
                 (swap! unit-voxels conj voxel-mesh)
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-                ;(-> mesh (.add cloud))
+                (-> mesh (.add cloud))
                 (do
                   ;(-> voxel-mesh .-position .-y (set! 100))
                   (-> mesh (.add voxel-mesh)))
