@@ -13,6 +13,8 @@
     [game.shared.macros :as macros :refer [defcom]]
     ))
 
+(def rgba-size 4)
+
 (defn xy-index-to-index
   [x-faces y-faces x y]
   (infix y * y-faces + x))
@@ -112,11 +114,14 @@
      y-faces (get-in config [:terrain :y-faces])
      max-elevation (get-in config [:terrain :max-elevation])
      min-elevation (get-in config [:terrain :min-elevation])
-     geometry (new js/THREE.PlaneBufferGeometry width height x-faces y-faces)
+     geometry (new js/THREE.PlaneBufferGeometry width height (dec x-faces) (dec y-faces))
      rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
      position (-> geometry .-attributes .-position)
      length (-> position .-count)
      height-field (new js/Float32Array length)
+     data-texture-buffer (new js/Float32Array (* length rgba-size))
+     ; make maximum value of 1.0
+     float-texture-divisor 256.0
      ]
       (-> geometry (.applyMatrix rotation))
       (doseq
@@ -132,23 +137,38 @@
             ]
            (-> position (.setY i y))
            (aset height-field idx y)
+           (doseq [j (range rgba-size)]
+             (aset data-texture-buffer (+ j (* idx rgba-size)) (/ y float-texture-divisor)))
            ))
       (-> geometry .computeFaceNormals)
       (-> geometry .computeVertexNormals)
       (let
-        [mesh (new THREE.Mesh geometry material)]
+        [mesh (new THREE.Mesh geometry material)
+         data-texture
+         (new js/THREE.DataTexture
+              data-texture-buffer
+              x-faces
+              y-faces
+              js/THREE.RGBAFormat
+              js/THREE.FloatType)
+         ]
+        (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
+        (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
+        (-> data-texture .-needsUpdate (set! true))
         (-> component
           (assoc :width width)
           (assoc :height height)
           (assoc :x-faces x-faces)
           (assoc :y-faces y-faces)
           (assoc :height-field height-field)
-          (assoc :mesh mesh)))))
+          (assoc :mesh mesh)
+          (assoc :data-texture data-texture)
+          (assoc :float-texture-divisor float-texture-divisor)))))
 
 (defcom
   new-init-ground
   [config params]
-  [mesh height-field width height x-faces y-faces]
+  [mesh height-field width height x-faces y-faces data-texture float-texture-divisor]
   (fn [component]
     (if-not
       mesh

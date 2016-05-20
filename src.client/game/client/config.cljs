@@ -70,8 +70,9 @@
              :sea-level 0
              :min-elevation 10
              :max-elevation 48
-             :x-faces 200
-             :y-faces 200
+             ; must be power of two, because of DataTexture
+             :x-faces 256
+             :y-faces 256
              :width 4000
              :height 4000
              }
