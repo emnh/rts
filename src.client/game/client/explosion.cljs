@@ -49,19 +49,56 @@ attribute vec3 boxTranslation;
 
 varying vec3 vLightFront;
 
+// http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
+mat4 rotationMatrix(vec3 axis, float angle)
+{
+    axis = normalize(axis);
+    float s = sin(angle);
+    float c = cos(angle);
+    float oc = 1.0 - c;
+    
+    return mat4(oc * axis.x * axis.x + c,           oc * axis.x * axis.y - axis.z * s,  oc * axis.z * axis.x + axis.y * s,  0.0,
+                oc * axis.x * axis.y + axis.z * s,  oc * axis.y * axis.y + c,           oc * axis.y * axis.z - axis.x * s,  0.0,
+                oc * axis.z * axis.x - axis.y * s,  oc * axis.y * axis.z + axis.x * s,  oc * axis.z * axis.z + c,           0.0,
+                0.0,                                0.0,                                0.0,                                1.0);
+}
+
+// Simple random function
+float random(float co)
+{
+		return fract(sin(co*12.989) * 43758.545);
+}
+
 void main() {
   const vec3 directLightColor = vec3(1.0);
+	
+	vec3 normalizedBoxTranslation = normalize(boxTranslation);
+  vec3 offset = (boxTranslation - position);
+  float interval = 1500.0;
+  float timePart = 2.0 * mod(time, interval) / interval;
+	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;
+	float rnd = random(boxIndex) - 0.5;
 
-  // TODO: recompute normal necessary?
-  vec3 geometryNormal = normalize(normal);
+	mat4 mat = rotationMatrix(normalizedBoxTranslation, -timePart * 4.0 * PI * rnd);
+	vec4 rotatedOffset = mat * vec4(offset, 1.0);
+	rotatedOffset /= rotatedOffset.w;
+
+  vec4 transformedNormal = vec4(normal, 1.0);
+	transformedNormal = mat * transformedNormal;
+	transformedNormal /= transformedNormal.w;
+	vec3 geometryNormal = normalize(transformedNormal.xyz);
   float dotNL = dot(geometryNormal, normalize(lightDirection));
   vec3 directLightColor_diffuse = PI * directLightColor;
   vLightFront = saturate(dotNL) * directLightColor_diffuse;
 
-  float interval = 1000.0;
-  vec3 offset = (boxTranslation - position);
-  float timePart = mod(time, interval) / interval;
-  vec3 newPosition = boxTranslation * 5.0 * timePart + offset;
+	// https://en.wikipedia.org/wiki/Equations_of_motion
+	float v0abs = 30.0 * (1.0 + rnd);
+	vec3 v0 = normalizedBoxTranslation * v0abs;
+	vec3 a = vec3(0.0, -100.0, 0.0);
+	vec3 v = v0 + a * timePart;
+	vec3 r = boxTranslation + v * timePart - a * timePart * timePart / 2.0;
+
+  vec3 newPosition = r + rotatedOffset.xyz;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
 "
@@ -74,7 +111,7 @@ void main() {
 varying vec3 vLightFront;
 
 void main() {
-  vec4 diffuseColor = vec4(1.0);
+  vec4 diffuseColor = vec4(1.0, 0.5, 0.5, 1.0);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
   gl_FragColor = vec4(directDiffuse, diffuseColor.a);
 }
