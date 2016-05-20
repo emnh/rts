@@ -74,10 +74,10 @@
        box-indices (new js/Float32Array (* box-count box-vertices triangle-size))
        box-indices-attr (new js/THREE.BufferAttribute box-indices 1)
        box-translations (new js/Float32Array box-translations)
-       _ (println "box-count" box-count)
-       _ (println "box-indices" (-> box-indices .-length))
-       _ (println "box-translations" (-> box-translations .-length))
-       _ (println "position" (-> bgeo (.getAttribute "position") .-count))
+;       _ (println "box-count" box-count)
+;       _ (println "box-indices" (-> box-indices .-length))
+;       _ (println "box-translations" (-> box-translations .-length))
+;       _ (println "position" (-> bgeo (.getAttribute "position") .-count))
        box-translations-attr (new js/THREE.BufferAttribute box-translations 3)]
       (doseq
         [index (range box-count)]

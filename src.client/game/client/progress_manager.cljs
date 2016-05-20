@@ -1,8 +1,6 @@
 (ns ^:figwheel-always game.client.progress-manager
     (:require
               [cljs.pprint :as pprint]
-              [jayq.core :as jayq :refer [$]]
-              [rum.core :as rum]
               [com.stuartsierra.component :as component]
               [promesa.core :as p]
               [game.client.config :as config]
