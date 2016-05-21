@@ -149,6 +149,8 @@
      camera (data (:camera component))
      width @(get-in component [:scene-properties :width])
      height @(get-in component [:scene-properties :height])
+     meshes (engine/get-unit-meshes (:units component))
+     groups (engine/get-unit-groups (:units component))
      ]
     (-> camera .updateMatrixWorld)
     (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
@@ -160,17 +162,14 @@
       (remove
         nil?
         (for
-          [mesh (engine/get-unit-meshes (:units component))]
+          [[group mesh] (map vector groups meshes)]
           (if
             (-> frustum (.intersectsObject mesh))
             (let
-              [screen-position (scene/world-to-screen-fast width height camera-view-projection-matrix (-> mesh .-position))
-;               w (- (-> mesh .-geometry .-boundingBox .-max .-x) (-> mesh .-geometry .-boundingBox .-min .-x))
-;               h (- (-> mesh .-geometry .-boundingBox .-max .-y) (-> mesh .-geometry .-boundingBox .-min .-y))
-;               d (- (-> mesh .-geometry .-boundingBox .-max .-z) (-> mesh .-geometry .-boundingBox .-min .-z))
-;               r3 (max w h d)
+              [screen-position 
+               (scene/world-to-screen-fast width height camera-view-projection-matrix (-> group .-position))
                r3 (-> mesh .-geometry .-boundingSphere .-radius)
-               screen-radius (get-screen-radius height camera (-> mesh .-position) r3)
+               screen-radius (get-screen-radius height camera (-> group .-position) r3)
                ]
               {
                :x (-> screen-position .-x)
