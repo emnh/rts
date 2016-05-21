@@ -17,6 +17,7 @@
 (def box-vertices 12)
 (def v3-size 3)
 (def triangle-size 3)
+(def billboard-corners 4)
 
 (defn
   voxelize-output
@@ -37,6 +38,7 @@
      total-voxels (* voxel-count voxel-count voxel-count)
      box-indices #js []
      box-translations #js []
+     billboard-coords #js []
      ]
     (doseq
       [index (range total-voxels)]
@@ -53,19 +55,36 @@
              yz-index (quot index voxel-count)
              y-index (mod yz-index voxel-count)
              z-index (quot yz-index voxel-count)
-             x-offset (infix min-offset-x + x-index * voxel-width)
-             y-offset (infix min-offset-y + y-index * voxel-height)
-             z-offset (infix min-offset-z + z-index * voxel-depth)
+             x-offset-centre (infix min-offset-x + (x-index + 0.5) * voxel-width)
+             y-offset-centre (infix min-offset-y + (y-index + 0.5) * voxel-height)
+             z-offset-centre (infix min-offset-z + (z-index + 0.5) * voxel-depth)
+             x-offset (infix min-offset-x + (x-index + 0.0) * voxel-width)
+             y-offset (infix min-offset-y + (y-index + 0.0) * voxel-height)
+             z-offset (infix min-offset-z + (z-index + 0.0) * voxel-depth)
              box-clone (-> box .clone)
              mat (new js/THREE.Matrix4)
              ]
             ; TODO: use instanced attributes
             (doseq
               [i (range (* box-vertices triangle-size))]
-              (-> box-translations (.push x-offset))
-              (-> box-translations (.push y-offset))
-              (-> box-translations (.push z-offset))
+              (-> box-translations (.push x-offset-centre))
+              (-> box-translations (.push y-offset-centre))
+              (-> box-translations (.push z-offset-centre))
               (-> box-indices (.push index)))
+            (doseq
+              [i (range (* (/ box-vertices billboard-corners) triangle-size))]
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.0)))
             (-> mat (.makeTranslation x-offset y-offset z-offset))
             (-> new-geometry (.merge box-clone mat))
             ))))
@@ -74,9 +93,13 @@
       [box-indices (new js/Float32Array box-indices)
        box-indices-attr (new js/THREE.BufferAttribute box-indices 1)
        box-translations (new js/Float32Array box-translations)
-       box-translations-attr (new js/THREE.BufferAttribute box-translations 3)]
+       box-translations-attr (new js/THREE.BufferAttribute box-translations 3)
+       billboard-coords (new js/Float32Array billboard-coords)
+       billboard-coords-attr (new js/THREE.BufferAttribute billboard-coords 3)
+       ]
       (-> bgeo (.addAttribute "boxIndex" box-indices-attr))
-      (-> bgeo (.addAttribute "boxTranslation" box-translations-attr)))
+      (-> bgeo (.addAttribute "boxTranslation" box-translations-attr))
+      (-> bgeo (.addAttribute "billboardCoord" billboard-coords-attr)))
     bgeo))
 
 (defn

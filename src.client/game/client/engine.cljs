@@ -230,7 +230,7 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 10)]
+              [i (range 5)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
@@ -252,7 +252,7 @@
                  _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
                  _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-                 cloud (new js/THREE.Points (:geometry voxel-dict) cloud-material)
+                 cloud (new js/THREE.Mesh (:geometry voxel-dict) cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
                  voxel-mesh
                  (let
@@ -284,7 +284,7 @@
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (-> group (.add mesh))
-;                (-> group (.add cloud))
+                (-> group (.add cloud))
                 (-> group (.add voxel-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)

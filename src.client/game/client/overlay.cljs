@@ -388,9 +388,9 @@ void main() {
          health (/ (:health unit) (:max-health (:model unit)))]
         (aset healths index health))
 
-      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
-      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
-      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
+;      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
+;      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
+;      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
       
       (aset bounding-sphere-radiuses index (-> mesh .-geometry .-boundingSphere .-radius))
 
