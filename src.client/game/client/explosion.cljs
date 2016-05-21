@@ -18,14 +18,17 @@
   (let
     [unit-voxels (engine/get-unit-voxels (:units component))
      divisor 1000.0
-     t (- (common/game-time) (:start-time (:explosion component)))
+     ;t (- (common/game-time) (:start-time (:explosion component)))
+     elapsed @(:last-frame-time init-renderer)
      ]
     (doseq
       [mesh unit-voxels]
       (let
         [material (-> mesh .-material)
-         uniforms (-> material .-uniforms)]
-        (-> uniforms .-time .-value (set! t))))))
+         uniforms (-> material .-uniforms)
+         old-time (-> uniforms .-time .-value)
+         new-time (+ old-time elapsed)]
+        (-> uniforms .-time .-value (set! new-time))))))
 
 (defcom
   new-update-explosion
@@ -42,6 +45,7 @@
 #define saturate(a) clamp(a, 0.0, 1.0)
 
 uniform float time;
+uniform float duration;
 uniform vec3 lightDirection;
 uniform sampler2D groundTexture;
 uniform float terrainWidth;
@@ -89,7 +93,7 @@ void main() {
 	
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
-  float interval = 750.0;
+  float interval = duration;
   float factor = 2.0; // give time to finish falling
   float timePart = factor * mod(time, interval) / interval;
 	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;
@@ -175,6 +179,7 @@ void main() {
        #js
        {
         :time #js { :value 0.0 }
+        :duration #js { :value 750.0 }
         :lightDirection #js { :value light-direction }
         :groundTexture #js { :value ground-texture :needsUpdate true }
         :terrainWidth # js { :value (:width ground) }

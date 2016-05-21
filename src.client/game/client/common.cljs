@@ -81,4 +81,5 @@
 
 (defn game-time
   []
-  (-> (new js/Date) .getTime))
+  ;(-> (new js/Date) .getTime))
+  (-> js/performance .now))

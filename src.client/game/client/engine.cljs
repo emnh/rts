@@ -31,17 +31,22 @@
 (defn
   get-unit-voxels
   [units]
-  @(:unit-voxels units))
+  (map #(get-in % [:scene :voxels]) @(:units units)))
 
 (defn
   get-unit-meshes
   [units]
-  @(:unit-meshes units))
+  (map #(get-in % [:scene :mesh]) @(:units units)))
+
+(defn
+  get-unit-groups
+  [units]
+  (map #(get-in % [:scene :group]) @(:units units)))
 
 (defn
   get-unit-clouds
   [units]
-  @(:unit-clouds units))
+  (map #(get-in % [:scene :cloud]) @(:units units)))
 
 (defn
   get-units
@@ -61,11 +66,15 @@
         })
      set-position (get-in new-state [:functions :positions :set])
      set-bbox (get-in new-state [:functions :bbox :set])
+     groups-and-meshes (map vector
+                            (get-unit-groups (:units component))
+                            (get-unit-meshes (:units component)))
+     groups-and-meshes-indexed (map-indexed vector groups-and-meshes)
      ]
     (doseq
-      [[index mesh] (map-indexed vector (get-unit-meshes (:units component)))]
+      [[index [group mesh]] groups-and-meshes-indexed]
       (let
-        [position (-> mesh .-position)
+        [position (-> group .-position)
          bbox (-> mesh .-geometry .-boundingBox)]
         (set-position index position)
         (set-bbox index bbox)))
@@ -144,12 +153,12 @@
                   })
          get-position (get-in new-state [:functions :positions :get])
          set-position (get-in new-state [:functions :positions :set])
-         unit-meshes @(get-in component [:units :unit-meshes])]
+         unit-groups (get-unit-groups (:units component))]
         (doseq
-          [[unit-index mesh] (map vector (range unit-count) unit-meshes)]
+          [[unit-index group] (map vector (range unit-count) unit-groups)]
           (let
             [position (get-position unit-index)]
-            (-> mesh .-position (.copy position))))))))
+            (-> group .-position (.copy position))))))))
 
 (defn on-worker-message
   [component message]
@@ -206,15 +215,11 @@
 (defcom
   new-test-units
   [ground scene init-scene resources magic explosion]
-  [starting units unit-meshes unit-clouds unit-voxels
-   mesh-to-screenbox-map mesh-to-unit-map]
+  [starting units mesh-to-screenbox-map mesh-to-unit-map]
   (fn [component]
     (let
       [starting (atom true)
        units (atom [])
-       unit-meshes (atom [])
-       unit-clouds (atom [])
-       unit-voxels (atom [])
        mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})]
       (doseq
@@ -225,7 +230,7 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 1)]
+              [i (range 10)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
@@ -252,30 +257,37 @@
                  voxel-mesh
                  (let
                    [voxel-geometry (:geometry voxel-dict)
-                    voxel-material (:material explosion)
+                    voxel-material (-> (:material explosion) .clone)
+                    start-time (+ (common/game-time) (* 1000.0 (math/random)))
+                    _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
+                    _ (-> voxel-material .-uniforms .-time .-value (set! start-time))
                     voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
                    voxel-mesh)
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
+                 group (new js/THREE.Object3D)
                  unit
                  {
                   :index index
                   :model model
                   :health (* (math/random) (:max-health model))
+                  :scene
+                  {
+                   :group group
+                   :mesh mesh
+                   :cloud cloud
+                   :voxels voxel-mesh
+                   }
                   }
                  ]
-                (swap! unit-clouds conj cloud)
-                (swap! unit-meshes conj mesh)
-                (swap! unit-voxels conj voxel-mesh)
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-                (-> mesh (.add cloud))
-                (do
-                  ;(-> voxel-mesh .-position .-y (set! 100))
-                  (-> mesh (.add voxel-mesh)))
-                (scene/add scene mesh)
-                (doto (-> mesh .-position)
+                (-> group (.add mesh))
+;                (-> group (.add cloud))
+                (-> group (.add voxel-mesh))
+                (scene/add scene group)
+                (doto (-> group .-position)
                   (aset "x" xpos)
                   (aset "y" ypos)
                   (aset "z" zpos)))))))
@@ -283,20 +295,16 @@
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
-        (assoc :unit-meshes unit-meshes)
-        (assoc :unit-clouds unit-clouds)
-        (assoc :unit-voxels unit-voxels)
         (assoc :starting starting))))
   (fn [component]
     (println "stopping units")
     (if starting
       (reset! starting false))
-    (if unit-meshes
-      (doseq [unit @unit-meshes]
-        (scene/remove scene unit)))
+    (if units
+      (doseq [group (get-unit-groups component)]
+        (scene/remove scene group)))
     (->
       component
       (assoc :starting nil)
-      (assoc :units nil)
-      (assoc :unit-meshes nil))))
+      (assoc :units nil))))
 
