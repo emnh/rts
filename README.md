@@ -82,9 +82,7 @@ Not everything is linked up yet, so overview is here:
   speed when game (requestAnimationFrame) lags
 - Enforce limits on new-game and join-game, 1 per user
 - Enforce unique nicknames inside game, make user type one
-- Voxelize 3D models for explosion, see:
-  - http://drububu.com/miscellaneous/voxelizer/index.html
-  - https://github.com/mrdoob/three.js/blob/master/examples/webgl_clipping.html
+- Texture map voxelizations
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
