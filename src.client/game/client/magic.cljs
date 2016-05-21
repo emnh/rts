@@ -52,6 +52,7 @@ varying vec3 vLightFront;
 varying vec3 vPosition;
 varying float vParticleLifeTime;
 varying float vBoxIndex;
+varying float vIsJustBox;
 
 uniform float time;
 uniform float buildTime;
@@ -85,9 +86,26 @@ attribute vec3 boxTranslation;
 attribute vec3 billboardCoord;
 
 void main() {
-  const float vertices = 20.0 * 20.0 * 20.0 * 12.0 * 3.0;
-  const float eliminate = vertices / 1000.0;
-  if (mod(boxIndex, eliminate) < (eliminate - 1.0)) {
+  const float boxCount = 20.0 * 20.0 * 20.0;
+  const float eliminate = boxCount / 300.0;
+  float randomIndex = floor(boxIndex * random(boxIndex));
+  if (mod(randomIndex, eliminate) < (eliminate - 1.0)) {
+    /*
+    float duration = buildTime;
+    float buildTimePart = mod(time, duration) / duration;
+    if (boxIndex < boxCount * buildTimePart) {
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+
+      const vec3 directLightColor = vec3(1.0);
+      vec4 transformedNormal = vec4(normal, 1.0);
+      vec3 geometryNormal = normalize(transformedNormal.xyz);
+      float dotNL = dot(geometryNormal, normalize(lightDirection));
+      vec3 directLightColor_diffuse = PI * directLightColor;
+      vLightFront = saturate(dotNL) * directLightColor_diffuse;
+    
+      vIsJustBox = 1.0;
+    }
+    */
     return;
   }
 
@@ -95,20 +113,11 @@ void main() {
   vBoxIndex = boxIndex;
   vPosition = position;
 
-  float width = boundingBoxMax.x - boundingBoxMin.x;
-  float height = boundingBoxMax.y - boundingBoxMin.y;
-  float depth = boundingBoxMax.z - boundingBoxMin.z;
-  float upperBound = 30.0;
-  float maxSize = min(max(width, max(height, depth)) / 2.0, upperBound);
-  //gl_PointSize = maxSize;
-
-  //vec3 offset = (boxTranslation - position);
   vec3 offset = billboardCoord;
 
   const float interval = PARTICLE_LIFE_TIME;
   float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z);
   float timePart = mod(time + interval * rnd, interval) / interval;
-  //float timePart = mod(time, interval) / interval;
   vParticleLifeTime = timePart;
   const float factor = 1.0;
   vec4 startPos = vec4(vec3(0.0, factor * (boundingBoxMax.y - boundingBoxMin.y), 0.0), 1.0);
@@ -137,17 +146,6 @@ void main() {
   mvPosition /= mvPosition.w;
   mvPosition.z = (mvPosition.z / 10.0) - 0.9;
   gl_Position = mvPosition;
-
-  const vec3 directLightColor = vec3(1.0);
-  vec4 transformedNormal = vec4(normal, 1.0);
-	vec3 geometryNormal = normalize(transformedNormal.xyz);
-  float dotNL = dot(geometryNormal, normalize(lightDirection));
-  vec3 directLightColor_diffuse = PI * directLightColor;
-  vLightFront = saturate(dotNL) * directLightColor_diffuse;
-
-  // vec3 currentPosition = (modelMatrix * vec4(vec3(0.0), 1.0)).xyz;
-  // gl_PointSize *= 500.0 / length(cameraPosition - currentPosition);
-  // gl_PointSize = min(gl_PointSize, upperBound);
 }
 "))
 
@@ -185,6 +183,7 @@ varying vec3 vLightFront;
 varying vec3 vPosition;
 varying float vParticleLifeTime;
 varying float vBoxIndex;
+varying float vIsJustBox;
 
 uniform sampler2D map;
 uniform float time;
@@ -299,13 +298,13 @@ void main() {
     vec3 pcol = getParticleColor_mp(intensity);
     gl_FragColor = vec4(pcol, a);
 
-    /*
-    vec4 diffuseColor = vec4(vec3(1.0, 0.0, 0.0), 1.0);
-    vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
-    vec3 emissive = diffuseColor.rgb / 3.0;
-    vec3 outgoingLight = directDiffuse + emissive;
-    gl_FragColor = vec4(outgoingLight, diffuseColor.a);
-    */
+    if (vIsJustBox == 1.0) {
+      vec4 diffuseColor = vec4(vec3(0.0, 1.0, 0.0), 1.0);
+      vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
+      vec3 emissive = diffuseColor.rgb / 3.0;
+      vec3 outgoingLight = directDiffuse + emissive;
+      gl_FragColor = vec4(outgoingLight, diffuseColor.a);
+    }
   } else {
     vec4 diffuseColor = texture2D(map, vUV);
     vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
