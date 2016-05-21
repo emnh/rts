@@ -19,6 +19,8 @@
 (def triangle-size 3)
 (def billboard-corners 4)
 
+; Based on http://drububu.com/miscellaneous/voxelizer/index.html
+
 (defn
   voxelize-output
   "Returns geometry of cubes representing voxels"
