@@ -16,6 +16,12 @@
   (.preventDefault event)
   false)
 
+(defn get-elapsed
+  [state]
+  ; divide by 16.67 because that is expected frame time at 60 FPS,
+  ; so we get multiplier that scales the old speed.
+  (/ (min (- (common/game-time) @(:last-frame-time state)) 250.0) 16.67))
+
 (defn
   scroll
   [delta state]
@@ -25,6 +31,7 @@
      speed (get-in config [:controls :scroll-speed])
      speed (* speed (-> camera .-position .-y))
      speed (/ speed (-> (get-in config [:controls :origin]) .-y))
+     speed (* speed (get-elapsed state))
      _ (-> delta (.applyQuaternion (-> camera .-quaternion)))
      _ (-> delta .-y (set! 0))
      _ (-> delta .normalize)
@@ -47,6 +54,7 @@
      config (:config state)
      rotate-speed (get-in config [:controls :rotate-speed])
      rotate-speed (* sign rotate-speed)
+     rotate-speed (* rotate-speed (get-elapsed state))
      ]
     (-> camera .-position (.applyAxisAngle axis rotate-speed))
     (-> camera .-position .-y (set! (-> old .-y)))
@@ -64,6 +72,7 @@
      config (:config state)
      rotate-speed (get-in config [:controls :rotate-speed])
      rotate-speed (* sign rotate-speed)
+     rotate-speed (* rotate-speed (get-elapsed state))
      theta (atan2 (-> offset .-x) (-> offset .-z))
      xzlen (sqrt (+ (square (-> offset .-x)) (square (-> offset .-z))))
      min-polar-angle 0.1
@@ -128,7 +137,7 @@
   )
 
 (defn zoom
-  [camera delta]
+  [state camera delta]
   (let
     [
      te (-> camera .-matrix .-elements)
@@ -136,6 +145,7 @@
      y (aget te 9)
      z (aget te 10)
      zoom-offset (new js/THREE.Vector3 x y z)
+     delta (* delta (get-elapsed state))
      _ (-> zoom-offset (.multiplyScalar (* delta (-> camera .-position .-y))))
      ]
     (-> camera .-position (.addVectors (-> camera .-position) zoom-offset))
@@ -145,13 +155,13 @@
 (defn
   zoom-in
   [state]
-  (zoom (:camera state) (- (get-in (:config state) [:controls :zoom-speed])))
+  (zoom state (:camera state) (- (get-in (:config state) [:controls :zoom-speed])))
   )
 
 (defn
   zoom-out
   [state]
-  (zoom (:camera state) (get-in (:config state) [:controls :zoom-speed]))
+  (zoom state (:camera state) (get-in (:config state) [:controls :zoom-speed]))
   )
 
 (defn
@@ -192,9 +202,9 @@
       [handler (get handled-keys k)]
       (handler state))
     )
+  (reset! (:last-frame-time state) (common/game-time))
   (if @enabled
-    (js/requestAnimationFrame #(scroll-handler enabled keys-pressed state)))
-  )
+    (js/requestAnimationFrame #(scroll-handler enabled keys-pressed state))))
 
 (defn
   handle-key
@@ -246,11 +256,13 @@
      keydownevt (str "keydown." bindns)
      keyupevt (str "keyup." bindns)
      keys-pressed (atom {})
+     last-frame-time (atom (common/game-time))
      state
      {
       :camera (data camera)
       :scene (data scene)
       :config config
+      :last-frame-time last-frame-time
       }
      interval-handler-enabled (atom true)
      interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)
@@ -261,7 +273,7 @@
     (rebind $engine-stats contextevt prevent-default)
     (rebind $body keydownevt (partial key-down keys-pressed))
     (rebind $body keyupevt (partial key-up keys-pressed))
-    (js/requestAnimationFrame interval-handler)
+    (interval-handler)
     (-> component
       (assoc :keydownevt keydownevt)
       (assoc :keyupevt keyupevt)
