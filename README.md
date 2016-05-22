@@ -84,9 +84,11 @@ Not everything is linked up yet, so overview is here:
 - Improvements:
  - Make health bars the same size even if screen boxes change size when rotating view.
  - Register callbacks with on-render instead of direct
- - Texture map voxelizations
  - Add :start and :stop parameters to defcom2 macro instead of positional, expecting more parameters soon.
+ - Reuse main renderer for health bars.
+ - Performance: Use quads for health bars instead of points.
 - Features:
+ - Texture map voxelizations
  - Tri-planar texture mapping for terrain
  - Fix shadows
  - Fog of war
