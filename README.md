@@ -83,6 +83,16 @@ Not everything is linked up yet, so overview is here:
 - Enforce limits on new-game and join-game, 1 per user
 - Enforce unique nicknames inside game, make user type one
 - Texture map voxelizations
+- Register callbacks with on-render instead of direct
+- Tri-planar texture mapping for terrain
+- Fix shadows
+- Fog of war
+- FPS hero mode
+- Movement
+- Networking with peer.js
+- Construction
+- Attacking
+- Collisions
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
