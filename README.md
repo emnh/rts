@@ -76,23 +76,27 @@ Not everything is linked up yet, so overview is here:
 
 # TODO
 
-- Make health bars the same size even if screen boxes change size when rotating view.
-- Add :start and :stop parameters to defcom macro instead of positional, expecting more parameters soon.
-- Make scroll speed take into account time elapsed in order to scroll at same
-  speed when game (requestAnimationFrame) lags
-- Enforce limits on new-game and join-game, 1 per user
-- Enforce unique nicknames inside game, make user type one
-- Texture map voxelizations
-- Register callbacks with on-render instead of direct
-- Tri-planar texture mapping for terrain
-- Fix shadows
-- Fog of war
-- FPS hero mode
-- Movement
-- Networking with peer.js
-- Construction
-- Attacking
-- Collisions
+- Bug fix:
+ - Make scroll speed take into account time elapsed in order to scroll at same
+   speed when game (requestAnimationFrame) lags
+ - Fix selection for alternative method 1 and 2 (use group position instead of mesh)
+ - Enforce limits on new-game and join-game, 1 per user
+ - Enforce unique nicknames inside game, make user type one
+- Improvements:
+ - Make health bars the same size even if screen boxes change size when rotating view.
+ - Register callbacks with on-render instead of direct
+ - Texture map voxelizations
+ - Add :start and :stop parameters to defcom2 macro instead of positional, expecting more parameters soon.
+- Features:
+ - Tri-planar texture mapping for terrain
+ - Fix shadows
+ - Fog of war
+ - FPS hero mode
+ - Movement
+ - Networking with peer.js
+ - Construction
+ - Attacking
+ - Collisions
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
