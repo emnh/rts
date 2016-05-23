@@ -112,7 +112,10 @@
            (let
              [path (:path model)
               texture-path (:texture-path model)
-              voxels-path (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack")
+              voxels-path
+              (or
+                (:voxels-path model)
+                (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack"))
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)
               on-voxels-progress (partial on-progress progress-manager voxels-path)

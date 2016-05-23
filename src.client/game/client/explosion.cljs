@@ -17,17 +17,21 @@
   [init-renderer component]
   (let
     [unit-voxels (engine/get-unit-voxels (:units component))
+     unit-meshes (engine/get-unit-meshes (:units component))
      divisor 1000.0
      ;t (- (common/game-time) (:start-time (:explosion component)))
      elapsed @(:last-frame-time init-renderer)
      ]
     (doseq
-      [mesh unit-voxels]
+      [[mesh voxels] (map vector unit-meshes unit-voxels)]
       (let
-        [material (-> mesh .-material)
+        [material (-> voxels .-material)
          uniforms (-> material .-uniforms)
          old-time (-> uniforms .-time .-value)
-         new-time (+ old-time elapsed)]
+         new-time (+ old-time elapsed)
+         duration (-> uniforms .-duration .-value)
+         mesh-visible (> (/ (mod new-time duration) duration) 0.5)]
+        (-> mesh .-visible (set! mesh-visible))
         (-> uniforms .-time .-value (set! new-time))))))
 
 (defcom
@@ -94,14 +98,17 @@ void main() {
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
   float interval = duration;
-  float factor = 2.0; // give time to finish falling
+  float factor = 4.0; // give time to finish falling
   float timePart = factor * mod(time, interval) / interval;
 	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;
 	float rnd = random(boxIndex) - 0.5;
 
 	// https://en.wikipedia.org/wiki/Equations_of_motion
 	float v0abs = 30.0 * (1.0 + rnd);
-	vec3 v0 = normalizedBoxTranslation * v0abs + vec3(0.0, 20.0, 0.0);
+  vec3 v0base = normalizedBoxTranslation;
+  //v0base.y = 0.0;
+  //v0base = normalize(v0base);
+	vec3 v0 = v0base * v0abs + vec3(0.0, 20.0, 0.0);
 	vec3 a = vec3(0.0, -100.0, 0.0);
 	vec3 r = boxTranslation + v0 * timePart + a * timePart * timePart / 2.0;
 
@@ -137,7 +144,8 @@ void main() {
   vec3 directLightColor_diffuse = PI * directLightColor;
   vLightFront = saturate(dotNL) * directLightColor_diffuse;
 
-  vec3 newPosition = r + rotatedOffset.xyz * (factor - impactTime - afterImpact);
+  float maxValueOfAfterImpact = factor - impactTime;
+  vec3 newPosition = r + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
 "
@@ -179,7 +187,7 @@ void main() {
        #js
        {
         :time #js { :value 0.0 }
-        :duration #js { :value 750.0 }
+        :duration #js { :value 1000.0 }
         :lightDirection #js { :value light-direction }
         :groundTexture #js { :value ground-texture :needsUpdate true }
         :terrainWidth # js { :value (:width ground) }

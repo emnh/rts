@@ -254,16 +254,18 @@
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  cloud (new js/THREE.Mesh (:geometry voxel-dict) cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
-                 voxel-mesh
+                 [voxel-mesh voxel-lambert-mesh]
                  (let
                    [voxel-geometry (:geometry voxel-dict)
                     voxel-material (-> (:material explosion) .clone)
+                    voxel-lambert (new js/THREE.MeshLambertMaterial)
                     start-time (+ (common/game-time) (* 1000.0 (math/random)))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! start-time))
                     voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                    voxel-lambert-mesh (new js/THREE.Mesh voxel-geometry voxel-lambert)
                     ]
-                   voxel-mesh)
+                   [voxel-mesh voxel-lambert-mesh])
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)
@@ -284,8 +286,9 @@
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (-> group (.add mesh))
-                (-> group (.add cloud))
+;                (-> group (.add cloud))
                 (-> group (.add voxel-mesh))
+;                (-> group (.add voxel-lambert-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)

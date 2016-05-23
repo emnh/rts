@@ -16,6 +16,17 @@
      :max-health 2000
    }
    {
+     :name "castle"
+     :path "models/3d/castle.json"
+     :texture-path "models/images/castle.jpg"
+     :scale 5
+     :type :unit-type/building
+     :opacity 1.0
+     :can-attack false
+     :can-move false
+     :max-health 2000
+   }
+   {
     :name "tank-m1a1"
     :path "models/3d/tank-m1a1.json"
     :scale 0.05

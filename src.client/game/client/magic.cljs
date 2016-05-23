@@ -332,8 +332,9 @@ void main() {
       [mesh unit-meshes]
       (let
         [material (-> mesh .-material)
-         uniforms (-> material .-uniforms)]
-        (-> uniforms .-time .-value (set! t))))
+         uniforms (-> material .-uniforms)
+         build-time (-> uniforms .-buildTime .-value)]
+        (-> uniforms .-time .-value (set! (dec build-time)))))
     (doseq
       [cloud unit-clouds]
       (let
