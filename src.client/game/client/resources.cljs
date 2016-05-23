@@ -78,17 +78,40 @@
                (resolve voxel-dict))))]
         (load-resource path on-success on-progress reject)))))
 
-
 (defn load-geometry
   [model path on-progress]
   (p/promise
     (fn [resolve reject]
       (let
-        [on-success #(resolve (transform-geometry model %))
-         on-error reject
-         geo-loader (new js/THREE.BufferGeometryLoader)]
-        (-> geo-loader
-          (.load path on-success on-progress on-error))))))
+        [on-success
+         (fn []
+           (this-as
+             this
+             (let
+               [buffer (.-response this)
+                uint8array (new js/Uint8Array buffer)
+                uint8array (-> js/pako (.inflate uint8array))
+                decoded (-> js/msgpack (.decode uint8array))
+                geo-loader (new js/THREE.BufferGeometryLoader)
+                geo (-> geo-loader (.parse decoded))
+                ]
+               (-> geo (.computeBoundingBox))
+               (-> geo (.computeBoundingSphere))
+               (-> geo (.computeFaceNormals))
+               (-> geo (.computeVertexNormals))
+               (resolve geo))))]
+        (load-resource path on-success on-progress reject)))))
+
+;(defn load-geometry
+;  [model path on-progress]
+;  (p/promise
+;    (fn [resolve reject]
+;      (let
+;        [on-success #(resolve (transform-geometry model %))
+;         on-error reject
+;         geo-loader (new js/THREE.BufferGeometryLoader)]
+;        (-> geo-loader
+;          (.load path on-success on-progress on-error))))))
 
 (defn on-progress
   [progress-manager resource xhr]
@@ -116,6 +139,7 @@
               (or
                 (:voxels-path model)
                 (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack"))
+              path (replace path #"\.json$" ".msgpack.gz")
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)
               on-voxels-progress (partial on-progress progress-manager voxels-path)
