@@ -130,17 +130,18 @@
 
 (def defaults
   {
-    :scale 1
-    :rotation [0 0 0]
-    :texture-path "models/images/camouflage.jpg"
-    :texture-repeat [1 1]
-    :opacity 1
-    :type :unit-type/ground
-    :move-speed 1
-    :can-attack true
-    :can-move true
-    :max-health 100
-    })
+   :scale 1
+   :rotation [0 0 0]
+   :texture-path "models/images/camouflage.jpg"
+   :texture-repeat [1 1]
+   :voxels-path "models/voxels/moonbase.msgpack"
+   :opacity 1
+   :type :unit-type/ground
+   :move-speed 1
+   :can-attack true
+   :can-move true
+   :max-health 100
+   })
 
 (defn get-models
   []

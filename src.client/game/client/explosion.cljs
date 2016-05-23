@@ -61,6 +61,7 @@ attribute vec3 boxTranslation;
 
 varying vec3 vLightFront;
 varying float vBoxIndex;
+varying vec2 vUV;
 
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -94,7 +95,8 @@ void main() {
   const vec3 directLightColor = vec3(1.0);
 
   vBoxIndex = boxIndex;
-	
+  vUV = uv;
+
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
   float interval = duration;
@@ -155,6 +157,8 @@ void main() {
 "
 #define RECIPROCAL_PI 0.31830988618
 
+uniform sampler2D map;
+
 // Simple random function
 float random(float co)
 {
@@ -163,10 +167,13 @@ float random(float co)
 
 varying vec3 vLightFront;
 varying float vBoxIndex;
+varying vec2 vUV;
 
 void main() {
   float rnd = random(vBoxIndex);
-  vec4 diffuseColor = vec4(rnd, 0.0, 0.0, 1.0);
+  //vec4 diffuseColor = vec4(rnd, 0.0, 0.0, 1.0);
+  //vec4 diffuseColor = vec4(vUV, 0.0, 1.0);
+  vec4 diffuseColor = texture2D(map, vUV);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
   gl_FragColor = vec4(directDiffuse, diffuseColor.a);
 }
@@ -186,6 +193,7 @@ void main() {
        uniforms
        #js
        {
+        :map #js { :value nil }
         :time #js { :value 0.0 }
         :duration #js { :value 1000.0 }
         :lightDirection #js { :value light-direction }

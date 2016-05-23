@@ -71,10 +71,15 @@
                [buffer (.-response this)
                 uint8array (new js/Uint8Array buffer)
                 decoded (-> js/msgpack (.decode uint8array))
+                ;_ (.log js/console "uvs" (aget decoded "uvs"))
                 voxel-dict (js->clj decoded :keywordize-keys true)
+;                _ (.log js/console "uvs" (:uvs voxel-dict))
+                ;_ (println "voxels" (:voxels voxel-dict))
+;                voxel-dict (assoc voxel-dict :uvs (new js/Float32Array (flatten (:uvs voxel-dict))))
                 voxel-geometry (voxelize/voxelize-output voxel-dict)
                 ;voxel-geometry (transform-geometry model voxel-geometry)
                 voxel-dict (assoc voxel-dict :geometry voxel-geometry)]
+;               (.log js/console "uvs" (-> voxel-geometry (.getAttribute "uv")))
                (resolve voxel-dict))))]
         (load-resource path on-success on-progress reject)))))
 
