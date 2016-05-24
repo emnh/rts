@@ -323,8 +323,8 @@ void main() {
 (defn on-render
   [init-renderer component]
   (let
-    [unit-meshes (engine/get-unit-meshes (:units component))
-     unit-clouds (engine/get-unit-clouds (:units component))
+    [unit-meshes (engine/get-unit-build-meshes (:units component))
+     unit-clouds (engine/get-unit-stars (:units component))
      divisor 1000.0
      t (- (common/game-time) (:start-time (:magic component)))
      ]

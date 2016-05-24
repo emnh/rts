@@ -16,7 +16,7 @@
 (defn on-render
   [init-renderer component]
   (let
-    [unit-voxels (engine/get-unit-voxels (:units component))
+    [unit-voxels (engine/get-unit-explosions (:units component))
      unit-meshes (engine/get-unit-meshes (:units component))
      divisor 1000.0
      ;t (- (common/game-time) (:start-time (:explosion component)))

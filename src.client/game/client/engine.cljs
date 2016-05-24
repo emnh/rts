@@ -29,14 +29,19 @@
     (mesh-to-unit-map mesh)))
 
 (defn
-  get-unit-voxels
+  get-unit-explosions
   [units]
-  (map #(get-in % [:scene :voxels]) @(:units units)))
+  (map #(get-in % [:scene :explosion-mesh]) @(:units units)))
 
 (defn
   get-unit-meshes
   [units]
-  (map #(get-in % [:scene :mesh]) @(:units units)))
+  (map #(get-in % [:scene :display-mesh]) @(:units units)))
+
+(defn
+  get-unit-build-meshes
+  [units]
+  (map #(get-in % [:scene :build-mesh]) @(:units units)))
 
 (defn
   get-unit-groups
@@ -44,9 +49,9 @@
   (map #(get-in % [:scene :group]) @(:units units)))
 
 (defn
-  get-unit-clouds
+  get-unit-stars
   [units]
-  (map #(get-in % [:scene :cloud]) @(:units units)))
+  (map #(get-in % [:scene :stars-mesh]) @(:units units)))
 
 (defn
   get-units
@@ -254,7 +259,7 @@
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  cloud (new js/THREE.Mesh (:geometry voxel-dict) cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
-                 [voxel-mesh voxel-lambert-mesh]
+                 [explosion-mesh voxel-lambert-mesh]
                  (let
                    [voxel-geometry (:geometry voxel-dict)
                     voxel-material (-> (:material explosion) .clone)
@@ -271,10 +276,10 @@
                     start-time (+ (common/game-time) (* 1000.0 (math/random)))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! start-time))
-                    voxel-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                    explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     voxel-lambert-mesh (new js/THREE.Mesh voxel-geometry voxel-lambert)
                     ]
-                   [voxel-mesh voxel-lambert-mesh])
+                   [explosion-mesh voxel-lambert-mesh])
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)
@@ -286,18 +291,22 @@
                   :scene
                   {
                    :group group
-                   :mesh mesh
-                   :cloud cloud
-                   :voxels voxel-mesh
+                   :display-mesh voxel-lambert-mesh
+                   :regular-mesh mesh
+                   :build-mesh mesh
+                   :stars-mesh cloud
+                   :explosion-mesh explosion-mesh
+                   :voxel-mesh voxel-lambert-mesh
                    }
                   }
                  ]
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-                (-> group (.add mesh))
+                (swap! mesh-to-unit-map assoc voxel-lambert-mesh unit)
+;                (-> group (.add mesh))
 ;                (-> group (.add cloud))
-                (-> group (.add voxel-mesh))
-;                (-> group (.add voxel-lambert-mesh))
+                (-> group (.add explosion-mesh))
+                (-> group (.add voxel-lambert-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)

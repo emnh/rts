@@ -149,6 +149,10 @@
       (-> bgeo (.addAttribute "boxIndex" box-indices-attr))
       (-> bgeo (.addAttribute "boxTranslation" box-translations-attr))
       (-> bgeo (.addAttribute "billboardCoord" billboard-coords-attr)))
+    (-> bgeo (.computeBoundingBox))
+    (-> bgeo (.computeBoundingSphere))
+    (-> bgeo (.computeFaceNormals))
+    (-> bgeo (.computeVertexNormals))
     bgeo))
 
 (defn
