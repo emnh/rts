@@ -20,7 +20,7 @@
      unit-meshes (engine/get-unit-meshes (:units component))
      divisor 1000.0
      ;t (- (common/game-time) (:start-time (:explosion component)))
-     elapsed @(:last-frame-time init-renderer)
+     elapsed @(:last-frame-elapsed init-renderer)
      ]
     (doseq
       [[mesh voxels] (map vector unit-meshes unit-voxels)]
@@ -198,7 +198,7 @@ void main() {
        {
         :map #js { :value nil }
         :time #js { :value 0.0 }
-        :duration #js { :value 1000.0 }
+        :duration #js { :value 2000.0 }
         :lightDirection #js { :value light-direction }
         :groundTexture #js { :value ground-texture :needsUpdate true }
         :terrainWidth # js { :value (:width ground) }

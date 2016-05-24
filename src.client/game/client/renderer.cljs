@@ -15,7 +15,9 @@
 (defn render-loop
   [component]
   (let
-   [start-time (common/game-time)
+   [start-time @(:last-frame-time component)
+    end-time (common/game-time)
+    elapsed-time (- end-time start-time)
     camera (data (:camera component))
     scene (data (:scene component))
     overlay-scene (data (:overlay-scene component))
@@ -26,6 +28,8 @@
     pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
     pixi-stage (get-in component [:pixi-overlay :stage])
     ]
+    (reset! (:last-frame-elapsed component) elapsed-time)
+    (reset! (:last-frame-time component) end-time)
     ; TODO: generic component render
     (-> render-stats .update)
     (magic/on-render component (:update-magic component))
@@ -35,15 +39,6 @@
 ;    (-> pixi-renderer (.render pixi-stage))
     (overlay/on-xp-render component three-overlay)
     (-> overlay-renderer (.render overlay-scene camera))
-    (let
-      [end-time (common/game-time)
-       elapsed (- end-time start-time)]
-      (reset! (:last-frame-time component) elapsed)
-      (swap! (:last-60-frame-times component) #(conj (take 59 %) elapsed))
-      (reset! (:last-60-average component)
-             (/
-               (reduce + @(:last-60-frame-times component))
-               (count @(:last-60-frame-times component)))))
     (if @(:running component)
       (js/requestAnimationFrame (partial render-loop component)))))
 
@@ -52,14 +47,13 @@
   [renderer overlay-scene three-overlay camera
    scene render-stats pixi-overlay
    update-magic update-explosion]
-  [running last-frame-time last-60-frame-times last-60-average]
+  [running last-frame-time last-frame-elapsed]
   (fn [component]
     (let
       [component
        (-> component
-         (assoc :last-frame-time (atom 0))
-         (assoc :last-60-frame-times (atom []))
-         (assoc :last-60-average (atom 0))
+         (assoc :last-frame-time (atom (common/game-time)))
+         (assoc :last-frame-elapsed (atom 0))
          (assoc :running (atom true)))]
       (render-loop component)
       component))
