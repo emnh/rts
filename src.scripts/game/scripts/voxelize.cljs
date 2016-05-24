@@ -21,7 +21,7 @@
   []
   (println "voxelize main")
   (doseq [model (models/get-models)]
-    (if (= (:name model) "headquarters")
+    (if (not= (:name model) "headquarters")
       (let
         [_ (println "processing" (:name model))
          args (js->clj (.-argv nodejs/process))

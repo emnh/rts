@@ -175,7 +175,10 @@ void main() {
   //vec4 diffuseColor = vec4(vUV, 0.0, 1.0);
   vec4 diffuseColor = texture2D(map, vUV);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
-  gl_FragColor = vec4(directDiffuse, diffuseColor.a);
+  vec3 emissive = diffuseColor.rgb / 3.0;
+  vec3 outgoingLight = directDiffuse + emissive;
+
+  gl_FragColor = vec4(outgoingLight, diffuseColor.a);
 }
 "
   )

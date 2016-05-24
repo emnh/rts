@@ -70,6 +70,7 @@
              (let
                [buffer (.-response this)
                 uint8array (new js/Uint8Array buffer)
+                uint8array (-> js/pako (.inflate uint8array))
                 decoded (-> js/msgpack (.decode uint8array))
                 ;_ (.log js/console "uvs" (aget decoded "uvs"))
                 voxel-dict (js->clj decoded :keywordize-keys true)
@@ -143,7 +144,7 @@
               voxels-path
               (or
                 (:voxels-path model)
-                (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack"))
+                (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack.gz"))
               path (replace path #"\.json$" ".msgpack.gz")
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)

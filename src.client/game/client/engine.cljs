@@ -259,8 +259,15 @@
                    [voxel-geometry (:geometry voxel-dict)
                     voxel-material (-> (:material explosion) .clone)
                     _ (-> voxel-material .-uniforms .-map .-value (set! texture))
+                    voxel-lambert (new js/THREE.MeshLambertMaterial
+                                       #js
+                                       {
+                                        :map texture
+                                        :emissive 0x808080
+                                        :emissiveMap texture
+                                        :emissiveIntensity 0.5
+                                        })
                     _ (-> texture .-needsUpdate (set! true))
-                    voxel-lambert (new js/THREE.MeshLambertMaterial #js { :map texture })
                     start-time (+ (common/game-time) (* 1000.0 (math/random)))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! start-time))
@@ -287,10 +294,10 @@
                  ]
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-;                (-> group (.add mesh))
+                (-> group (.add mesh))
 ;                (-> group (.add cloud))
-;                (-> group (.add voxel-mesh))
-                (-> group (.add voxel-lambert-mesh))
+                (-> group (.add voxel-mesh))
+;                (-> group (.add voxel-lambert-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)
