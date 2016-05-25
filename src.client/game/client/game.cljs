@@ -35,10 +35,8 @@
       :config config/config
       :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true }))
       :scene (new-jsobj #(new js/THREE.Scene))
-      :overlay-scene (new-jsobj #(new js/THREE.Scene))
       :scene-properties (scene/new-scene-properties)
       :$overlay (new-jsobj #($ "<canvas/>"))
-      :$overlay2 (new-jsobj #($ "<canvas/>"))
       :three-overlay (overlay/new-xp-overlay)
       :pixi-overlay (overlay/new-overlay)
       :raycaster (new-jsobj #(new js/THREE.Raycaster))

@@ -266,10 +266,7 @@
 "
 attribute float boundingSphereRadius;
 attribute float health;
-attribute vec4 wmat1;
-attribute vec4 wmat2;
-attribute vec4 wmat3;
-attribute vec4 wmat4;
+attribute vec3 unitPosition;
 
 uniform float screen_width;
 uniform float screen_height;
@@ -277,12 +274,13 @@ uniform float fov;
 
 varying vec2 vSize;
 varying float vHealth;
+varying vec2 vUV;
 
 const float PI = 3.141592653589793238462643383;
 
 float getScreenRadius() {
   float fov2 = fov / 2.0 * PI / 180.0;
-  float d = length(cameraPosition - position);
+  float d = length(cameraPosition - unitPosition);
   float r3 = boundingSphereRadius;
   float r2 = 1.0 / tan(fov) * r3 / sqrt(d * d - r3 * r3);
   return r2;
@@ -290,10 +288,11 @@ float getScreenRadius() {
 
 void main() {
 
-  mat4 matrixWorld = mat4(wmat1, wmat2, wmat3, wmat4);
+  vUV = uv;
 
   float radius = getScreenRadius();
   const float block_width = 14.0;
+  const float block_height = 10.0;
   const float max_blocks = 20.0;
   const float min_blocks = 4.0;
   float width = min(max(block_width * min_blocks, radius * screen_width), block_width * max_blocks);
@@ -303,9 +302,11 @@ void main() {
   vSize = vec2(width, orig_height);
   vHealth = health;
 
-  gl_Position = projectionMatrix * viewMatrix * matrixWorld * vec4(vec3(0.0), 1.0);
-  gl_Position.y += (radius - width / (2.0 * screen_width)) * gl_Position.w;
-  gl_PointSize = width;
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(unitPosition, 1.0);
+  gl_Position /= gl_Position.w;
+  gl_Position.x += position.x * 2.0 * width / screen_width;
+  gl_Position.y += position.y * 2.0 * block_height / screen_height;
+  gl_Position.y += radius * 2.0;
 }
 ")
 
@@ -315,6 +316,7 @@ void main() {
 
 varying vec2 vSize;
 varying float vHealth;
+varying vec2 vUV;
 
 uniform sampler2D green_texture;
 uniform sampler2D yellow_texture;
@@ -326,36 +328,34 @@ void main() {
   vec4 color = vec4(0.0);
   float maxY = 10.0 / vSize.x;
   float step = 0.0 / vSize.x;
-  if (gl_PointCoord.y <= maxY) {
-    float modX = 14.0 / vSize.x;
-    float newX = (mod(gl_PointCoord.x, modX) + step) / (modX + 2.0 * step);
-    newX *= 0.85;
-    float newY = 1.0 - gl_PointCoord.y / maxY;
-    float block = floor(gl_PointCoord.x / modX);
-    float last_block = floor(vHealth / modX);
-    float remainder = mod(vHealth, modX);
-    float last_block_opacity = remainder / modX;
-    vec2 texCoord = vec2(newX, newY);
-    if (gl_PointCoord.x < vHealth + modX - remainder) {
-      if (vHealth < 0.25) {
-        color = vec4(1.0, 0.0, 0.0, 1.0);
-        color = texture2D(red_texture, texCoord);
-      } else if (vHealth < 0.5) {
-        color = vec4(1.0, 165.0 / 255.0, 0.0, 1.0);
-        color = texture2D(orange_texture, texCoord);
-      } else if (vHealth < 0.75) {
-        color = vec4(1.0, 1.0, 0.0, 1.0);
-        color = texture2D(yellow_texture, texCoord);
-      } else {
-        color = vec4(0.0, 1.0, 0.0, 1.0);
-        color = texture2D(green_texture, texCoord);
-      }
-      if (block == last_block) {
-        color = mix(texture2D(transparent_texture, texCoord), color, last_block_opacity);
-      }
+  vec2 texCoord = vUV;
+  float modX = 14.0 / vSize.x;
+  float newX = (mod(texCoord.x, modX) + step) / (modX + 2.0 * step);
+  newX *= 0.85;
+  float block = floor(vUV.x / modX);
+  float last_block = floor(vHealth / modX);
+  float remainder = mod(vHealth, modX);
+  float last_block_opacity = remainder / modX;
+  texCoord = vec2(newX, texCoord.y);
+  if (vUV.x < vHealth + modX - remainder) {
+    if (vHealth < 0.25) {
+      color = vec4(1.0, 0.0, 0.0, 1.0);
+      color = texture2D(red_texture, texCoord);
+    } else if (vHealth < 0.5) {
+      color = vec4(1.0, 165.0 / 255.0, 0.0, 1.0);
+      color = texture2D(orange_texture, texCoord);
+    } else if (vHealth < 0.75) {
+      color = vec4(1.0, 1.0, 0.0, 1.0);
+      color = texture2D(yellow_texture, texCoord);
     } else {
-      color = texture2D(transparent_texture, texCoord);
+      color = vec4(0.0, 1.0, 0.0, 1.0);
+      color = texture2D(green_texture, texCoord);
     }
+    if (block == last_block) {
+      color = mix(texture2D(transparent_texture, texCoord), color, last_block_opacity);
+    }
+  } else {
+    color = texture2D(transparent_texture, texCoord);
   }
   gl_FragColor = color;
 }
@@ -366,95 +366,68 @@ void main() {
   on-xp-render
   [init-renderer component]
   (let
-    [meshes (engine/get-unit-meshes (:units component))
-     units (engine/get-units (:units component))
-     geo (new js/THREE.BufferGeometry)
-     c (* (count meshes) xyz-size)
-     d (* (count meshes) xyzw-size)
-     positions (new js/Float32Array c)
-     healths (new js/Float32Array (count meshes))
-     bounding-sphere-radiuses (new js/Float32Array (count meshes))
+    [units (engine/get-units (:units component))
+     unit-count (count units)
+     proto-geo (new js/THREE.PlaneBufferGeometry 1 1)
+     geo (new js/THREE.InstancedBufferGeometry)
+     mat-col-count (* unit-count xyzw-size)
+     position-count (* unit-count xyz-size)
+     healths (new js/Float32Array unit-count)
+     bounding-sphere-radiuses (new js/Float32Array unit-count)
      camera (data (:camera component))
-     world-matrix-array
-     [(new js/Float32Array d)
-      (new js/Float32Array d)
-      (new js/Float32Array d)
-      (new js/Float32Array d)
-      ]
+     positions-array (new js/Float32Array position-count)
      ]
-    (doseq
-      [[index [unit mesh]] (map-indexed vector (map vector units meshes))]
-      (let
-        [health (/ (:health unit) (:max-health (:model unit)))]
-        (aset healths index health))
+    (engine/for-each-unit
+      (:units component)
+      (fn
+        [index unit]
+        (let
+          [mesh (engine/get-unit-mesh unit)
+           position (engine/get-unit-position unit)]
+          (let
+            [health (/ (:health unit) (:max-health (:model unit)))]
+            (aset healths index health))
 
-;      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))
-;      (aset positions (+ (* index xyz-size) 1) (-> mesh .-position .-y))
-;      (aset positions (+ (* index xyz-size) 2) (-> mesh .-position .-z))
-      
-      (aset bounding-sphere-radiuses index (-> mesh .-geometry .-boundingSphere .-radius))
+          (aset bounding-sphere-radiuses index (-> mesh .-geometry .-boundingSphere .-radius))
 
-      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 0))
-      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 1))
-      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 2))
-      (aset (nth world-matrix-array 0) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 3))
+          (aset positions-array (+ (* index xyz-size) 0) (-> position .-x))
+          (aset positions-array (+ (* index xyz-size) 1) (-> position .-y))
+          (aset positions-array (+ (* index xyz-size) 2) (-> position .-z)))))
 
-      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 4))
-      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 5))
-      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 6))
-      (aset (nth world-matrix-array 1) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 7))
-
-      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 8))
-      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 9))
-      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 10))
-      (aset (nth world-matrix-array 2) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 11))
-
-      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 0) (aget (-> mesh .-matrixWorld .-elements) 12))
-      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 1) (aget (-> mesh .-matrixWorld .-elements) 13))
-      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 2) (aget (-> mesh .-matrixWorld .-elements) 14))
-      (aset (nth world-matrix-array 3) (+ (* index xyzw-size) 3) (aget (-> mesh .-matrixWorld .-elements) 15)))
-
-    ; TODO: unused attribute position, but can't remove because getting:
-    ; "[.CommandBufferContext]RENDER WARNING: Render count or primcount is 0."
-    (-> geo (.addAttribute "position" (new js/THREE.BufferAttribute positions xyz-size)))
-    (-> geo (.addAttribute "health" (new js/THREE.BufferAttribute healths 1)))
-    (-> geo (.addAttribute "boundingSphereRadius" (new js/THREE.BufferAttribute bounding-sphere-radiuses 1)))
-    (-> geo (.addAttribute "wmat1" (new js/THREE.BufferAttribute (nth world-matrix-array 0) xyzw-size)))
-    (-> geo (.addAttribute "wmat2" (new js/THREE.BufferAttribute (nth world-matrix-array 1) xyzw-size)))
-    (-> geo (.addAttribute "wmat3" (new js/THREE.BufferAttribute (nth world-matrix-array 2) xyzw-size)))
-    (-> geo (.addAttribute "wmat4" (new js/THREE.BufferAttribute (nth world-matrix-array 3) xyzw-size)))
+    (-> geo (.addAttribute "position" (-> proto-geo (.getAttribute "position"))))
+    (-> geo (.addAttribute "normal" (-> proto-geo (.getAttribute "normal"))))
+    (-> geo (.addAttribute "uv" (-> proto-geo (.getAttribute "uv"))))
+    (-> geo (.setIndex (-> proto-geo .-index)))
+    (-> geo (.addAttribute "health" (new js/THREE.InstancedBufferAttribute healths 1)))
+    (-> geo (.addAttribute "boundingSphereRadius" (new js/THREE.InstancedBufferAttribute bounding-sphere-radiuses 1)))
+    (-> geo (.addAttribute "unitPosition" (new js/THREE.InstancedBufferAttribute positions-array xyz-size)))
     (let
-      [scene (data (:overlay-scene component))
+      [scene (data (:scene component))
        material (:material component)
-       mesh (new js/THREE.Points geo material)
+       mesh (new js/THREE.Mesh geo material)
        width @(get-in component [:scene-properties :width])
        height @(get-in component [:scene-properties :height])
+       old-mesh @(:old-mesh component)
        ]
       (-> mesh .-frustumCulled (set! false))
       (-> material .-uniforms .-screen_width .-value (set! width))
       (-> material .-uniforms .-screen_height .-value (set! height))
+      (if old-mesh
+        (do
+          (-> scene (.remove old-mesh))
+          (-> old-mesh .-geometry .dispose)))
       (if
-        (> (count (-> scene .-children)) 0)
-        (let
-          [oldmesh (-> scene .-children (aget 0))]
-          (-> scene (.remove oldmesh))
-          (-> oldmesh .-geometry .dispose)
-          ))
-      (if
-        (> c 0)
-        (-> scene (.add mesh))))))
+        (> unit-count 0)
+        (-> scene (.add mesh)))
+      (reset! (:old-mesh component) mesh))))
 
 (defcom
   new-xp-overlay
-  [$overlay2 overlay-scene init-scene scene-properties units pixi-overlay camera]
-  [overlay-renderer material]
+  [scene init-scene scene-properties units pixi-overlay camera]
+  [material old-mesh]
   (fn [component]
     (let
-      [canvas (aget (data $overlay2) 0)
-       overlay-renderer
-       (or overlay-renderer
-           (new js/THREE.WebGLRenderer #js { :antialias true :canvas canvas :alpha true }))
-
+      [old-mesh (atom nil)
        pixi-renderer (:pixi-renderer pixi-overlay)
        three-texture
        (fn [x]
@@ -501,10 +474,13 @@ void main() {
             )
        component
        (-> component
-         (assoc :material material)
-         (assoc :overlay-renderer overlay-renderer))
-       overlay-scene (data overlay-scene)
+         (assoc :old-mesh old-mesh)
+         (assoc :material material))
        ]
       component))
   (fn [component]
+    (if (and old-mesh @old-mesh)
+      (do
+        (println "removing old mesh")
+        (-> (data scene) (.remove @old-mesh))))
     component))

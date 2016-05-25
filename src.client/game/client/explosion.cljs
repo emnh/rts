@@ -16,25 +16,28 @@
 (defn on-render
   [init-renderer component]
   (let
-    [unit-voxels (engine/get-unit-explosions (:units component))
-     unit-meshes (engine/get-unit-meshes (:units component))
-     units (engine/get-units (:units component))
+    [
      divisor 1000.0
+     current-time (common/game-time)
      ]
-    (doseq
-      [[unit mesh voxels] (map vector units unit-meshes unit-voxels)]
-      (let
-        [material (-> voxels .-material)
-         uniforms (-> material .-uniforms)
-         old-time (:add-time unit)
-         new-time (- (common/game-time) old-time)
-         duration (-> uniforms .-duration .-value)
-         alive-duration duration
-         total-duration (+ duration alive-duration)
-         mesh-visible (< (mod new-time total-duration) alive-duration)]
-        (if mesh-visible
-          (-> uniforms .-time .-value (set! new-time))
-          (-> uniforms .-time .-value (set! 0)))))))
+    (engine/for-each-unit
+      (:units component)
+      (fn
+        [_ unit]
+        (let
+          [mesh (engine/get-unit-mesh unit)
+           voxels (engine/get-unit-explosion unit)
+           material (-> voxels .-material)
+           uniforms (-> material .-uniforms)
+           old-time (:add-time unit)
+           new-time (- current-time old-time)
+           duration (-> uniforms .-duration .-value)
+           alive-duration duration
+           total-duration (+ duration alive-duration)
+           mesh-visible (< (mod new-time total-duration) alive-duration)]
+          (if mesh-visible
+            (-> uniforms .-time .-value (set! new-time))
+            (-> uniforms .-time .-value (set! 0))))))))
 
 (defcom
   new-update-explosion

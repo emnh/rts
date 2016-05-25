@@ -55,13 +55,11 @@
      scene (data (:scene component))
      camera (data (:camera component))
      renderer (data (:renderer component))
-     overlay-renderer (get-in component [:three-overlay :overlay-renderer])
      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
      $game-content ($ (str "." page-class))
      $game-canvases ($ (str ".autoresize." page-class))
      ]
     (-> renderer (.setSize width height))
-    (-> overlay-renderer (.setSize width height))
     (-> pixi-renderer (.resize width height))
     (if
       fullscreen?
@@ -151,12 +149,11 @@
 (defcom
   new-init-scene
   ; depends on init-stats because stats elements must be appended first
-  [params renderer $overlay $overlay2 camera scene config ground init-stats]
+  [params renderer $overlay camera scene config ground init-stats]
   [done]
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
-    (.append (:$page params) (data $overlay2))
     (if-not done
       (do
         (doto
@@ -170,11 +167,6 @@
           (data $overlay)
           (.addClass page-class)
           (.addClass "overlay")
-          (.addClass "autoresize"))
-        (doto
-          (data $overlay2)
-          (.addClass page-class)
-          (.addClass "overlay2")
           (.addClass "autoresize"))
         (add scene (data camera))
         (-> (data camera) .-position (.copy (get-in config [:controls :origin])))

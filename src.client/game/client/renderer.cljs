@@ -14,37 +14,33 @@
 
 (defn render-loop
   [component]
-  (let
-   [start-time @(:last-frame-time component)
-    end-time (common/game-time)
-    elapsed-time (- end-time start-time)
-    camera (data (:camera component))
-    scene (data (:scene component))
-    overlay-scene (data (:overlay-scene component))
-    renderer (data (:renderer component))
-    three-overlay (:three-overlay component)
-    overlay-renderer (:overlay-renderer three-overlay)
-    render-stats (data (:render-stats component))
-    pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
-    pixi-stage (get-in component [:pixi-overlay :stage])
-    ]
-    (reset! (:last-frame-elapsed component) elapsed-time)
-    (reset! (:last-frame-time component) end-time)
-    ; TODO: generic component render
-    (-> render-stats .update)
-    (magic/on-render component (:update-magic component))
-    (explosion/on-render component (:update-explosion component))
-    (-> renderer (.render scene camera))
-;    (overlay/on-render component (:pixi-overlay component))
-;    (-> pixi-renderer (.render pixi-stage))
-    (overlay/on-xp-render component three-overlay)
-    (-> overlay-renderer (.render overlay-scene camera))
-    (if @(:running component)
+  (if @(:running component)
+    (let
+     [start-time @(:last-frame-time component)
+      end-time (common/game-time)
+      elapsed-time (- end-time start-time)
+      camera (data (:camera component))
+      scene (data (:scene component))
+      renderer (data (:renderer component))
+      three-overlay (:three-overlay component)
+      overlay-renderer (:overlay-renderer three-overlay)
+      render-stats (data (:render-stats component))
+      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
+      pixi-stage (get-in component [:pixi-overlay :stage])
+      ]
+      (reset! (:last-frame-elapsed component) elapsed-time)
+      (reset! (:last-frame-time component) end-time)
+      ; TODO: generic component render
+      (-> render-stats .update)
+      (magic/on-render component (:update-magic component))
+      (explosion/on-render component (:update-explosion component))
+      (-> renderer (.render scene camera))
+;      (overlay/on-xp-render component three-overlay)
       (js/requestAnimationFrame (partial render-loop component)))))
 
 (defcom
   new-init-renderer
-  [renderer overlay-scene three-overlay camera
+  [renderer three-overlay camera
    scene render-stats pixi-overlay
    update-magic update-explosion]
   [running last-frame-time last-frame-elapsed]

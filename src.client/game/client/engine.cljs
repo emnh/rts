@@ -28,35 +28,75 @@
     [mesh-to-unit-map @(:mesh-to-unit-map component)]
     (mesh-to-unit-map mesh)))
 
+; deprecated. slow
 (defn
   get-unit-explosions
   [units]
   (map #(get-in % [:scene :explosion-mesh]) @(:units units)))
 
 (defn
+  get-unit-explosion
+  [unit]
+  (:explosion-mesh (:scene unit)))
+
+; deprecated. slow
+(defn
   get-unit-meshes
   [units]
   (map #(get-in % [:scene :display-mesh]) @(:units units)))
 
 (defn
+  get-unit-mesh
+  [unit]
+  (:display-mesh (:scene unit)))
+
+; deprecated. slow
+(defn
   get-unit-build-meshes
   [units]
   (map #(get-in % [:scene :build-mesh]) @(:units units)))
 
+; deprecated. slow
 (defn
   get-unit-groups
   [units]
   (map #(get-in % [:scene :group]) @(:units units)))
 
+; deprecated. slow
 (defn
   get-unit-stars
   [units]
   (map #(get-in % [:scene :stars-mesh]) @(:units units)))
 
+; deprecated. slow
+(defn
+  get-unit-positions
+  [units]
+  (map #(-> % .-position) (get-unit-groups units)))
+
+(defn
+  get-unit-position
+  [unit]
+  (-> (:group (:scene unit)) .-position))
+
 (defn
   get-units
   [units]
   @(:units units))
+
+(defn for-each-unit
+  [units-component f]
+  (let
+    [units (get-units units-component)
+     unit-count (count units)]
+    ; not using seq because of speed
+    (loop
+      [i 0]
+      (if
+        (< i unit-count)
+        (do
+          (f i (nth units i))
+          (recur (inc i)))))))
 
 (defn
   get-current-state
@@ -235,7 +275,7 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 5)]
+              [i (range 40)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
@@ -259,26 +299,17 @@
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  cloud (new js/THREE.Mesh (:geometry voxel-dict) cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
-                 [explosion-mesh voxel-lambert-mesh]
+                 explosion-mesh
                  (let
                    [voxel-geometry (:geometry voxel-dict)
                     voxel-material (-> (:material explosion) .clone)
                     _ (-> voxel-material .-uniforms .-map .-value (set! texture))
                     _ (-> texture .-needsUpdate (set! true))
-                    voxel-lambert (new js/THREE.MeshLambertMaterial
-                                       #js
-                                       {
-                                        :map texture
-                                        :emissive 0x808080
-                                        :emissiveMap texture
-                                        :emissiveIntensity 0.5
-                                        })
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! 0))
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
-                    voxel-lambert-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
-                   [explosion-mesh voxel-lambert-mesh])
+                   explosion-mesh)
                  bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)
@@ -296,7 +327,6 @@
                    :build-mesh mesh
                    :stars-mesh cloud
                    :explosion-mesh explosion-mesh
-                   :voxel-mesh voxel-lambert-mesh
                    }
                   }
                  ]
@@ -306,7 +336,6 @@
 ;                (-> group (.add mesh))
 ;                (-> group (.add cloud))
                 (-> group (.add explosion-mesh))
-;                (-> group (.add voxel-lambert-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)
