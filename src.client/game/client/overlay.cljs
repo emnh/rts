@@ -481,6 +481,5 @@ void main() {
   (fn [component]
     (if (and old-mesh @old-mesh)
       (do
-        (println "removing old mesh")
         (-> (data scene) (.remove @old-mesh))))
     component))

@@ -28,51 +28,30 @@
     [mesh-to-unit-map @(:mesh-to-unit-map component)]
     (mesh-to-unit-map mesh)))
 
-; deprecated. slow
-(defn
-  get-unit-explosions
-  [units]
-  (map #(get-in % [:scene :explosion-mesh]) @(:units units)))
-
 (defn
   get-unit-explosion
   [unit]
   (:explosion-mesh (:scene unit)))
-
-; deprecated. slow
-(defn
-  get-unit-meshes
-  [units]
-  (map #(get-in % [:scene :display-mesh]) @(:units units)))
 
 (defn
   get-unit-mesh
   [unit]
   (:display-mesh (:scene unit)))
 
-; deprecated. slow
 (defn
-  get-unit-build-meshes
-  [units]
-  (map #(get-in % [:scene :build-mesh]) @(:units units)))
+  get-unit-build-mesh
+  [unit]
+  (:build-mesh (:scene unit)))
 
-; deprecated. slow
 (defn
-  get-unit-groups
-  [units]
-  (map #(get-in % [:scene :group]) @(:units units)))
+  get-unit-star
+  [unit]
+  (:stars-mesh (:scene unit)))
 
-; deprecated. slow
 (defn
-  get-unit-stars
-  [units]
-  (map #(get-in % [:scene :stars-mesh]) @(:units units)))
-
-; deprecated. slow
-(defn
-  get-unit-positions
-  [units]
-  (map #(-> % .-position) (get-unit-groups units)))
+  get-unit-group
+  [unit]
+  (:group (:scene unit)))
 
 (defn
   get-unit-position
@@ -98,6 +77,19 @@
           (f i (nth units i))
           (recur (inc i)))))))
 
+; slower
+(defn map-units
+  [units-component f]
+  (let
+    [units (get-units units-component)
+     unit-count (count units)]
+    (loop
+      [i 0 v []]
+      (if
+        (< i unit-count)
+        (recur (inc i) (conj v (f i (nth units i))))
+        v))))
+
 (defn
   get-current-state
   [component]
@@ -111,18 +103,17 @@
         })
      set-position (get-in new-state [:functions :positions :set])
      set-bbox (get-in new-state [:functions :bbox :set])
-     groups-and-meshes (map vector
-                            (get-unit-groups (:units component))
-                            (get-unit-meshes (:units component)))
-     groups-and-meshes-indexed (map-indexed vector groups-and-meshes)
      ]
-    (doseq
-      [[index [group mesh]] groups-and-meshes-indexed]
-      (let
-        [position (-> group .-position)
-         bbox (-> mesh .-geometry .-boundingBox)]
-        (set-position index position)
-        (set-bbox index bbox)))
+    (for-each-unit
+      (:units component)
+      (fn [index unit]
+        (let
+          [group (get-unit-group unit)
+           mesh (get-unit-mesh unit)
+           position (get-unit-position unit)
+           bbox (-> mesh .-geometry .-boundingBox)]
+          (set-position index position)
+          (set-bbox index bbox))))
     new-state))
 
 (defmulti -on-worker-message
@@ -197,13 +188,15 @@
                   :buffer (:buffer data)
                   })
          get-position (get-in new-state [:functions :positions :get])
-         set-position (get-in new-state [:functions :positions :set])
-         unit-groups (get-unit-groups (:units component))]
-        (doseq
-          [[unit-index group] (map vector (range unit-count) unit-groups)]
-          (let
-            [position (get-position unit-index)]
-            (-> group .-position (.copy position))))))))
+         set-position (get-in new-state [:functions :positions :set])]
+        (for-each-unit
+          (:units component)
+          (fn [unit-index unit]
+            (let
+              [group (get-unit-group unit)]
+              (let
+                [position (get-position unit-index)]
+                (-> group .-position (.copy position))))))))))
 
 (defn on-worker-message
   [component message]
@@ -351,8 +344,11 @@
     (if starting
       (reset! starting false))
     (if units
-      (doseq [group (get-unit-groups component)]
-        (scene/remove scene group)))
+      (for-each-unit
+        component
+        (fn
+          [_ unit]
+          (scene/remove scene (get-unit-group unit)))))
     (->
       component
       (assoc :starting nil)

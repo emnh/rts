@@ -323,25 +323,25 @@ void main() {
 (defn on-render
   [init-renderer component]
   (let
-    [unit-meshes (engine/get-unit-build-meshes (:units component))
-     unit-clouds (engine/get-unit-stars (:units component))
-     divisor 1000.0
+    [divisor 1000.0
      t (- (common/game-time) (:start-time (:magic component)))
      ]
-    (doseq
-      [mesh unit-meshes]
-      (let
-        [material (-> mesh .-material)
-         uniforms (-> material .-uniforms)
-         build-time (-> uniforms .-buildTime .-value)]
-        (-> uniforms .-time .-value (set! (dec build-time)))))
-    (doseq
-      [cloud unit-clouds]
-      (let
-        [material (-> cloud .-material)
-         uniforms (-> material .-uniforms)]
-        (-> uniforms .-time .-value (set! t))))
-      ))
+    (engine/for-each-unit
+      (:units component)
+      (fn
+        [_ unit]
+        (let
+          [mesh (engine/get-unit-build-mesh unit)
+           cloud (engine/get-unit-star unit)]
+          (let
+            [material (-> mesh .-material)
+             uniforms (-> material .-uniforms)
+             build-time (-> uniforms .-buildTime .-value)]
+            (-> uniforms .-time .-value (set! (dec build-time))))
+          (let
+            [material (-> cloud .-material)
+             uniforms (-> material .-uniforms)]
+            (-> uniforms .-time .-value (set! t))))))))
 
 (defcom
   new-update-magic

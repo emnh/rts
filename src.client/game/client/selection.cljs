@@ -104,25 +104,28 @@
     (-> camera-view-projection-matrix
       (.multiplyMatrices (-> camera .-projectionMatrix) (-> camera .-matrixWorldInverse)))
     (-> frustum (.setFromMatrix camera-view-projection-matrix))
-    (doseq
-      [mesh (engine/get-unit-meshes (:units component))]
-      (if
-        (-> frustum (.intersectsObject mesh))
+    (engine/for-each-unit
+      (:units component)
+      (fn [_ unit]
         (let
-          [screen-box (new THREE.Box2)]
-          (doseq [vertex (-> (get-bounding-box-geometry mesh) .-vertices)]
-            (-> screen-box
-              (.expandByPoint
-                (scene/world-to-screen-fast width height camera-view-projection-matrix vertex))))
-          (let
-            [box #js [
-                      (-> screen-box .-min .-x)
-                      (-> screen-box .-min .-y)
-                      (-> screen-box .-max .-x)
-                      (-> screen-box .-max .-y)
-                      ]]
-            (aset box "mesh" mesh)
-            (-> screen-boxes (.push box))))))
+          [mesh (engine/get-unit-mesh unit)]
+          (if
+            (-> frustum (.intersectsObject mesh))
+            (let
+              [screen-box (new THREE.Box2)]
+              (doseq [vertex (-> (get-bounding-box-geometry mesh) .-vertices)]
+                (-> screen-box
+                  (.expandByPoint
+                    (scene/world-to-screen-fast width height camera-view-projection-matrix vertex))))
+              (let
+                [box #js [
+                          (-> screen-box .-min .-x)
+                          (-> screen-box .-min .-y)
+                          (-> screen-box .-max .-x)
+                          (-> screen-box .-max .-y)
+                          ]]
+                (aset box "mesh" mesh)
+                (-> screen-boxes (.push box))))))))
       screen-boxes))
 
 ; function belongs to alternative METHOD 3
@@ -149,8 +152,6 @@
      camera (data (:camera component))
      width @(get-in component [:scene-properties :width])
      height @(get-in component [:scene-properties :height])
-     meshes (engine/get-unit-meshes (:units component))
-     groups (engine/get-unit-groups (:units component))
      ]
     (-> camera .updateMatrixWorld)
     (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
@@ -161,23 +162,27 @@
       []
       (remove
         nil?
-        (for
-          [[group mesh] (map vector groups meshes)]
-          (if
-            (-> frustum (.intersectsObject mesh))
+        (engine/map-units
+          (:units component)
+          (fn [_ unit]
             (let
-              [screen-position 
-               (scene/world-to-screen-fast width height camera-view-projection-matrix (-> group .-position))
-               r3 (-> mesh .-geometry .-boundingSphere .-radius)
-               screen-radius (get-screen-radius height camera (-> group .-position) r3)
-               ]
-              {
-               :x (-> screen-position .-x)
-               :y (-> screen-position .-y)
-               :r screen-radius
-               :mesh mesh
-               })
-            nil))))))
+              [group (engine/get-unit-group unit)
+               mesh (engine/get-unit-mesh unit)]
+              (if
+                (-> frustum (.intersectsObject mesh))
+                (let
+                  [screen-position
+                   (scene/world-to-screen-fast width height camera-view-projection-matrix (-> group .-position))
+                   r3 (-> mesh .-geometry .-boundingSphere .-radius)
+                   screen-radius (get-screen-radius height camera (-> group .-position) r3)
+                   ]
+                  {
+                   :x (-> screen-position .-x)
+                   :y (-> screen-position .-y)
+                   :r screen-radius
+                   :mesh mesh
+                   })
+                nil))))))))
 
 
 ; function belongs to alternative METHOD 1, as replacement for
@@ -224,17 +229,22 @@
       (into
         []
         (remove nil?
-          (for [mesh (engine/get-unit-meshes (:units component))]
-            (if
-              (-> frustum (.intersectsObject mesh))
+          (engine/map-units
+            (:units component)
+            (fn
+              [_ unit]
               (let
-                [circle (mark component mesh)]
-                {
-                 :unit (engine/get-unit-for-mesh (:units component) mesh)
-                 :mesh mesh
-                 :mark circle
-                 })
-              nil)))))))
+                [mesh (engine/get-unit-mesh unit)]
+                (if
+                  (-> frustum (.intersectsObject mesh))
+                  (let
+                    [circle (mark component mesh)]
+                    {
+                     :unit (engine/get-unit-for-mesh (:units component) mesh)
+                     :mesh mesh
+                     :mark circle
+                     })
+                  nil)))))))))
 
 ; function belongs to alternative METHOD 1
 (defn
