@@ -367,6 +367,7 @@ void main() {
   [init-renderer component]
   (let
     [meshes (engine/get-unit-meshes (:units component))
+     units (engine/get-units (:units component))
      geo (new js/THREE.BufferGeometry)
      c (* (count meshes) xyz-size)
      d (* (count meshes) xyzw-size)
@@ -382,10 +383,9 @@ void main() {
       ]
      ]
     (doseq
-      [[index mesh] (map-indexed vector meshes)]
+      [[index [unit mesh]] (map-indexed vector (map vector units meshes))]
       (let
-        [unit (engine/get-unit-for-mesh (:units component) mesh)
-         health (/ (:health unit) (:max-health (:model unit)))]
+        [health (/ (:health unit) (:max-health (:model unit)))]
         (aset healths index health))
 
 ;      (aset positions (+ (* index xyz-size) 0) (-> mesh .-position .-x))

@@ -18,21 +18,23 @@
   (let
     [unit-voxels (engine/get-unit-explosions (:units component))
      unit-meshes (engine/get-unit-meshes (:units component))
+     units (engine/get-units (:units component))
      divisor 1000.0
-     ;t (- (common/game-time) (:start-time (:explosion component)))
-     elapsed @(:last-frame-elapsed init-renderer)
      ]
     (doseq
-      [[mesh voxels] (map vector unit-meshes unit-voxels)]
+      [[unit mesh voxels] (map vector units unit-meshes unit-voxels)]
       (let
         [material (-> voxels .-material)
          uniforms (-> material .-uniforms)
-         old-time (-> uniforms .-time .-value)
-         new-time (+ old-time elapsed)
+         old-time (:add-time unit)
+         new-time (- (common/game-time) old-time)
          duration (-> uniforms .-duration .-value)
-         mesh-visible (> (/ (mod new-time duration) duration) 0.5)]
-        (-> mesh .-visible (set! mesh-visible))
-        (-> uniforms .-time .-value (set! new-time))))))
+         alive-duration duration
+         total-duration (+ duration alive-duration)
+         mesh-visible (< (mod new-time total-duration) alive-duration)]
+        (if mesh-visible
+          (-> uniforms .-time .-value (set! new-time))
+          (-> uniforms .-time .-value (set! 0)))))))
 
 (defcom
   new-update-explosion
@@ -91,11 +93,22 @@ float getGroundHeight(vec2 xy) {
   return groundLevel;
 }
 
-void main() {
+void doLighting(vec3 geometryNormal) {
   const vec3 directLightColor = vec3(1.0);
+  float dotNL = dot(geometryNormal, normalize(lightDirection));
+  vec3 directLightColor_diffuse = PI * directLightColor;
+  vLightFront = saturate(dotNL) * directLightColor_diffuse;
+}
 
+void main() {
   vBoxIndex = boxIndex;
   vUV = uv;
+
+  if (time == 0.0) {
+    doLighting(normalize(normal));
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    return;
+  }
 
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
@@ -142,9 +155,7 @@ void main() {
 	transformedNormal = mat * transformedNormal;
 	transformedNormal /= transformedNormal.w;
 	vec3 geometryNormal = normalize(transformedNormal.xyz);
-  float dotNL = dot(geometryNormal, normalize(lightDirection));
-  vec3 directLightColor_diffuse = PI * directLightColor;
-  vLightFront = saturate(dotNL) * directLightColor_diffuse;
+  doLighting(geometryNormal);
 
   float maxValueOfAfterImpact = factor - impactTime;
   vec3 newPosition = r + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);

@@ -264,6 +264,7 @@
                    [voxel-geometry (:geometry voxel-dict)
                     voxel-material (-> (:material explosion) .clone)
                     _ (-> voxel-material .-uniforms .-map .-value (set! texture))
+                    _ (-> texture .-needsUpdate (set! true))
                     voxel-lambert (new js/THREE.MeshLambertMaterial
                                        #js
                                        {
@@ -272,12 +273,10 @@
                                         :emissiveMap texture
                                         :emissiveIntensity 0.5
                                         })
-                    _ (-> texture .-needsUpdate (set! true))
-                    start-time (+ (common/game-time) (* 1000.0 (math/random)))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
-                    _ (-> voxel-material .-uniforms .-time .-value (set! start-time))
+                    _ (-> voxel-material .-uniforms .-time .-value (set! 0))
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
-                    voxel-lambert-mesh (new js/THREE.Mesh voxel-geometry voxel-lambert)
+                    voxel-lambert-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ]
                    [explosion-mesh voxel-lambert-mesh])
                  bbox (-> mesh .-geometry .-boundingBox)
@@ -288,10 +287,11 @@
                   :index index
                   :model model
                   :health (* (math/random) (:max-health model))
+                  :add-time (+ (common/game-time) (* 1000.0 (math/random)))
                   :scene
                   {
                    :group group
-                   :display-mesh voxel-lambert-mesh
+                   :display-mesh explosion-mesh
                    :regular-mesh mesh
                    :build-mesh mesh
                    :stars-mesh cloud
@@ -302,11 +302,11 @@
                  ]
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
-                (swap! mesh-to-unit-map assoc voxel-lambert-mesh unit)
+                (swap! mesh-to-unit-map assoc explosion-mesh unit)
 ;                (-> group (.add mesh))
 ;                (-> group (.add cloud))
                 (-> group (.add explosion-mesh))
-                (-> group (.add voxel-lambert-mesh))
+;                (-> group (.add voxel-lambert-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)
