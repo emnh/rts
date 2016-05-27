@@ -35,7 +35,7 @@
       (magic/on-render component (:update-magic component))
       (explosion/on-render component (:update-explosion component))
       (-> renderer (.render scene camera))
-;      (overlay/on-xp-render component three-overlay)
+      (overlay/on-xp-render component three-overlay)
       (js/requestAnimationFrame (partial render-loop component)))))
 
 (defcom

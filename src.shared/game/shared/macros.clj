@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.shared.macros
-  (:require 
+  (:require
     [cljs.pprint :as pprint]
     [clojure.pprint :as pprint2]
     [clojure.walk :as walk]

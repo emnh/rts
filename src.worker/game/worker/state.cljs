@@ -4,8 +4,18 @@
 (def int32-size 4)
 (def xyz-size 3)
 
+(defrecord
+  State
+  [buffer
+   int32-buffer
+   float32-buffer
+   positions-offset
+   bboxes-offset
+   move-targets-offset
+   ])
+
 (defn -get-vector3
-  [int32-buffer float32-buffer float32-offset index]
+  [float32-buffer float32-offset index]
   (let
     [x-offset (+ float32-offset (* index xyz-size))
      y-offset (inc x-offset)
@@ -17,7 +27,7 @@
       (aget float32-buffer z-offset))))
 
 (defn -set-vector3
-  [int32-buffer float32-buffer float32-offset index vector3]
+  [float32-buffer float32-offset index vector3]
   (let
     [x-offset (+ float32-offset (* index xyz-size))
      y-offset (inc x-offset)
@@ -27,61 +37,104 @@
     (aset float32-buffer z-offset (-> vector3 .-z))))
 
 (defn -set-bbox
-  [int32-buffer float32-buffer float32-offset index bbox]
-  (-set-vector3 int32-buffer float32-buffer float32-offset (* index 2) (-> bbox .-min))
-  (-set-vector3 int32-buffer float32-buffer float32-offset (inc (* index 2)) (-> bbox .-max)))
+  [float32-buffer float32-offset index bbox]
+  (-set-vector3 float32-buffer float32-offset (* index 2) (-> bbox .-min))
+  (-set-vector3 float32-buffer float32-offset (inc (* index 2)) (-> bbox .-max)))
 
 (defn -get-bbox
-  [int32-buffer float32-buffer float32-offset index]
+  [float32-buffer float32-offset index]
   (new
     js/THREE.Box3
-    (-get-vector3 int32-buffer float32-buffer float32-offset (* index 2))
-    (-get-vector3 int32-buffer float32-buffer float32-offset (inc (* index 2)))))
+    (-get-vector3 float32-buffer float32-offset (* index 2))
+    (-get-vector3 float32-buffer float32-offset (inc (* index 2)))))
+
+(defn get-state-format
+  [unit-count]
+  [
+   {
+    :name :positions
+    :length (* unit-count xyz-size float32-size)
+    }
+   {
+    :name :bboxes
+    :length (* unit-count 2 xyz-size float32-size)
+    }
+   {
+    :name :move-targets
+    :length (* unit-count xyz-size float32-size)
+    }
+   ])
+
+(defn get-position
+  [state index]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     positions-offset (-> state .-positions-offset)]
+    (-get-vector3 float32-buffer positions-offset index)))
+
+(defn set-position
+  [state index vector3]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     positions-offset (-> state .-positions-offset)]
+    (-set-vector3 float32-buffer positions-offset index vector3)))
+
+(defn get-bbox
+  [state index]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     bbox-offset (-> state .-bboxes-offset)]
+    (-get-bbox float32-buffer bbox-offset index)))
+
+(defn set-bbox
+  [state index bbox]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     bbox-offset (-> state .-bboxes-offset)]
+    (-set-bbox float32-buffer bbox-offset index bbox)))
+
+(defn get-move-target
+  [state index]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     move-targets-offset (-> state .-move-targets-offset)]
+    (-get-vector3 float32-buffer move-targets-offset index)))
+
+(defn set-move-target
+  [state index vector3]
+  (let
+    [float32-buffer (-> state .-float32-buffer)
+     move-targets-offset (-> state .-move-targets-offset)]
+    (-set-vector3 float32-buffer move-targets-offset index vector3)))
 
 (defn
   init-state
   [{:keys [unit-count buffer]}]
   (let
     [
-     state-format
-     [
-      {
-       :name :positions
-       :length (* unit-count xyz-size float32-size)
-       :get -get-vector3
-       :set -set-vector3
-       }
-      {
-       :name :bbox
-       :length (* unit-count 2 xyz-size float32-size)
-       :get -get-bbox
-       :set -set-bbox
-       }
-      {
-       :name :move-targets
-       :length (* unit-count xyz-size float32-size)
-       :get -get-vector3
-       :set -set-vector3
-       }
-      ]
+     state-format (get-state-format unit-count)
      reduce-length (fn [offset {:keys [length]}] (+ offset length))
      length (reduce reduce-length 0 state-format)
      buffer (or buffer (new js/ArrayBuffer length))
      int32-buffer (new js/Int32Array buffer)
      float32-buffer (new js/Float32Array buffer)
+     ; the following shadows name
+     name-fn name
      reduce-fn
      (fn
        [[dict offset] {:keys [name length get set]}]
        [
-        (assoc dict name {
-                          :get (partial get int32-buffer float32-buffer (/ offset float32-size))
-                          :set (partial set int32-buffer float32-buffer (/ offset float32-size))
-                          })
+        (assoc dict (keyword (str (name-fn name) "-offset")) (/ offset float32-size))
         (+ offset length)
         ])
-     [functions offset] (reduce reduce-fn [{} 0] state-format)
+     [offsets offset] (reduce reduce-fn [{} 0] state-format)
+     state
+     (map->State
+       (merge
+         {
+          :buffer buffer
+          :int32-buffer int32-buffer
+          :float32-buffer float32-buffer
+          } offsets))
      ]
-    {
-     :buffer buffer
-     :functions functions
-     }))
+    state))

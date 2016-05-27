@@ -20,23 +20,21 @@
         :unit-count unit-count
         :buffer (-> buffer (.slice 0))
         })
-     get-position (get-in new-state [:functions :positions :get])
-     set-position (get-in new-state [:functions :positions :set])
-     get-bbox (get-in new-state [:functions :bbox :get])
-     get-move-target (get-in new-state [:functions :move-targets :get])
+     v3 (new js/THREE.Vector3)
      ]
     (doseq
       [unit-index (range unit-count)]
       (let
-        [position (get-position unit-index)
-         bbox (get-bbox unit-index)
+        [position (state/get-position new-state unit-index)
+         bbox (state/get-bbox new-state unit-index)
          spread 0.0
-         move-target (get-move-target unit-index)
+         move-target (state/get-move-target new-state unit-index)
          x (+ (-> position .-x) (* spread (+ (math/random) -0.5)))
          z (+ (-> position .-z) (* spread (+ (math/random) -0.5)))
          y (ground/align-to-ground @(:map-dict component) bbox x z)
          ]
-        (set-position unit-index (new js/THREE.Vector3 x y z))))
+        (-> v3 (.set x y z))
+        (state/set-position new-state unit-index v3)))
     (reset! state new-state)
     (if buffer
       (if @(:poll-state component)
@@ -50,7 +48,7 @@
           (reset! (:poll-state component) false)
           (-> js/self (.postMessage #js ["update" data] #js [buffer])))
         (do
-          (-> js/self (.postMessage #js ["update" nil] #js [buffer])))))
+          (-> js/self (.postMessage #js ["update" nil])))))
     (let
       [end-time (-> (new js/Date) .getTime)
        elapsed (- end-time start-time)

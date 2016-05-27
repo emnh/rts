@@ -101,8 +101,6 @@
         :unit-count unit-count
         :buffer nil
         })
-     set-position (get-in new-state [:functions :positions :set])
-     set-bbox (get-in new-state [:functions :bbox :set])
      ]
     (for-each-unit
       (:units component)
@@ -112,8 +110,8 @@
            mesh (get-unit-mesh unit)
            position (get-unit-position unit)
            bbox (-> mesh .-geometry .-boundingBox)]
-          (set-position index position)
-          (set-bbox index bbox))))
+          (worker-state/set-position new-state index position)
+          (worker-state/set-bbox new-state index bbox))))
     new-state))
 
 (defmulti -on-worker-message
@@ -186,16 +184,14 @@
                  {
                   :unit-count unit-count
                   :buffer (:buffer data)
-                  })
-         get-position (get-in new-state [:functions :positions :get])
-         set-position (get-in new-state [:functions :positions :set])]
+                  })]
         (for-each-unit
           (:units component)
           (fn [unit-index unit]
             (let
               [group (get-unit-group unit)]
               (let
-                [position (get-position unit-index)]
+                [position (worker-state/get-position new-state unit-index)]
                 (-> group .-position (.copy position))))))))))
 
 (defn on-worker-message
@@ -268,7 +264,7 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 40)]
+              [i (range 20)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
@@ -301,6 +297,7 @@
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! 0))
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                    ;_ (-> explosion-mesh .-renderOrder (set! index))
                     ]
                    explosion-mesh)
                  bbox (-> mesh .-geometry .-boundingBox)
