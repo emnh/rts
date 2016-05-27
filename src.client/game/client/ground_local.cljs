@@ -19,53 +19,53 @@
   [x-faces y-faces x y]
   (infix y * y-faces + x))
 
+(deftype
+  xy-to-index-return
+  [xd yd xi yi idx])
+
 (defn xy-to-index
   [width height x-faces y-faces x y]
   (let
     [xd (infix ((x + width / 2) * x-faces / width))
      yd (infix ((y + height / 2) * y-faces / height))
      xi (floor xd)
-     yi (floor yd)]
-    {
-     :xd xd
-     :yd yd
-     :xi xi
-     :yi yi
-     :idx (xy-index-to-index x-faces y-faces xi yi)
-     }))
+     yi (floor yd)
+     idx (xy-index-to-index x-faces y-faces xi yi)
+     ]
+    (xy-to-index-return. xd yd xi yi idx)))
 
 (defn get-height
   [component x y]
   (let
-    [height-field (:height-field component)
-     width (:width component)
-     height (:height component)
-     x-faces (:x-faces component)
-     y-faces (:y-faces component)
-     { :keys [xd yd xi yi idx] }
-     (xy-to-index width height x-faces y-faces x y)
+    [height-field (.-height-field component)
+     width (.-width component)
+     height (.-height component)
+     x-faces (.-x-faces component)
+     y-faces (.-y-faces component)
+     ret (xy-to-index width height x-faces y-faces x y)
+     xd (-> ret .-xd)
+     yd (-> ret .-yd)
+     xi (-> ret .-xi)
+     yi (-> ret .-yi)
+     idx (-> ret .-idx)
      x1 (infix x - (xd % 1) * width / x-faces)
      x2 (infix x1 + 1 * width / x-faces)
      y1 (infix y - (yd % 1) * height / y-faces)
      y2 (infix y1 + 1 * height / y-faces)
      ]
+    ;(if (or (isNaN xi) (isNaN yi)) (throw (new js/Error "NaN")))
     (if
-      (infix
-        xi < 0 ||
-        yi < 0 ||
-        isNaN(xi) ||
-        isNaN(yi) ||
-        xi > x-faces ||
-        inc(xi) > x-faces ||
-        yi > y-faces ||
-        inc(yi) > y-faces)
+      (or
+        (infix xi < 0)
+        (infix yi < 0)
+        (infix inc(xi) > x-faces)
+        (infix inc(yi) > y-faces))
       0
       (let
-        [lookup (partial xy-index-to-index x-faces y-faces)
-         fQ11 (aget height-field (lookup xi yi))
-         fQ21 (aget height-field (lookup (inc xi) yi))
-         fQ12 (aget height-field (lookup xi (inc yi)))
-         fQ22 (aget height-field (lookup (inc xi) (inc yi)))
+        [fQ11 (aget height-field (xy-index-to-index x-faces y-faces xi yi))
+         fQ21 (aget height-field (xy-index-to-index x-faces y-faces (inc xi) yi))
+         fQ12 (aget height-field (xy-index-to-index x-faces y-faces xi (inc yi)))
+         fQ22 (aget height-field (xy-index-to-index x-faces y-faces (inc xi) (inc yi)))
          fxy1 (infix ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21)
          fxy2 (infix ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22)
          fyy (infix ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2)
@@ -87,7 +87,8 @@
      h12 (get-height ground x1 z2)
      h21 (get-height ground x2 z1)
      h22 (get-height ground x2 z2)
-     y (- (max hc h11 h12 h21 h22)(-> bbox .-min .-y))
+     ;y (- (max hc h11 h12 h21 h22) (-> bbox .-min .-y))
+     y (- (math/max hc (math/max h11 (math/max h12 (math/max h21 h22)))) (-> bbox .-min .-y))
      ]
     y))
 
@@ -133,7 +134,7 @@
             y (-> simplex (.noise (/ x 100) (/ z 100)))
             y (/ (+ y 1) 2)
             y (+ (* y max-elevation) min-elevation)
-            idx (:idx (xy-to-index width height x-faces y-faces x z))
+            idx (-> (xy-to-index width height x-faces y-faces x z) .-idx)
             ]
            (-> position (.setY i y))
            (aset height-field idx y)

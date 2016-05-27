@@ -21,6 +21,7 @@
         :buffer (-> buffer (.slice 0))
         })
      v3 (new js/THREE.Vector3)
+     ground-map @(:map-dict component)
      ]
     (doseq
       [unit-index (range unit-count)]
@@ -31,7 +32,7 @@
          move-target (state/get-move-target new-state unit-index)
          x (+ (-> position .-x) (* spread (+ (math/random) -0.5)))
          z (+ (-> position .-z) (* spread (+ (math/random) -0.5)))
-         y (ground/align-to-ground @(:map-dict component) bbox x z)
+         y (ground/align-to-ground ground-map bbox x z)
          ]
         (-> v3 (.set x y z))
         (state/set-position new-state unit-index v3)))

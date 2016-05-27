@@ -44,7 +44,7 @@
         (-> camera .-position)
         (-> camera .-quaternion)
         (-> camera .-scale)))
-    (reset! (:map-dict component) map-dict)
+    (reset! (:map-dict component) (state/map->Ground map-dict))
     (reset! (:state component) state)
     (reset! (:camera component) camera)
     (reset! (:unit-count component) unit-count)

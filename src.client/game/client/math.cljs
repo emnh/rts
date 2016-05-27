@@ -1,4 +1,5 @@
-(ns ^:figwheel-always game.client.math)
+(ns ^:figwheel-always game.client.math
+  (:refer-clojure :exclude [max min]))
 
 (defn square [x] (* x x))
 (def sqrt #(-> js/Math (.sqrt %)))
@@ -12,3 +13,5 @@
 (def round #(-> js/Math (.round %)))
 (def random #(-> js/Math (.random)))
 (def isNaN #(js/isNaN %))
+(def max #(-> js/Math (.max %1 %2)))
+(def min #(-> js/Math (.min %1 %2)))

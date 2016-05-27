@@ -5,6 +5,14 @@
 (def xyz-size 3)
 
 (defrecord
+  Ground
+  [height-field
+   width
+   height
+   x-faces
+   y-faces])
+
+(defrecord
   State
   [buffer
    int32-buffer
