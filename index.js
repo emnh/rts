@@ -70,8 +70,8 @@ const config = {
   },
   units: {
     maxUnits: 40 * 40,
-    count: 40,
-    m3count: 20,
+    count: 10,
+    m3count: 10,
     speed: 50,
     randomLocation: true,
     airAltitude: 40,
@@ -2025,7 +2025,7 @@ function main() {
   initUI();
   onResize();
   initDebug();
-  // initM3Models();
+  initM3Models();
   loadModels(() => {
     game.missiles = new Missiles();
     game.map = new Map({

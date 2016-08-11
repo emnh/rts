@@ -2,6 +2,14 @@ const M3Models = require('./m3/M3Models.js');
 const Util = require('./Util.js').Util;
 const mpqFile = M3Models.mpqFile;
 
+function download(text, name, type) {
+    var a = document.createElement("a");
+    var file = new Blob([text], {type: type});
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    a.click();
+}
+
 export function ModelLoader(options) {
 
   const scope = this;
@@ -216,6 +224,8 @@ export function ModelLoader(options) {
     const updatePositions = function() {
       const bgeo = new THREE.Geometry();
       const l = batches.length;
+			let vertexIndex = 0;
+      let currentFaceUV = [];
       for (let i = 0; i < l; i++) {
         const batch = batches[i];
         const region = batch.region;
@@ -247,6 +257,12 @@ export function ModelLoader(options) {
               bytes[byteIndex + 18],
               bytes[byteIndex + 19]);
 
+					const uv =
+						new THREE.Vector2(
+                shorts[shortIndex + 24 / 2 + 0] / 2048.0,
+                shorts[shortIndex + 24 / 2 + 1] / 2048.0,
+                );
+
           // debug code
           const weightedBone0 = boneAtIndex(bone.x + boneLookup).multiplyScalar(weight.x / 255);
           const weightedBone1 = boneAtIndex(bone.y + boneLookup).multiplyScalar(weight.y / 255);
@@ -262,6 +278,14 @@ export function ModelLoader(options) {
           // console.log("position", pos);
           // console.log("outposition", outposition);
           bgeo.vertices.push(outposition);
+					if (vertexIndex % 3 == 0) {
+						bgeo.faces.push(new THREE.Face3(vertexIndex, vertexIndex + 1, vertexIndex + 2));
+            currentFaceUV = [uv];
+            bgeo.faceVertexUvs[0].push(currentFaceUV);
+					} else {
+            currentFaceUV.push(uv);
+          }
+					vertexIndex++;
         }
       }
 
@@ -518,6 +542,13 @@ export function ModelLoader(options) {
 
     const pReturn = new Promise((resolve, reject) => {
       pTexture.then(() => {
+
+				let bgeo2 = new THREE.BufferGeometry();
+				bgeo2 = bgeo2.fromGeometry(bgeo);
+				let output = bgeo2.toJSON();
+				output = JSON.stringify(output, null, '\t');
+				output = output.replace(/[\n\t]+([\d\.e\-\[\]]+)/g, '$1');
+				download(output, model.model.name + ".json", "text/json");
 
         //const meshparent = createObject(modelOptions, model, geomats);
         const meshparent = new THREE.Mesh(bgeo, new THREE.MeshBasicMaterial());
