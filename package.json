@@ -7,7 +7,7 @@
     "url" : "http://github.com/emnh/rts.git"
   },
   "dependencies": {
-    "howler": "*",
+    "howler": "1.1.26",
     "tween.js": "*",
     "three": "0.71.0",
     "static-kdtree": "*",
@@ -16,7 +16,7 @@
     "jquery": "*",
     "bootstrap": "*",
     "browserify": "*",
-    "babelify": "*",
+    "babelify": "6.1.2",
     "three": "*",
     "stacktrace-js": "*"
   },
