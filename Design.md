@@ -1,0 +1,53 @@
+# Design
+ - Players should have a sense of progress over time that is not based on skill. Example concepts:
+  - 1: Buildings, units or resources persist and accumulate in a single global game over time
+  - 2: Allowing AI helper macros / scripts to allow knowledge to accumulate and automate boring tasks and micro
+  - I choose approach 2 for this game, because 1 has problems with veteran players having unbeatable advantage towards newcomers.
+ - Players are focused on macro decisions while delegating micro to AI scripts
+  - Manual intervention for micro should be possible, but the hope is that AI scripts will make it unnecessary
+ - Support scaling to reasonable number of players
+   - Server processes ticks in interval of 1 seconds with linear interpolation for movement
+   - Server sends visible game state to each client per interval (not possible to cheat fog of war)
+   - Client sends a list of actions per interval and server validates and executes it
+    - Collect crystals
+    - Building construction list
+    - Unit construction list
+    - Movement target per unit (should we allow subsecond movement list, e.g. for kiting?)
+    - Attack list with times and coordinates per unit (fire rate may be subsecond)
+ - Units
+  - Properties
+   - Health (hit points)
+   - Armor (subtracted from damage taken)
+   - Mass (used for computing blowback on hit)
+   - Move speed
+   - Collision radius
+   - Weapon
+    - Attack damage
+    - Attack period
+    - Impact time
+    - Area of effect
+    - Number of shots (how to animate?)
+  - Melee units are simply units with 0.0 range
+  - Balance: All players have access to the same units
+  - Unit specs can be customized for each factory
+   - 3D model+texture should indicate some unit properties for recognition
+    - Each model+texture has a spec range
+    - Each model+texture has a set of tags like Armored, Mechanical, Insect
+     - Rock, paper, scissor dynamics are essential for varied strategies
+   - Price and build time will be computed based on specs, for example
+     - Adding armor reduces movement speed
+     - Adding DPS increases cost and build time
+     - Adding health increases cost and build time
+   - Upgrades do not affect already built units
+   - Changing factory specs is possible, but incurs a cost and reconstruction time
+   - Each unit can be fitted with different weapons
+    - Affects attack animation
+ - Scouting should be very important
+  - Seeing a unit for the first time reveals its health, mass, collision radius
+  - Seeing a unit move for the first time reveals its move speed
+  - Seeing a unit fire for the first time reveals its weapon properties
+  - Seeing a unit take damage for the first time reveals its armor
+  - Seeing a unit factory reveals all unit properties
+ - Air units cannot overlap, unlike some other RTS.
+  - This is just to unify collision mechanics.
+  - Air units can fly over (low) ground units however.
