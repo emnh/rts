@@ -31,11 +31,9 @@ npm install
 
  - Then open 2 terminals and run the following:
 ```bash
-cd game
 ./scripts/dev.sh
 ```
 ```bash
-cd game
 node js/figwheel.js
 ```
  - Server figwheel runs on port 3450
