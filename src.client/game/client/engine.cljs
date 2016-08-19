@@ -285,6 +285,7 @@
                  ;bounding-box-min (-> geometry .-boundingBox .-min)
                  ;bounding-box-max (-> geometry .-boundingBox .-max)
                  voxel-geometry (:geometry voxel-dict)
+                 bbox (-> voxel-geometry .-boundingBox)
                  bounding-box-min (-> voxel-geometry .-boundingBox .-min)
                  bounding-box-max (-> voxel-geometry .-boundingBox .-max)
                  _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
@@ -309,7 +310,6 @@
                     ;_ (-> explosion-mesh .-renderOrder (set! index))
                     ]
                    explosion-mesh)
-                 bbox (-> mesh .-geometry .-boundingBox)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)
                  unit
