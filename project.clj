@@ -72,7 +72,19 @@
                 :output-dir "out.prod.client"
                 ; compiling with optimizations takes too much memory
                 ;:optimizations :simple}}]}
-                :optimizations :none}}
+                :optimizations :advanced
+                :pretty-print true
+                :pseudo-names true
+                :externs [
+                          "externs/three.ext.js"
+                          "externs/jquery.ext.js"
+                          "externs/msgpack-js-browser.ext.js"
+                          "externs/pako.ext.js"
+                          "externs/stats.ext.js"
+                          "externs/goog.ext.js"
+                          "externs/simplex.ext.js"
+                          "externs/pixi.ext.js"
+                          ]}}
              ]}
   :figwheel {
              :server-port 3450

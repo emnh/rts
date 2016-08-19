@@ -1,0 +1,3 @@
+var SimplexNoise = {
+  "noise": function () {}
+};
