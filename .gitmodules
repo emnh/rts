@@ -1,3 +1,6 @@
 [submodule "models"]
 	path = resources/public/models
 	url = https://github.com/emnh/rts-models
+[submodule "resources/public/models-dinosaurs"]
+	path = resources/public/models-dinosaurs
+	url = https://github.com/emnh/rts-models-dinosaurs
