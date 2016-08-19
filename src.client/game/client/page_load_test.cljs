@@ -45,16 +45,20 @@
   [progress-map]
   (into
     []
-    (for
-      [resource (keys progress-map)]
-      (let
-        [{:keys [completed total]}
-         (progress-map resource)
-         progress (* 100 (if (> total 0) (/ completed total) 1))
-         progress-text (str resource ": " progress "%")]
-        (rum/with-key
-          (list-item (progress-bar progress-text progress))
-          resource)))))
+    (remove nil?
+      (for
+        [resource (keys progress-map)]
+        (let
+          [{:keys [completed total]}
+           (progress-map resource)
+           progress (* 100 (if (> total 0) (/ completed total) 1))
+           progress-text (str resource ": " progress "%")]
+          (if-not
+            (= 100 (round progress))
+            (rum/with-key
+              (list-item (progress-bar progress-text progress))
+              resource)
+            nil))))))
 
 (rum/defc
   progress-list < rum/reactive

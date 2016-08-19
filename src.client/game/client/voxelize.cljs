@@ -23,6 +23,134 @@
 
 ; Based on http://drububu.com/miscellaneous/voxelizer/index.html
 
+'(defn
+  instanced-voxelize-output
+  "Returns geometry of cubes representing voxels"
+  [voxel-dict]
+  (let
+    [new-geometry (new js/THREE.Geometry)
+     bgeo (new js/THREE.InstancedBufferGeometry)
+     voxel-count (:voxel-count voxel-dict)
+     inc-voxel-count (inc voxel-count)
+     voxel-width (:voxel-width voxel-dict)
+     voxel-height (:voxel-height voxel-dict)
+     voxel-depth (:voxel-depth voxel-dict)
+     box (new js/THREE.BoxGeometry voxel-width voxel-height voxel-depth)
+     one-box (new js/THREE.BoxGeometry 1 1 1)
+     _ (-> one-box (.translate 0.5 0.5 0.5))
+     min-offset-x (:offset-x voxel-dict)
+     min-offset-y (:offset-y voxel-dict)
+     min-offset-z (:offset-z voxel-dict)
+     voxels (:voxels voxel-dict)
+     total-voxels (* voxel-count voxel-count voxel-count)
+     box-indices #js []
+     box-translations #js []
+     billboard-coords #js []
+     uvs (:uvs voxel-dict)
+     get-index (fn [x y z] (infix (x + voxel-count * (y + voxel-count * z))))
+     inc-get-index (fn [x y z] (infix (x + inc-voxel-count * (y + inc-voxel-count * z))))
+     ]
+    (doseq
+      [index (range total-voxels)]
+      (let
+        [
+         index-main (quot index int32-size-bits)
+         index-bit (mod index int32-size-bits)
+         int32 (aget voxels index-main)
+         bit (bit-and int32 (bit-shift-left 1 index-bit))
+         voxel-set? (not= 0 bit)]
+        (if voxel-set?
+          (let
+            [x-index (mod index voxel-count)
+             yz-index (quot index voxel-count)
+             y-index (mod yz-index voxel-count)
+             z-index (quot yz-index voxel-count)
+             x-offset-centre (infix min-offset-x + (x-index + 0.5) * voxel-width)
+             y-offset-centre (infix min-offset-y + (y-index + 0.5) * voxel-height)
+             z-offset-centre (infix min-offset-z + (z-index + 0.5) * voxel-depth)
+             x-offset (infix min-offset-x + (x-index + 0.0) * voxel-width)
+             y-offset (infix min-offset-y + (y-index + 0.0) * voxel-height)
+             z-offset (infix min-offset-z + (z-index + 0.0) * voxel-depth)
+             box-clone (-> box .clone)
+             face-vertex-uvs (aget (-> box-clone .-faceVertexUvs) 0)
+             mat (new js/THREE.Matrix4)
+             ]
+            (doseq
+              [[i face] (map-indexed vector (-> one-box .-faces))]
+              (let
+                [a (-> face .-a)
+                 b (-> face .-b)
+                 c (-> face .-c)
+                 av (aget (-> one-box .-vertices) a)
+                 bv (aget (-> one-box .-vertices) b)
+                 cv (aget (-> one-box .-vertices) c)
+                 a-uv-index (inc-get-index 
+                              (+ x-index (-> av .-x))
+                              (+ y-index (-> av .-y))
+                              (+ z-index (-> av .-z)))
+                 b-uv-index (inc-get-index 
+                              (+ x-index (-> bv .-x))
+                              (+ y-index (-> bv .-y))
+                              (+ z-index (-> bv .-z)))
+                 c-uv-index (inc-get-index
+                              (+ x-index (-> cv .-x))
+                              (+ y-index (-> cv .-y))
+                              (+ z-index (-> cv .-z)))
+                 a-uv1 (aget uvs (infix a-uv-index * 2 + 0))
+                 a-uv2 (aget uvs (infix a-uv-index * 2 + 1))
+                 a-uv (new js/THREE.Vector2 a-uv1 a-uv2)
+                 b-uv1 (aget uvs (infix b-uv-index * 2 + 0))
+                 b-uv2 (aget uvs (infix b-uv-index * 2 + 1))
+                 b-uv (new js/THREE.Vector2 b-uv1 b-uv2)
+                 c-uv1 (aget uvs (infix c-uv-index * 2 + 0))
+                 c-uv2 (aget uvs (infix c-uv-index * 2 + 1))
+                 c-uv (new js/THREE.Vector2 c-uv1 c-uv2)
+                 ]
+                (aset (aget face-vertex-uvs i) 0 a-uv)
+                (aset (aget face-vertex-uvs i) 1 b-uv)
+                (aset (aget face-vertex-uvs i) 2 c-uv)
+                ))
+            (doseq
+              [i (range (* box-faces triangle-size))]
+              (-> box-translations (.push x-offset-centre))
+              (-> box-translations (.push y-offset-centre))
+              (-> box-translations (.push z-offset-centre))
+              (-> box-indices (.push index)))
+            (doseq
+              [i (range (* (/ box-faces billboard-corners) triangle-size))]
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push -0.5))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.0))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.5))
+              (-> billboard-coords (.push 0.0)))
+            ))))
+    (-> mat (.makeTranslation x-offset y-offset z-offset))
+    (-> new-geometry (.merge box-clone mat))
+    (-> bgeo (.fromGeometry new-geometry))
+    (let
+      [box-indices (new js/Float32Array box-indices)
+       box-indices-attr (new js/THREE.BufferAttribute box-indices 1)
+       box-translations (new js/Float32Array box-translations)
+       box-translations-attr (new js/THREE.BufferAttribute box-translations 3)
+       billboard-coords (new js/Float32Array billboard-coords)
+       billboard-coords-attr (new js/THREE.BufferAttribute billboard-coords 3)
+       ]
+      (-> bgeo (.addAttribute "boxIndex" box-indices-attr))
+      (-> bgeo (.addAttribute "boxTranslation" box-translations-attr))
+      (-> bgeo (.addAttribute "billboardCoord" billboard-coords-attr)))
+    (-> bgeo (.computeBoundingBox))
+    (-> bgeo (.computeBoundingSphere))
+    (-> bgeo (.computeFaceNormals))
+    (-> bgeo (.computeVertexNormals))
+    bgeo))
+
 (defn
   voxelize-output
   "Returns geometry of cubes representing voxels"
@@ -47,7 +175,6 @@
      box-translations #js []
      billboard-coords #js []
      uvs (:uvs voxel-dict)
-;     _ (.log js/console "uvs" uvs)
      get-index (fn [x y z] (infix (x + voxel-count * (y + voxel-count * z))))
      inc-get-index (fn [x y z] (infix (x + inc-voxel-count * (y + inc-voxel-count * z))))
      ]
@@ -241,12 +368,18 @@
     (assoc voxel-dict :voxels new-voxels)))
 
 (defn
+  get-time
+  []
+  (-> (new js/Date) .getTime))
+
+(defn
   voxelize-geometry
   "Returns bit-array of voxels of size voxel-count^3 containing voxelized
   geometry"
   [geometry voxel-count]
   (let
-    [position (-> geometry (.getAttribute "position"))
+    [start-time (get-time)
+     position (-> geometry (.getAttribute "position"))
      array (-> position .-array)
      uv (-> geometry (.getAttribute "uv"))
      uv-array (-> uv .-array)
@@ -340,7 +473,7 @@
                       uv3z (-> uv3 .clone (.multiplyScalar (-> barycoord .-z)))
                       uv (-> uv1x (.add uv2y) (.add uv3z))
                       ]
-                     (println "setting uv" x y z 
+                     '(println "setting uv" x y z 
                               "distance" distance
                               "uv1" (-> uv1 .-x) (-> uv1 .-y)
                               "uv2" (-> uv2 .-x) (-> uv2 .-y)
@@ -391,7 +524,17 @@
     ; rasterize triangles {{{
     (doseq [i (range triangle-count)]
       (if (= 0 (mod i (max 1 (quot triangle-count 100))))
-        (println "%:" (* 100 (/ i triangle-count))))
+        (let
+          [elapsed (/ (- (get-time) start-time) 1000.0)
+           progress-frac (/ i triangle-count)
+           total
+           (if
+             (= progress-frac 0)
+             0
+             (/ elapsed progress-frac))
+           left (- total elapsed)
+           left (math/round left)]
+          (println (str (* 100 progress-frac) "%") "left:" (str left "s"))))
       (let
         [index (* i attr-size)
          uv-index (* i uv-attr-size)

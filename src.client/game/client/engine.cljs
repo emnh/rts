@@ -39,6 +39,11 @@
   (:display-mesh (:scene unit)))
 
 (defn
+  get-unit-regular-mesh
+  [unit]
+  (:regular-mesh (:scene unit)))
+
+(defn
   get-unit-build-mesh
   [unit]
   (:build-mesh (:scene unit)))
@@ -264,7 +269,7 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 20)]
+              [i (range 2)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
@@ -277,8 +282,11 @@
                           (-> texture .-repeat .-x)
                           (-> texture .-repeat .-y))
                  _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
-                 bounding-box-min (-> geometry .-boundingBox .-min)
-                 bounding-box-max (-> geometry .-boundingBox .-max)
+                 ;bounding-box-min (-> geometry .-boundingBox .-min)
+                 ;bounding-box-max (-> geometry .-boundingBox .-max)
+                 voxel-geometry (:geometry voxel-dict)
+                 bounding-box-min (-> voxel-geometry .-boundingBox .-min)
+                 bounding-box-max (-> voxel-geometry .-boundingBox .-max)
                  _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  mesh (new js/THREE.Mesh geometry material)
@@ -286,16 +294,17 @@
                  _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
                  _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-                 cloud (new js/THREE.Mesh (:geometry voxel-dict) cloud-material)
+                 cloud (new js/THREE.Mesh voxel-geometry cloud-material)
                  _ (-> cloud .-renderOrder (set! 1))
                  explosion-mesh
                  (let
-                   [voxel-geometry (:geometry voxel-dict)
-                    voxel-material (-> (:material explosion) .clone)
+                   [voxel-material (-> (:material explosion) .clone)
                     _ (-> voxel-material .-uniforms .-map .-value (set! texture))
                     _ (-> texture .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! 0))
+                    _ (-> voxel-material .-uniforms .-duration .-value
+                        (set! (+ 500.0 (* (math/random) 30000.0))))
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
                     ;_ (-> explosion-mesh .-renderOrder (set! index))
                     ]
@@ -313,6 +322,7 @@
                   {
                    :group group
                    :display-mesh explosion-mesh
+                   ;:display-mesh mesh
                    :regular-mesh mesh
                    :build-mesh mesh
                    :stars-mesh cloud
@@ -323,8 +333,10 @@
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (swap! mesh-to-unit-map assoc explosion-mesh unit)
-;                (-> group (.add mesh))
-;                (-> group (.add cloud))
+                (-> group (.add mesh))
+                (-> mesh .-visible (set! false))
+                (-> cloud .-visible (set! false))
+                (-> group (.add cloud))
                 (-> group (.add explosion-mesh))
                 (scene/add scene group)
                 (doto (-> group .-position)

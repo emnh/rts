@@ -97,9 +97,12 @@
 
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
 
+(def standalone true)
+
 (s-add-component system :routing-callback (new-lc reload-page))
 (s-add-component system :routing (routing/new-router))
-(s-add-component system :sente-setup (sente-setup/new-sente-setup))
+(if-not standalone
+  (s-add-component system :sente-setup (sente-setup/new-sente-setup)))
 (s-add-component system :progress-manager (progress-manager/new-progress-manager))
 (s-add-component system :resources (resources/new-resources))
 
@@ -107,14 +110,18 @@
                  (new-page :game-test (page-game-test/new-game-test)))
 (s-add-component system :page-load-test
                  (new-page :load-test (page-load-test/new-load-test)))
-(s-add-component system :page-sente-test
-                 (new-page :sente-test (page-sente-test/new-sente-test)))
+(if-not standalone
+  (s-add-component system :page-sente-test
+                   (new-page :sente-test (page-sente-test/new-sente-test))))
 (s-add-component system :page-game
                  (new-page :game (page-game/new-game)))
-(s-add-component system :page-lobby
-                 (new-page :lobby (page-lobby/new-lobby)))
-(s-add-component system :page-game-lobby
-                 (new-page :game-lobby (page-game-lobby/new-game-lobby)))
+(if-not standalone
+  (s-add-component system :page-lobby
+                   (new-page :lobby (page-lobby/new-lobby))))
+(if-not standalone
+  (s-add-component system :page-game-lobby
+                   (new-page :game-lobby (page-game-lobby/new-game-lobby))))
+
 (s-add-component system :page-not-found
                  (new-page :not-found (page-not-found/new-page-not-found)))
 

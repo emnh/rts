@@ -32,11 +32,13 @@
            old-time (:add-time unit)
            new-time (- current-time old-time)
            duration (-> uniforms .-duration .-value)
-           alive-duration duration
+           alive-duration (* 1.0 divisor) ;duration
            total-duration (+ duration alive-duration)
-           mesh-visible (< (mod new-time total-duration) alive-duration)]
-          (if mesh-visible
-            (-> uniforms .-time .-value (set! new-time))
+           mod-new-time (mod new-time total-duration)
+           sub-new-time (- mod-new-time alive-duration)
+           mesh-visible (< sub-new-time 0)]
+          (if-not mesh-visible
+            (-> uniforms .-time .-value (set! sub-new-time))
             (-> uniforms .-time .-value (set! 0))))))))
 
 (defcom
@@ -67,6 +69,7 @@ attribute vec3 boxTranslation;
 varying vec3 vLightFront;
 varying float vBoxIndex;
 varying vec2 vUV;
+varying float vTimePart;
 
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -115,9 +118,10 @@ void main() {
 
 	vec3 normalizedBoxTranslation = normalize(boxTranslation);
   vec3 offset = (boxTranslation - position);
-  float interval = duration;
+  float interval = duration; // * (random(boxIndex) + 0.001);
   float factor = 4.0; // give time to finish falling
   float timePart = factor * mod(time, interval) / interval;
+  vTimePart = timePart / factor;
 	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;
 	float rnd = random(boxIndex) - 0.5;
 
@@ -182,12 +186,14 @@ float random(float co)
 varying vec3 vLightFront;
 varying float vBoxIndex;
 varying vec2 vUV;
+varying float vTimePart;
 
 void main() {
   float rnd = random(vBoxIndex);
-  //vec4 diffuseColor = vec4(rnd, 0.0, 0.0, 1.0);
   //vec4 diffuseColor = vec4(vUV, 0.0, 1.0);
-  vec4 diffuseColor = texture2D(map, vUV);
+  vec4 diffuseColor1 = texture2D(map, vUV);
+  vec4 diffuseColor2 = vec4(rnd, 0.0, 0.0, 1.0);
+  vec4 diffuseColor = mix(diffuseColor1, diffuseColor2, vTimePart);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
   vec3 emissive = diffuseColor.rgb / 3.0;
   vec3 outgoingLight = directDiffuse + emissive;

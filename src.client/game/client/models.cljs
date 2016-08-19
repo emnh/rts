@@ -8,6 +8,8 @@
    {
      :name "headquarters"
      :path "models/3d/moonbase.json"
+     ;:texture-path "models/images/camouflage.jpg"
+     :texture-path "models/images/castle.jpg"
      :scale 3
      :type :unit-type/building
      :opacity 1.0
@@ -30,8 +32,9 @@
     :name "tank-m1a1"
     :path "models/3d/tank-m1a1.json"
     :scale 0.05
-    :texture-path "models/images/camouflage.jpg"
-    :texture-repeat [0.2 0.2]
+    :texture-path "models/images/uv2.jpg"
+    ;:texture-path "models/images/camouflage.jpg"
+    ;:texture-repeat [0.2 0.2]
     }
    {
      :name "dragon"
@@ -59,6 +62,7 @@
    {
      :name "tank-apc"
      :path "models/3d/tank-apc.json"
+     :texture-path "models/images/camouflage.jpg"
      :scale 0.2
      :rotation [0 (/ pi 2) 0]
    }
@@ -128,11 +132,125 @@
    ]
   )
 
+(def models-dinosaurs
+  [
+   {
+     :name "tyrannosaurus"
+     :path "models-dinosaurs/3d/tyrannosaurus.json"
+     ;:texture-path "models/images/uv2.jpg"
+     ;:texture-path "models/images/castle.jpg"
+     :texture-path "models/images/fighter.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "triceratops"
+     :path "models-dinosaurs/3d/triceratops.json"
+     ;:texture-path "models/images/colormap.jpg"
+     :texture-path "models/images/ant.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "tusk"
+     :path "models-dinosaurs/3d/tusk.json"
+     :texture-path "models/images/fighter.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "otter"
+     :path "models-dinosaurs/3d/otter.json"
+     ;:texture-path "models/images/colormap.jpg"
+     :texture-path "models/images/biplane.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "pachycephalosaurus"
+     :path "models-dinosaurs/3d/pachycephalosaurus.json"
+     :texture-path "models/images/blue.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "bahamas"
+     :path "models-dinosaurs/3d/bahamas.json"
+     :texture-path "models/images/uv.png"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "dentist"
+     :path "models-dinosaurs/3d/dentist.json"
+     :texture-path "models/images/colormap.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "waterhead"
+     :path "models-dinosaurs/3d/waterhead.json"
+     :texture-path "models/images/dragon.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "undead"
+     :path "models-dinosaurs/3d/undead.json"
+     :texture-path "models/images/uv2.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "colomb"
+     :path "models-dinosaurs/3d/colomb.json"
+     :texture-path "models/images/colormap.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "earthling"
+     :path "models-dinosaurs/3d/earthling.json"
+     :texture-path "models/images/ant.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "rocker"
+     :path "models-dinosaurs/3d/rocker.json"
+     :texture-path "models/images/blue.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "ballista"
+     :path "models-dinosaurs/3d/ballista.json"
+     :texture-path "models/images/starsky.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "spyglass"
+     :path "models-dinosaurs/3d/spyglass.json"
+     :texture-path "models/images/mushroom.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "cancer"
+     :path "models-dinosaurs/3d/cancer.json"
+     :texture-path "models/images/horse.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "swordsman"
+     :path "models-dinosaurs/3d/swordsman.json"
+     :texture-path "models/images/biplane.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+   {
+     :name "bug"
+     :path "models-dinosaurs/3d/bug.json"
+     :texture-path "models/images/uv2.jpg"
+     :rotation [(/ pi -2) 0 (/ pi 2)]
+   }
+  ])
+
 (def defaults
   {
    :scale 1
    :rotation [0 0 0]
-   :texture-path "models/images/camouflage.jpg"
+   ; TODO: post-rotation and post-scale are just temporary hacks
+   :post-rotation [0 0 0]
+   :post-scale 1
+   ;:texture-path "models/images/colormap.jpg"
+   :texture-path "models/images/grayscale.png"
    :texture-repeat [1 1]
    :opacity 1
    :type :unit-type/ground
@@ -144,7 +262,7 @@
 
 (defn get-models
   []
-  (map #(merge defaults %) models))
+  (map #(merge defaults %) (concat models models-dinosaurs)))
 
 (defn transform-geometry
   [model geo]
@@ -156,6 +274,27 @@
     (-> mat (.makeRotationY (nth (:rotation model) 1)))
     (-> geo (.applyMatrix mat))
     (-> mat (.makeRotationZ (nth (:rotation model) 2)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeScale scale scale scale))
+    (-> geo (.applyMatrix mat))
+    ;(-> geo (.computeBoundingBox))
+    (-> geo (.center))
+    (-> geo (.computeBoundingBox))
+    (-> geo (.computeBoundingSphere))
+    (-> geo (.computeFaceNormals))
+    (-> geo (.computeVertexNormals))
+    geo))
+
+(defn post-transform-geometry
+  [model geo]
+  (let
+    [mat (new js/THREE.Matrix4)
+     scale (:post-scale model)]
+    (-> mat (.makeRotationX (nth (:post-rotation model) 0)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeRotationY (nth (:post-rotation model) 1)))
+    (-> geo (.applyMatrix mat))
+    (-> mat (.makeRotationZ (nth (:post-rotation model) 2)))
     (-> geo (.applyMatrix mat))
     (-> mat (.makeScale scale scale scale))
     (-> geo (.applyMatrix mat))

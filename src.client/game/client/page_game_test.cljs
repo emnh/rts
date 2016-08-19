@@ -14,6 +14,7 @@
               [game.client.ground-local :as ground]
               [game.client.scene :as scene]
               [game.client.math :as math :refer [round]]
+              [game.client.page-load-test :as page-load-test]
               [game.shared.state :as state :refer [with-simple-cause]]
               [sablono.core :as sablono :refer-macros [html]]
               )
@@ -44,21 +45,105 @@
     (overlay/on-render init-renderer pixi-overlay)
     (-> pixi-renderer (.render pixi-stage))))
 
+(defn
+  on-change-healthbars
+  [component event]
+  (let
+    [checked (-> event .-target .-checked)
+     subsystem (:subsystem component)
+     three-overlay (:three-overlay subsystem)
+     healthbar-mesh-parent (:mesh-parent three-overlay)]
+    (-> healthbar-mesh-parent .-visible (set! checked))))
+
+(defn
+  on-change-magicstars
+  [component event]
+  (let
+    [checked (-> event .-target .-checked)
+     subsystem (:subsystem component)
+     units (:units subsystem)]
+    (engine/for-each-unit
+      units
+      (fn [i unit]
+        (-> (engine/get-unit-star unit) .-visible (set! checked))))))
+
+(defn
+  on-change-geometry
+  [component event]
+  (let
+    [checked (-> event .-target .-checked)
+     subsystem (:subsystem component)
+     units (:units subsystem)]
+    (engine/for-each-unit
+      units
+      (fn [i unit]
+        (-> (engine/get-unit-regular-mesh unit) .-visible (set! checked))))))
+
+(defn
+  on-change-explosions
+  [component event]
+  (let
+    [checked (-> event .-target .-checked)
+     subsystem (:subsystem component)
+     units (:units subsystem)]
+    (engine/for-each-unit
+      units
+      (fn [i unit]
+        (-> (engine/get-unit-explosion unit) .-visible (set! checked))))))
 
 (rum/defc
   test-buttons < rum/static
   [component]
-  [:ul
-   [:li [:button {
-            :type "button"
-            :class "btn btn-primary"
-            :on-click (partial on-click-three-js component)
-            } "Render Three.js"]]
-   [:li [:button {
-            :type "button"
-            :class "btn btn-primary"
-            :on-click (partial on-click-pixi-js component)
-            } "Render Pixi.js"]]
+  [:ul { :class "vertical-list" }
+   [:li [:a { :href "https://github.com/emnh/rts" } "Project On GitHub"] ]
+   [:li
+    [:input
+     {
+      :type "checkbox"
+      :class ""
+      :on-change (partial on-change-healthbars component)
+      :value ""
+      }]
+    [:label "Health bars"]]
+   [:li
+    [:input
+     {
+      :type "checkbox"
+      :class ""
+      :on-change (partial on-change-magicstars component)
+      :value ""
+      }]
+    [:label "Magic stars"]]
+   [:li
+    [:input
+     {
+      :type "checkbox"
+      :class ""
+      :on-change (partial on-change-geometry component)
+      :value ""
+      }]
+    [:label "Unvoxelized geometry (some models only)"]]
+   [:li
+    [:input
+     {
+      :type "checkbox"
+      :class ""
+      :on-change (partial on-change-explosions component)
+      :value ""
+      :defaultChecked true
+      }]
+    [:label "Explosions"]]
+   [:li
+    "Control keys"
+     [:ul
+      [:li "Using browser full screen should maximize game canvas (F11 in Chrome)"]
+      [:li "Arrow keys to move camera"]
+      [:li "Ctrl+arrow keys to rotate camera"]
+      [:li "PgUp/PgDn to zoom"]
+      [:li "Home to reset view"]
+      [:li "Drag mouse to select units"]
+      ]]
+   [:li [:div "Page load progress" ] (page-load-test/progress-list component)]
    ])
 
 (rum/defc
@@ -153,7 +238,7 @@
 
 (defcom
   new-game-test
-  [resources simplex]
+  [resources simplex progress-manager]
   [subsystem]
   start
   stop)

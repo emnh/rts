@@ -4,4 +4,4 @@
 #  node --stack_size=10000 js/voxelize.js $fname $out
 #done
 #node --stack_size=10000 --max-old-space-size=8192 js/voxelize.js
-node --stack_size=10000 js/voxelize.js
+node --stack_size=10000 js/voxelize.js $1

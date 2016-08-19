@@ -111,11 +111,10 @@ body.fullscreen {
   z-index: 4;
 }
 
-#page-game-test ul {
-  margin-top: 5px;
-  padding-left: 0;
-}
-#page-game-test li {
-  padding-left: 5px;
-  display: inline;
-}
+/*#page-game-test ul {*/
+/*  margin-top: 5px;*/
+/*  padding-left: 0;*/
+/*}*/
+/*#page-game-test li {*/
+/*  padding-left: 5px;*/
+/*  display: inline;*/

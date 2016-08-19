@@ -6,7 +6,7 @@
               [promesa.core :as p]
               [game.client.math :as math :refer [pi]]
               [game.client.config :as config]
-              [game.client.models :as models :refer [transform-geometry]]
+              [game.client.models :as models :refer [transform-geometry post-transform-geometry]]
               [game.client.voxelize :as voxelize]
               [game.client.progress-manager
                :as progress-manager
@@ -78,6 +78,8 @@
                 ;_ (println "voxels" (:voxels voxel-dict))
 ;                voxel-dict (assoc voxel-dict :uvs (new js/Float32Array (flatten (:uvs voxel-dict))))
                 voxel-geometry (voxelize/voxelize-output voxel-dict)
+                ; TODO: post-transform-geometry is just a hack
+                voxel-geometry (post-transform-geometry model voxel-geometry)
                 ;voxel-geometry (transform-geometry model voxel-geometry)
                 voxel-dict (assoc voxel-dict :geometry voxel-geometry)]
 ;               (.log js/console "uvs" (-> voxel-geometry (.getAttribute "uv")))
@@ -139,12 +141,18 @@
          (for
            [model (models/get-models)]
            (let
-             [path (:path model)
+             [
+              path (:path model)
               texture-path (:texture-path model)
               voxels-path
               (or
                 (:voxels-path model)
                 (replace (replace path #"/3d/" "/voxels/") #"\.json$" ".msgpack.gz"))
+              path
+              (if
+                (string/includes? path "models-dinosaurs")
+                "models/3d/missile.json"
+                path)
               path (replace path #"\.json$" ".msgpack.gz")
               on-geo-progress (partial on-progress progress-manager path)
               on-texture-progress (partial on-progress progress-manager texture-path)

@@ -123,6 +123,7 @@
     render-texture
     ))
 
+; TODO: unused. remove?
 (defn select-texture
   [red-texture orange-texture yellow-texture green-texture health]
   (cond
@@ -135,6 +136,7 @@
     :else
     green-texture))
 
+; TODO: unused. remove?
 (defn draw-health-bar
   [component stage partial-select-texture transparent-texture index box]
   (let
@@ -181,6 +183,7 @@
           (-> sprite .-position .-x (set! (+ x1 i)))
           (-> sprite .-position .-y (set! y1)))))))
 
+; TODO: unused. remove?
 (defn on-render
   [init-renderer component]
   (let
@@ -223,6 +226,7 @@
     (aset sprite-cache 0 (aget new-sprite-cache 0))
     (aset new-sprite-cache 0 (aget (new-cache) 0))))
 
+; TODO: unused. remove?
 (defcom
   new-overlay
   [$overlay params units camera renderer scene-properties]
@@ -408,26 +412,28 @@ void main() {
        width @(get-in component [:scene-properties :width])
        height @(get-in component [:scene-properties :height])
        old-mesh @(:old-mesh component)
+       mesh-parent (:mesh-parent component)
        ]
       (-> mesh .-frustumCulled (set! false))
       (-> material .-uniforms .-screen_width .-value (set! width))
       (-> material .-uniforms .-screen_height .-value (set! height))
       (if old-mesh
         (do
-          (-> scene (.remove old-mesh))
+          (-> mesh-parent (.remove old-mesh))
           (-> old-mesh .-geometry .dispose)))
       (if
         (> unit-count 0)
-        (-> scene (.add mesh)))
+        (-> mesh-parent (.add mesh)))
       (reset! (:old-mesh component) mesh))))
 
 (defcom
   new-xp-overlay
   [scene init-scene scene-properties units pixi-overlay camera]
-  [material old-mesh]
+  [material mesh-parent old-mesh]
   (fn [component]
     (let
       [old-mesh (atom nil)
+       mesh-parent (new js/THREE.Object3D)
        pixi-renderer (:pixi-renderer pixi-overlay)
        three-texture
        (fn [x]
@@ -474,12 +480,15 @@ void main() {
             )
        component
        (-> component
+         (assoc :mesh-parent mesh-parent)
          (assoc :old-mesh old-mesh)
          (assoc :material material))
        ]
+      (-> (data scene) (.add mesh-parent))
+      (-> mesh-parent .-visible (set! false))
       component))
   (fn [component]
     (if (and old-mesh @old-mesh)
       (do
-        (-> (data scene) (.remove @old-mesh))))
+        (-> mesh-parent (.remove @old-mesh))))
     component))
