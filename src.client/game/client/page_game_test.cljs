@@ -129,7 +129,7 @@
       :type "checkbox"
       :class ""
       :on-change (partial on-change-explosions component)
-      :value ""
+      :defaultValue ""
       :defaultChecked true
       }]
     [:label "Explosions"]]
