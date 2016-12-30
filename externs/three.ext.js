@@ -295,7 +295,10 @@ var THREE = {
     },
     "Ray": function () {},
     "Sphere": function () {},
-    "Frustum": function () {},
+    "Frustum": {
+      "setFromMatrix": function () {},
+      "intersectsObject": function () {}
+    },
     "Plane": function () {},
     "Spherical": function () {},
     "Math": {
