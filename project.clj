@@ -70,11 +70,12 @@
               :compiler {
                 :output-to "out.prod.client/game.js"
                 :output-dir "out.prod.client"
-                ; compiling with optimizations takes too much memory
-                ;:optimizations :simple}}]}
                 :optimizations :advanced
-                :pretty-print true
-                :pseudo-names true
+                ;:pretty-print true
+                ;:pseudo-names true
+                :source-map "out.prod.client/game.js.map"
+                ;:verbose true
+                ;:compiler-stats true
                 :externs [
                           "externs/three.ext.js"
                           "externs/jquery.ext.js"
