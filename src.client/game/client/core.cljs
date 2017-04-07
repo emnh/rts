@@ -22,10 +22,10 @@
     [game.client.scene :as scene]
     [game.client.sente-setup :as sente-setup]
     [game.shared.state :as state
-     :refer [s-add-component s-readd-component with-simple-cause]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+     :refer [s-add-component s-readd-component with-simple-cause]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (enable-console-print!)
 
@@ -97,7 +97,7 @@
 
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
 
-(def standalone true)
+(def standalone false)
 
 (s-add-component system :routing-callback (new-lc reload-page))
 (s-add-component system :routing (routing/new-router))

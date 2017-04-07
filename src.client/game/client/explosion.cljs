@@ -6,20 +6,20 @@
     [cats.core :as m]
     [game.client.math :as math]
     [game.client.common :as common :refer [data]]
-    [game.client.engine :as engine]
-    )
+    [game.client.engine :as engine])
+
   (:require-macros
     [infix.macros :refer [infix]]
-    [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn on-render
   [init-renderer component]
   (let
     [
      divisor 1000.0
-     current-time (common/game-time)
-     ]
+     current-time (common/game-time)]
+
     (engine/for-each-unit
       (:units component)
       (fn
@@ -51,7 +51,7 @@
     component))
 
 (def vertex-shader
-"
+ "
 #define PI 3.141592653589793238462643383
 #define saturate(a) clamp(a, 0.0, 1.0)
 
@@ -70,6 +70,7 @@ varying vec3 vLightFront;
 varying float vBoxIndex;
 varying vec2 vUV;
 varying float vTimePart;
+varying vec3 vBoxOffset;
 
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -110,14 +111,16 @@ void main() {
   vBoxIndex = boxIndex;
   vUV = uv;
 
+  vec3 normalizedBoxTranslation = normalize(boxTranslation);
+  vec3 offset = (boxTranslation - position);
+  vBoxOffset = offset;
+
   if (time == 0.0) {
     doLighting(normalize(normal));
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     return;
   }
 
-	vec3 normalizedBoxTranslation = normalize(boxTranslation);
-  vec3 offset = (boxTranslation - position);
   float interval = duration; // * (random(boxIndex) + 0.001);
   float factor = 4.0; // give time to finish falling
   float timePart = factor * mod(time, interval) / interval;
@@ -167,15 +170,28 @@ void main() {
   float maxValueOfAfterImpact = factor - impactTime;
   vec3 newPosition = r + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+
+  /*
+  mat = rotationMatrix(vec3(1.0, 0.0, 0.0), -timePart * 4.0 * PI);
+	rotatedOffset = mat * vec4(offset, 1.0);
+	rotatedOffset /= rotatedOffset.w;
+  newPosition = boxTranslation + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+  doLighting(normalize(normal));
+  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  */
 }
-"
-  )
+")
+
 
 (def fragment-shader
-"
+ "
 #define RECIPROCAL_PI 0.31830988618
 
+uniform float time;
 uniform sampler2D map;
+
+uniform vec3 boxSize;
 
 // Simple random function
 float random(float co)
@@ -184,6 +200,7 @@ float random(float co)
 }
 
 varying vec3 vLightFront;
+varying vec3 vBoxOffset;
 varying float vBoxIndex;
 varying vec2 vUV;
 varying float vTimePart;
@@ -191,17 +208,44 @@ varying float vTimePart;
 void main() {
   float rnd = random(vBoxIndex);
   //vec4 diffuseColor = vec4(vUV, 0.0, 1.0);
-  vec4 diffuseColor1 = texture2D(map, vUV);
+  vec2 uv = vUV;
+  float t = sin(time / 1000.0);
+  mat2 rot = mat2(cos(t), -sin(t), sin(t), cos(t));
+  //uv = uv * rot;
+  vec4 diffuseColor1 = texture2D(map, uv);
   vec4 diffuseColor2 = vec4(rnd, 0.0, 0.0, 1.0);
   vec4 diffuseColor = mix(diffuseColor1, diffuseColor2, vTimePart);
+  //vec4 diffuseColor = mix(diffuseColor1, diffuseColor2, 0.0);
   vec3 directDiffuse = vLightFront * RECIPROCAL_PI * diffuseColor.rgb;
   vec3 emissive = diffuseColor.rgb / 3.0;
   vec3 outgoingLight = directDiffuse + emissive;
 
-  gl_FragColor = vec4(outgoingLight, diffuseColor.a);
+  float a = 0.0;
+  vec3 boxOffset = vBoxOffset / boxSize;
+  float mind = -0.25;
+  float maxd = 0.25;
+  int edgeCount = 0;
+  if (boxOffset.x < mind || boxOffset.x > maxd) {
+    edgeCount += 1;
+  }
+  if (boxOffset.y < mind || boxOffset.y > maxd) {
+    edgeCount += 1;
+  }
+  if (boxOffset.z < mind || boxOffset.z > maxd) {
+    edgeCount += 1;
+  }
+  if (edgeCount >= 2) {
+    a = 1.0;
+  } else {
+    a = 0.0;
+  }
+  //vec3 change = vec3((sin(vTimePart * vUV) + 1.0) / 2.0, 0.0);
+  gl_FragColor = vec4(vec3(uv, 0.0) * 0.2 + outgoingLight, diffuseColor.a * a);
+  //gl_FragColor = vec4(vec3(uv, 0.0), diffuseColor.a * a);
+  //gl_FragColor = vec4(0.0, 1.0, 0.0, a);
 }
-"
-  )
+")
+
 
 (defcom
   new-explosion
@@ -216,15 +260,15 @@ void main() {
        uniforms
        #js
        {
-        :map #js { :value nil }
-        :time #js { :value 0.0 }
-        :duration #js { :value 2000.0 }
-        :lightDirection #js { :value light-direction }
-        :groundTexture #js { :value ground-texture :needsUpdate true }
-        :terrainWidth # js { :value (:width ground) }
-        :terrainHeight #js { :value (:height ground) }
-        :floatTextureDivisor #js { :value (:float-texture-divisor ground) }
-        }
+        :map #js { :value nil}
+        :time #js { :value 0.0}
+        :duration #js { :value 2000.0}
+        :lightDirection #js { :value light-direction}
+        :groundTexture #js { :value ground-texture :needsUpdate true}
+        :terrainWidth # js { :value (:width ground)}
+        :terrainHeight #js { :value (:height ground)}
+        :floatTextureDivisor #js { :value (:float-texture-divisor ground)}
+        :boxSize #js { :value (new js/THREE.Vector3 1.0 1.0 1.0)}}
        material
        (new js/THREE.ShaderMaterial
             #js
@@ -232,7 +276,8 @@ void main() {
              :uniforms uniforms
              :vertexShader vertex-shader
              :fragmentShader fragment-shader
-             })
+             :transparent true})
+
        component
        (-> component
          (assoc :material material)

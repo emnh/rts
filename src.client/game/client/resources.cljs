@@ -10,10 +10,10 @@
               [game.client.voxelize :as voxelize]
               [game.client.progress-manager
                :as progress-manager
-               :refer [update-progress-item]]
-              )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+               :refer [update-progress-item]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   load-resource
@@ -54,8 +54,8 @@
                          (-> texture .-needsUpdate (set! true))
                          (resolve texture))))
                (aset img "onerror" #(reject (str "image load error: " path)))
-               (aset img "src" (-> js/window .-URL (.createObjectURL blob)))
-               )))]
+               (aset img "src" (-> js/window .-URL (.createObjectURL blob))))))]
+
         (load-resource path on-success on-progress reject)))))
 
 (defn load-voxels
@@ -101,8 +101,8 @@
                 uint8array (-> js/pako (.inflate uint8array))
                 decoded (-> js/msgpack (.decode uint8array))
                 geo-loader (new js/THREE.BufferGeometryLoader)
-                geo (-> geo-loader (.parse decoded))
-                ]
+                geo (-> geo-loader (.parse decoded))]
+
                (-> geo (.computeBoundingBox))
                (-> geo (.computeBoundingSphere))
                (-> geo (.computeFaceNormals))
@@ -165,19 +165,19 @@
                {
                 :load-promise load-promise
                 :texture-load-promise texture-load-promise
-                :voxels-load-promise voxels-load-promise
-                }))))]
-         (-> component
-           (assoc
-             :all-promise
-             (p/all
-               (into
-                 []
-                 (concat
-                   (map
-                     #(vector
-                        (:load-promise %)
-                        (:texture-load-promise %)
-                        (:voxels-load-promise %)) resource-list)))))
-           (assoc :resource-list resource-list))))
+                :voxels-load-promise voxels-load-promise}))))]
+
+      (-> component
+        (assoc
+          :all-promise
+          (p/all
+            (into
+              []
+              (concat
+                (map
+                  #(vector
+                     (:load-promise %)
+                     (:texture-load-promise %)
+                     (:voxels-load-promise %)) resource-list)))))
+        (assoc :resource-list resource-list))))
   (fn [component] component))

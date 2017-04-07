@@ -9,10 +9,10 @@
     [game.client.math :as math]
     [game.client.scene :as scene]
     [game.client.voxelize :as voxelize]
-    [game.worker.state :as worker-state]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.worker.state :as worker-state])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   get-screenbox-for-mesh
@@ -104,9 +104,9 @@
      (worker-state/init-state
        {
         :unit-count unit-count
-        :buffer nil
-        })
-     ]
+        :buffer nil})]
+
+
     (for-each-unit
       (:units component)
       (fn [index unit]
@@ -121,8 +121,8 @@
 
 (defmulti -on-worker-message
   (fn [component data]
-    (keyword (first data))
-    ))
+    (keyword (first data))))
+
 
 (defmethod -on-worker-message
   :default
@@ -147,16 +147,16 @@
       :width (:width ground)
       :height (:height ground)
       :x-faces (:x-faces ground)
-      :y-faces (:y-faces ground)
-      }
+      :y-faces (:y-faces ground)}
+
      camera-dict
      {
       :matrix (-> camera .-matrix .toArray)
       :fov (-> camera .-fov)
       :aspect (-> camera .-aspect)
       :near (-> camera .-near)
-      :far (-> camera .-far)
-      }
+      :far (-> camera .-far)}
+
      init-data
      (clj->js
        {
@@ -166,15 +166,15 @@
         :scene-properties
         {
          :width @(:width scene-properties)
-         :height @(:height scene-properties)
-         }
-        :map-dict map-dict
-        })]
+         :height @(:height scene-properties)}
+
+        :map-dict map-dict})]
+
     (-> worker (.postMessage #js ["initialize" init-data] #js [(:buffer state)]))
     (println "sent initialize")
     (-> worker (.postMessage #js ["start-engine" nil]))
-    (println "sent start-engine")
-    ))
+    (println "sent start-engine")))
+
 
 (defmethod -on-worker-message
   :update
@@ -186,10 +186,10 @@
       (let
         [unit-count (:unit-count data)
          new-state (worker-state/init-state
-                 {
-                  :unit-count unit-count
-                  :buffer (:buffer data)
-                  })]
+                    {
+                     :unit-count unit-count
+                     :buffer (:buffer data)})]
+
         (for-each-unit
           (:units component)
           (fn [unit-index unit]
@@ -203,8 +203,8 @@
   [component message]
   (let
     [data (-> message .-data)
-     data (js->clj data :keywordize-keys true)
-     ]
+     data (js->clj data :keywordize-keys true)]
+
 ;    (println "on-worker-message" data)
     (-on-worker-message component data)))
 ;    (-on-worker-message component message)))
@@ -231,14 +231,14 @@
                (worker-state/init-state
                  {
                   :unit-count unit-count
-                  :buffer nil
-                  }))
+                  :buffer nil}))
+
        component
        (-> component
          (assoc :polling (atom true))
          (assoc :state state)
-         (assoc :worker worker))
-       ]
+         (assoc :worker worker))]
+
       (-> worker
         (.addEventListener "message" (partial on-worker-message component) false))
       (poll-state component)
@@ -304,11 +304,16 @@
                     _ (-> texture .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! 0))
+                    ;_ (-> voxel-material .-uniforms .-duration .-value
+                    ;    (set! (+ 500.0 (* (math/random) 30000.0))))
                     _ (-> voxel-material .-uniforms .-duration .-value
-                        (set! (+ 500.0 (* (math/random) 30000.0))))
-                    explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)
+                        (set! 2500.0))
+                    _ (->
+                        voxel-material .-uniforms .-boxSize .-value
+                        (set! (new js/THREE.Vector3 (:voxel-width voxel-dict) (:voxel-height voxel-dict) (:voxel-depth voxel-dict))))
+                    explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)]
                     ;_ (-> explosion-mesh .-renderOrder (set! index))
-                    ]
+
                    explosion-mesh)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)
@@ -326,10 +331,10 @@
                    :regular-mesh mesh
                    :build-mesh mesh
                    :stars-mesh cloud
-                   :explosion-mesh explosion-mesh
-                   }
-                  }
-                 ]
+                   :explosion-mesh explosion-mesh}}]
+
+
+
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (swap! mesh-to-unit-map assoc explosion-mesh unit)
@@ -362,4 +367,3 @@
       component
       (assoc :starting nil)
       (assoc :units nil))))
-
