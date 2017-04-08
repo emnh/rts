@@ -5,10 +5,10 @@
               [com.stuartsierra.component :as component]
               [promesa.core :as p]
               [game.client.config :as config]
-              [game.client.math :as math]
-              )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+              [game.client.math :as math])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defrecord JSObj [initializer data]
   component/Lifecycle
@@ -38,7 +38,7 @@
 
 (rum/defc
   list-item
-  [content & [attrs] ]
+  [content & [attrs]]
   (if
     attrs
     [:li attrs content]
@@ -56,28 +56,28 @@
      p1 (p/promise
           (fn [res rej]
             (swap! tmp #(assoc % :resolve res))
-            (swap! tmp #(assoc % :reject rej))
-            ))]
-     (aset p1 "resolve" (:resolve @tmp))
-     (aset p1 "reject" (:reject @tmp))
-     p1))
+            (swap! tmp #(assoc % :reject rej))))]
+
+    (aset p1 "resolve" (:resolve @tmp))
+    (aset p1 "reject" (:reject @tmp))
+    p1))
 
 (defn unique-id
-	([]
-    (math/round 
-      (+
-        (-> (new js/Date) .getTime)
-        (* (math/random) 100))))
+  ([]
+   (math/round
+     (+
+       (-> (new js/Date) .getTime)
+       (* (math/random) 100))))
   ([element]
    (let
     [id (-> element .-id)]
-     (if-not
-       (= id "")
-       id
-       (let
-         [id (unique-id)]
-         (set! (-> element .-id) id)
-         id)))))
+    (if-not
+      (= id "")
+      id
+      (let
+        [id (unique-id)]
+        (set! (-> element .-id) id)
+        id)))))
 
 (defn game-time
   []

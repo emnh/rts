@@ -3,10 +3,10 @@
               [cljs.pprint :as pprint]
               [com.stuartsierra.component :as component]
               [promesa.core :as p]
-              [game.client.config :as config]
-              )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+              [game.client.config :as config])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn update-progress-item
   [component resource completed size]

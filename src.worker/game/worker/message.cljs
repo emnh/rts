@@ -3,8 +3,8 @@
     [com.stuartsierra.component :as component]
     [game.client.math :as math]
     [game.worker.engine :as engine]
-    [game.worker.state :as state]
-    )
+    [game.worker.state :as state])
+
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
 (enable-console-print!)
@@ -20,8 +20,8 @@
 
 (defmethod -on-message
   :update-move-targets
-  [component [event data]]
-  )
+  [component [event data]])
+
 
 (defmethod -on-message
   :initialize
@@ -35,9 +35,9 @@
      (state/init-state
        {
         :unit-count unit-count
-        :buffer state-buffer
-        })
-     ]
+        :buffer state-buffer})]
+
+
     (-> camera .-matrix (.fromArray matrix))
     (-> camera .-matrix
       (.decompose
@@ -49,9 +49,9 @@
     (reset! (:camera component) camera)
     (reset! (:unit-count component) unit-count)
     (reset! (:width component) width)
-    (reset! (:height component) height)
-    )
-  )
+    (reset! (:height component) height)))
+
+
 
 (defmethod -on-message
   :start-engine
@@ -88,8 +88,8 @@
          (assoc :height (atom nil))
          (assoc :unit-count unit-count)
          (assoc :camera camera)
-         (assoc :state state))
-       ]
+         (assoc :state state))]
+
       (-> js/self (.addEventListener "message" (partial on-message component)))
       (-> js/self (.postMessage #js ["loaded" nil]))
       component))

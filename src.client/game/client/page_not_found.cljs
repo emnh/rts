@@ -8,17 +8,17 @@
     [rum.core :as rum]
     [game.client.routing :as routing]
     [sablono.core :as sablono :refer-macros [html]]
-    [clojure.string :as string :refer [join]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [clojure.string :as string :refer [join]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (rum/defc
   content < rum/static
   []
   (html
     [:div
-     { :class "container" }
+     { :class "container"}
      [:h1 "Page not found"]
      [:a { :href "#lobby" } "Go to Lobby"]]))
 
@@ -39,5 +39,4 @@
   [routing]
   []
   start
-  stop
-  )
+  stop)

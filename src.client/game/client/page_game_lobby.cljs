@@ -10,10 +10,10 @@
     [game.client.routing :as routing]
     [game.client.sente-setup :as sente-setup]
     [sablono.core :as sablono :refer-macros [html]]
-    [clojure.string :as string :refer [join]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [clojure.string :as string :refer [join]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (def page-id (routing/get-page-selector :game-lobby))
 
@@ -43,14 +43,14 @@
            :type "text"
            :id "chat-input"
            :name "chat-input"
-           :on-key-down (partial input-handler component)
-           }]
-  )
+           :on-key-down (partial input-handler component)}])
+
+
 
 (rum/defc
   user-list < rum/reactive
   [state]
-  [:ul { :class "user-list" }
+  [:ul { :class "user-list"}
    (for
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
       (rum/with-key (list-item u) i))])
@@ -58,7 +58,7 @@
 (rum/defc
   message-list < rum/reactive
   [state]
-  [:ul { :class "message-list" }
+  [:ul { :class "message-list"}
    (for
      [[i msg] (map-indexed vector (:message-list (rum/react state)))]
      (let
@@ -80,23 +80,23 @@
           (get-in route-match [:route-params :id]))
         "")
      div-user-list (html
-                     [:div { :class "col-md-3" }
-                      [:h3 "Players" ]
+                     [:div { :class "col-md-3"}
+                      [:h3 "Players"]
                       (user-list state)])
      div-message-list (html
-                        [:div { :class "col-md-9" }
+                        [:div { :class "col-md-9"}
                          (message-list state)
                          (chat-input component)])
      div-game-lobby-chat (html
-                           [:div { :class "col-md-12" }
+                           [:div { :class "col-md-12"}
                             [:div [:h1
-                                   { :class "page-header" }
+                                   { :class "page-header"}
                                    (str "Game Lobby Chat for " game-id)]]
                             div-message-list
                             div-user-list])
      row [:div { :class "row" } div-game-lobby-chat]
-     content (html [:div { :class "container" } row])
-     ]
+     content (html [:div { :class "container" } row])]
+
     content))
 
 

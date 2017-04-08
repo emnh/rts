@@ -7,10 +7,10 @@
     [game.client.overlay :as overlay]
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
-    [com.stuartsierra.component :as component]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [com.stuartsierra.component :as component])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn render-loop
   [component]
@@ -26,17 +26,17 @@
       overlay-renderer (:overlay-renderer three-overlay)
       render-stats (data (:render-stats component))
       pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
-      pixi-stage (get-in component [:pixi-overlay :stage])
-      ]
-      (reset! (:last-frame-elapsed component) elapsed-time)
-      (reset! (:last-frame-time component) end-time)
+      pixi-stage (get-in component [:pixi-overlay :stage])]
+
+     (reset! (:last-frame-elapsed component) elapsed-time)
+     (reset! (:last-frame-time component) end-time)
       ; TODO: generic component render
-      (-> render-stats .update)
-      (magic/on-render component (:update-magic component))
-      (explosion/on-render component (:update-explosion component))
-      (-> renderer (.render scene camera))
-      (overlay/on-xp-render component three-overlay)
-      (js/requestAnimationFrame (partial render-loop component)))))
+     (-> render-stats .update)
+     (magic/on-render component (:update-magic component))
+     (explosion/on-render component (:update-explosion component))
+     (-> renderer (.render scene camera))
+     (overlay/on-xp-render component three-overlay)
+     (js/requestAnimationFrame (partial render-loop component)))))
 
 (defcom
   new-init-renderer

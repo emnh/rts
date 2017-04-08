@@ -11,10 +11,10 @@
     [rum.core :as rum]
     [sablono.core :as sablono :refer-macros [html]]
     [taoensso.encore :as encore]
-    [taoensso.sente  :as sente  :refer (cb-success?)]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [taoensso.sente  :as sente  :refer (cb-success?)])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (enable-console-print!)
 
@@ -87,9 +87,9 @@
 (defn
   send-cb
   ([component event data]
-    (let
-      [timeout (get-in component [:config :sente :request-timeout])]
-      (send-cb component event data timeout)))
+   (let
+     [timeout (get-in component [:config :sente :request-timeout])]
+     (send-cb component event data timeout)))
   ([component event data timeout]
    (->
      (:connected-promise component)
@@ -114,7 +114,7 @@
       [{:keys [chsk ch-recv send-fn state]}
        (if
          (= start-count 0)
-         (sente/make-channel-socket-client! "/chsk" { :type :auto :packer :edn })
+         (sente/make-channel-socket-client! "/chsk" { :type :auto :packer :edn})
          component)
        event-handlers (or event-handlers (atom {}))
        router (if (= router nil) (atom nil) router)
@@ -146,8 +146,8 @@
          (stop-router!)
          (reset! router
                  (sente/start-client-chsk-router!
-                  ch-recv (partial event-msg-handler component))))
-       ]
+                  ch-recv (partial event-msg-handler component))))]
+
       (start-router!)
       component))
   (fn [component] component))

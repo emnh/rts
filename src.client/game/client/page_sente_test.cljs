@@ -11,10 +11,10 @@
     [promesa.core :as p]
     [rum.core :as rum]
     [sablono.core :as sablono :refer-macros [html]]
-    [taoensso.sente  :as sente  :refer (cb-success?)]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [taoensso.sente  :as sente  :refer (cb-success?)])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (enable-console-print!)
 
@@ -30,7 +30,7 @@
   (if
     @(:send-loop-enabled component)
     (do
-      (println "send-fn" )
+      (println "send-fn")
       (->
         (sente-setup/send-cb
           (:sente-setup component)
@@ -49,10 +49,10 @@
 (defn
   handle-init
   [component ev-msg]
-  (println "handle-init")
-  )
+  (println "handle-init"))
 
-(defcom 
+
+(defcom
   new-sente-test
   [sente-setup]
   [$page send-loop-enabled]

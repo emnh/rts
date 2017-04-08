@@ -13,17 +13,17 @@
     [game.client.scene :as scene]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
-    [game.shared.state :as state :refer [with-simple-cause]]
-    )
+    [game.shared.state :as state :refer [with-simple-cause]])
+
   (:require-macros
     [infix.macros :refer [infix]]
-    [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.macros :as macros :refer [defcom]]))
+
 
 (def xyz-size 3)
 (def xyzw-size 4)
 
-(defn new-cache [] #js [ #js [ #js [] #js [] #js [] #js [] #js [] ] ])
+(defn new-cache [] #js [ #js [ #js [] #js [] #js [] #js [] #js []]])
 (defonce sprite-cache (new-cache))
 (defonce new-sprite-cache (new-cache))
 
@@ -37,8 +37,8 @@
         [cached (-> (aget (aget sprite-cache 0) texture-id) .pop)]
         (do
           (-> (aget (aget new-sprite-cache 0) texture-id) (.push cached))
-          cached
-          ))
+          cached))
+
       (let
         [not-cached (new-fn)]
         (-> (aget (aget new-sprite-cache 0) texture-id) (.push not-cached))
@@ -53,8 +53,8 @@
        (this-as
          this
          (-> js/PIXI.Filter
-           (.call this nil shader #js { :gray #js { :type "1f" :value 1 } }))))
-     ]
+           (.call this nil shader #js { :gray #js { :type "1f" :value 1}}))))]
+
     (set!
       (-> TestFilter .-prototype)
       (-> js/Object (.create (-> js/PIXI.Filter .-prototype))))
@@ -84,8 +84,8 @@
                       (.create (+ width (* 2 line-width)) (+ height (* 2 line-width))))
      graphics (new js/PIXI.Graphics)
      x1 line-width
-     y1 line-width
-     ]
+     y1 line-width]
+
     ; main block
     (-> graphics (.lineStyle 1 0x000000 1))
     (-> graphics (.beginFill color (if transparent 0 1)))
@@ -120,8 +120,8 @@
     (-> graphics .endFill)
 
     (-> pixi-renderer (.render graphics render-texture))
-    render-texture
-    ))
+    render-texture))
+
 
 ; TODO: unused. remove?
 (defn select-texture
@@ -155,8 +155,8 @@
      last-block-opacity (/ remainder bar-block-width)
      health-width (- health-width remainder)
      y1 (- y1 bar-height)
-     texture (partial-select-texture health)
-     ]
+     texture (partial-select-texture health)]
+
     (do
       ; full blocks
       (doseq
@@ -205,8 +205,8 @@
      orange-texture (or @(:orange-texture component) (get-texture 0xFFA500 false))
      red-texture (or @(:red-texture component) (get-texture 0xFF0000 false))
      transparent-texture (or @(:transparent-texture component) (get-texture 0x000000 true))
-     partial-select-texture (partial select-texture red-texture orange-texture yellow-texture green-texture)
-     ]
+     partial-select-texture (partial select-texture red-texture orange-texture yellow-texture green-texture)]
+
     (reset! mesh-to-screenbox-map new-mts-map)
     (-> green-texture .-rts-id (set! 0))
     (-> yellow-texture .-rts-id (set! 1))
@@ -250,8 +250,8 @@
               :view view
               :antialias true
               :transparent true
-              :autoResize true
-              }))
+              :autoResize true}))
+
        stage (new js/PIXI.Container)
        component
        (-> component
@@ -267,7 +267,7 @@
 
 ; TODO: externalize
 (def vertex-shader
-"
+ "
 attribute float boundingSphereRadius;
 attribute float health;
 attribute vec3 unitPosition;
@@ -316,7 +316,7 @@ void main() {
 
 ; TODO: externalize
 (def fragment-shader
-"
+ "
 
 varying vec2 vSize;
 varying float vHealth;
@@ -363,8 +363,8 @@ void main() {
   }
   gl_FragColor = color;
 }
-"
-)
+")
+
 
 (defn
   on-xp-render
@@ -379,8 +379,8 @@ void main() {
      healths (new js/Float32Array unit-count)
      bounding-sphere-radiuses (new js/Float32Array unit-count)
      camera (data (:camera component))
-     positions-array (new js/Float32Array position-count)
-     ]
+     positions-array (new js/Float32Array position-count)]
+
     (engine/for-each-unit
       (:units component)
       (fn
@@ -412,8 +412,8 @@ void main() {
        width @(get-in component [:scene-properties :width])
        height @(get-in component [:scene-properties :height])
        old-mesh @(:old-mesh component)
-       mesh-parent (:mesh-parent component)
-       ]
+       mesh-parent (:mesh-parent component)]
+
       (-> mesh .-frustumCulled (set! false))
       (-> material .-uniforms .-screen_width .-value (set! width))
       (-> material .-uniforms .-screen_height .-value (set! height))
@@ -458,15 +458,15 @@ void main() {
        uniforms
        #js
        {
-        :screen_width #js { :type "f" :value @(:width scene-properties) }
-        :screen_height #js { :type "f" :value @(:height scene-properties) }
-        :green_texture #js { :type "t" :value green-texture }
-        :yellow_texture #js { :type "t" :value yellow-texture }
-        :orange_texture #js { :type "t" :value orange-texture }
-        :red_texture #js { :type "t" :value red-texture }
-        :transparent_texture #js { :type "t" :value transparent-texture }
-        :fov #js { :type "f" :value (-> camera .-fov) }
-        }
+        :screen_width #js { :type "f" :value @(:width scene-properties)}
+        :screen_height #js { :type "f" :value @(:height scene-properties)}
+        :green_texture #js { :type "t" :value green-texture}
+        :yellow_texture #js { :type "t" :value yellow-texture}
+        :orange_texture #js { :type "t" :value orange-texture}
+        :red_texture #js { :type "t" :value red-texture}
+        :transparent_texture #js { :type "t" :value transparent-texture}
+        :fov #js { :type "f" :value (-> camera .-fov)}}
+
        material
        (new js/THREE.ShaderMaterial
             #js
@@ -475,15 +475,15 @@ void main() {
              :vertexShader vertex-shader
              :fragmentShader fragment-shader
              :depthTest false
-             :transparent true
-             }
-            )
+             :transparent true})
+
+
        component
        (-> component
          (assoc :mesh-parent mesh-parent)
          (assoc :old-mesh old-mesh)
-         (assoc :material material))
-       ]
+         (assoc :material material))]
+
       (-> (data scene) (.add mesh-parent))
       (-> mesh-parent .-visible (set! false))
       component))

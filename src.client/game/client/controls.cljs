@@ -7,8 +7,8 @@
               [game.client.scene :as scene]
               [game.client.routing :as routing]
               [game.client.math :as math :refer [square sin cos pi atan2 sqrt]]
-              [com.stuartsierra.component :as component]
-              )
+              [com.stuartsierra.component :as component])
+
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
 (defn prevent-default
@@ -35,11 +35,11 @@
      _ (-> delta (.applyQuaternion (-> camera .-quaternion)))
      _ (-> delta .-y (set! 0))
      _ (-> delta .normalize)
-     _ (-> delta (.multiplyScalar speed))
-     ]
-    (-> camera .-position (.add delta))
-    )
-  )
+     _ (-> delta (.multiplyScalar speed))]
+
+    (-> camera .-position (.add delta))))
+
+
 
 (defn arc-ball-rotation-left-right
   [state sign]
@@ -54,12 +54,12 @@
      config (:config state)
      rotate-speed (get-in config [:controls :rotate-speed])
      rotate-speed (* sign rotate-speed)
-     rotate-speed (* rotate-speed (get-elapsed state))
-     ]
+     rotate-speed (* rotate-speed (get-elapsed state))]
+
     (-> camera .-position (.applyAxisAngle axis rotate-speed))
     (-> camera .-position .-y (set! (-> old .-y)))
-    (-> camera (.lookAt focus)))
-  )
+    (-> camera (.lookAt focus))))
+
 
 (defn arc-ball-rotation-up-down
   [state sign]
@@ -85,12 +85,12 @@
      x (* radius (sin phi) (sin theta))
      y (* radius (cos phi))
      z (* radius (sin phi) (cos theta))
-     _ (-> offset (.set x y z))
-     ]
+     _ (-> offset (.set x y z))]
+
     (-> camera .-position (.copy focus))
     (-> camera .-position (.add offset))
-    (-> camera (.lookAt focus)))
-  )
+    (-> camera (.lookAt focus))))
+
 
 (defn
   rotate-left
@@ -115,26 +115,26 @@
 (defn
   scroll-left
   [state]
-  (scroll (new js/THREE.Vector3 -1 0 0) state)
-  )
+  (scroll (new js/THREE.Vector3 -1 0 0) state))
+
 
 (defn
   scroll-right
   [state]
-  (scroll (new js/THREE.Vector3 1 0 0) state)
-  )
+  (scroll (new js/THREE.Vector3 1 0 0) state))
+
 
 (defn
   scroll-up
   [state]
-  (scroll (new js/THREE.Vector3 0 1 0) state)
-  )
+  (scroll (new js/THREE.Vector3 0 1 0) state))
+
 
 (defn
   scroll-down
   [state]
-  (scroll (new js/THREE.Vector3 0 -1 0) state)
-  )
+  (scroll (new js/THREE.Vector3 0 -1 0) state))
+
 
 (defn zoom
   [state camera delta]
@@ -146,23 +146,23 @@
      z (aget te 10)
      zoom-offset (new js/THREE.Vector3 x y z)
      delta (* delta (get-elapsed state))
-     _ (-> zoom-offset (.multiplyScalar (* delta (-> camera .-position .-y))))
-     ]
-    (-> camera .-position (.addVectors (-> camera .-position) zoom-offset))
-    )
-  )
+     _ (-> zoom-offset (.multiplyScalar (* delta (-> camera .-position .-y))))]
+
+    (-> camera .-position (.addVectors (-> camera .-position) zoom-offset))))
+
+
 
 (defn
   zoom-in
   [state]
-  (zoom state (:camera state) (- (get-in (:config state) [:controls :zoom-speed])))
-  )
+  (zoom state (:camera state) (- (get-in (:config state) [:controls :zoom-speed]))))
+
 
 (defn
   zoom-out
   [state]
-  (zoom state (:camera state) (get-in (:config state) [:controls :zoom-speed]))
-  )
+  (zoom state (:camera state) (get-in (:config state) [:controls :zoom-speed])))
+
 
 (defn
   reset-camera
@@ -171,12 +171,12 @@
     [camera (:camera state)
      config (:config state)
      scene (:scene state)
-     origin (get-in config [:controls :origin])
-     ]
+     origin (get-in config [:controls :origin])]
+
     (-> camera .-position (.copy origin))
-    (-> camera (.lookAt (-> scene .-position)))
-    )
-  )
+    (-> camera (.lookAt (-> scene .-position)))))
+
+
 
 (def handled-keys
   {
@@ -190,9 +190,9 @@
    [:ctrl (-> js/KeyEvent .-DOM_VK_LEFT)] rotate-left
    [:ctrl (-> js/KeyEvent .-DOM_VK_RIGHT)] rotate-right
    [:ctrl (-> js/KeyEvent .-DOM_VK_UP)] rotate-up
-   [:ctrl (-> js/KeyEvent .-DOM_VK_DOWN)] rotate-down
-   }
-  )
+   [:ctrl (-> js/KeyEvent .-DOM_VK_DOWN)] rotate-down})
+
+
 
 (defn scroll-handler
   [enabled keys-pressed state]
@@ -200,8 +200,8 @@
     [k (keys @keys-pressed)]
     (if-let
       [handler (get handled-keys k)]
-      (handler state))
-    )
+      (handler state)))
+
   (reset! (:last-frame-time state) (common/game-time))
   (if @enabled
     (js/requestAnimationFrame #(scroll-handler enabled keys-pressed state))))
@@ -222,8 +222,8 @@
         (if-not active (swap! keys-pressed #(action % key-code)))
         ; E.g. a sequence of ctrl+left down, ctrl up, left up should stop action
         (if-not active (swap! keys-pressed #(action % [:ctrl key-code])))
-        false
-        )
+        false)
+
       true)))
 
 (defn key-down
@@ -262,11 +262,11 @@
       :camera (data camera)
       :scene (data scene)
       :config config
-      :last-frame-time last-frame-time
-      }
+      :last-frame-time last-frame-time}
+
      interval-handler-enabled (atom true)
-     interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)
-     ]
+     interval-handler (partial scroll-handler interval-handler-enabled keys-pressed state)]
+
     (rebind $element contextevt prevent-default)
     (rebind $overlay contextevt prevent-default)
     (rebind $render-stats contextevt prevent-default)
@@ -277,8 +277,8 @@
     (-> component
       (assoc :keydownevt keydownevt)
       (assoc :keyupevt keyupevt)
-      (assoc :old-interval-handler-enabled interval-handler-enabled))
-    ))
+      (assoc :old-interval-handler-enabled interval-handler-enabled))))
+
 
 (defcom
   new-controls

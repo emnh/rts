@@ -16,12 +16,12 @@
               [game.client.math :as math :refer [round]]
               [game.client.page-load-test :as page-load-test]
               [game.shared.state :as state :refer [with-simple-cause]]
-              [sablono.core :as sablono :refer-macros [html]]
-              )
+              [sablono.core :as sablono :refer-macros [html]])
+
   (:require-macros
     [infix.macros :refer [infix]]
-    [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   on-click-three-js
@@ -29,8 +29,8 @@
   (let
     [camera (data (get-in component [:subsystem :camera]))
      renderer (data (get-in component [:subsystem :renderer]))
-     scene (data (get-in component [:subsystem :scene]))
-     ]
+     scene (data (get-in component [:subsystem :scene]))]
+
     (-> renderer (.render scene camera))))
 
 (defn
@@ -94,16 +94,16 @@
 (rum/defc
   test-buttons < rum/static
   [component]
-  [:ul { :class "vertical-list" }
-   [:li [:a { :href "https://github.com/emnh/rts" } "Project On GitHub"] ]
+  [:ul { :class "vertical-list"}
+   [:li [:a { :href "https://github.com/emnh/rts" } "Project On GitHub"]]
    [:li
     [:input
      {
       :type "checkbox"
       :class ""
       :on-change (partial on-change-healthbars component)
-      :value ""
-      }]
+      :value ""}]
+
     [:label "Health bars"]]
    [:li
     [:input
@@ -111,8 +111,8 @@
       :type "checkbox"
       :class ""
       :on-change (partial on-change-magicstars component)
-      :value ""
-      }]
+      :value ""}]
+
     [:label "Magic stars"]]
    [:li
     [:input
@@ -120,8 +120,8 @@
       :type "checkbox"
       :class ""
       :on-change (partial on-change-geometry component)
-      :value ""
-      }]
+      :value ""}]
+
     [:label "Unvoxelized geometry (some models only)"]]
    [:li
     [:input
@@ -130,8 +130,8 @@
       :class ""
       :on-change (partial on-change-explosions component)
       :defaultValue ""
-      :defaultChecked true
-      }]
+      :defaultChecked true}]
+
     [:label "Explosions"]]
    [:li
     "Control keys"
@@ -141,25 +141,25 @@
       [:li "Ctrl+arrow keys to rotate camera"]
       [:li "PgUp/PgDn to zoom"]
       [:li "Home to reset view"]
-      [:li "Drag mouse to select units"]
-      ]]
-   [:li [:div "Page load progress" ] (page-load-test/progress-list component)]
-   ])
+      [:li "Drag mouse to select units"]]]
+
+   [:li [:div "Page load progress" ] (page-load-test/progress-list component)]])
+
 
 (rum/defc
   game-test < rum/static
   [component]
   (let
     [h (header "Game Test")]
-    (html [:div { :class "container" }
+    (html [:div { :class "container"}
            h
            [:div
             {
-             :id "game"
-             }
-            ]
-          (test-buttons component)
-           ])))
+             :id "game"}]
+
+
+           (test-buttons component)])))
+
 
 (defcom
   new-ground-balls
@@ -172,7 +172,7 @@
        width (:width ground)
        height (:height ground)
        geometry (new js/THREE.SphereGeometry 1 4 4)
-       material (new js/THREE.MeshBasicMaterial #js { :color 0xFF0000 })]
+       material (new js/THREE.MeshBasicMaterial #js { :color 0xFF0000})]
       (doseq
         [x (range x-faces)
          y (range y-faces)]
@@ -180,15 +180,15 @@
           [xpos (infix x * width / x-faces - width / 2)
            zpos (infix y * height / y-faces - height / 2)
            ypos (ground/get-height ground xpos zpos)
-           mesh (new js/THREE.Mesh geometry material)
-           ]
+           mesh (new js/THREE.Mesh geometry material)]
+
           (scene/add scene mesh)
           (doto
             (-> mesh .-position)
             (aset "x" xpos)
             (aset "y" ypos)
-            (aset "z" zpos)
-            ))))
+            (aset "z" zpos)))))
+
     component)
   (fn [component]
     component))
@@ -208,8 +208,8 @@
     [params
      {
       :$page ($ "#game")
-      :simplex (data (:simplex component))
-      }
+      :simplex (data (:simplex component))}
+
      subsystem
      (->
        (if-let

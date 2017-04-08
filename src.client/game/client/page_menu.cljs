@@ -8,9 +8,6 @@
     [rum.core :as rum]
     [game.client.routing :as routing]
     [sablono.core :as sablono :refer-macros [html]]
-    [clojure.string :as string :refer [join]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [clojure.string :as string :refer [join]])
 
-
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))

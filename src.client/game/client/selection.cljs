@@ -13,12 +13,12 @@
     [game.client.math :as math :refer [pi]]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
-    [game.shared.state :as state :refer [with-simple-cause]]
-    )
+    [game.shared.state :as state :refer [with-simple-cause]])
+
   (:require-macros
     [infix.macros :refer [infix]]
-    [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.macros :as macros :refer [defcom]]))
+
 
 (def LEFT_MOUSE_BUTTON 1)
 (def MIDDLE_MOUSE_BUTTON 2)
@@ -36,7 +36,7 @@
        geometry (new THREE.CircleGeometry radius 32)
        mat (-> (new THREE.Matrix4) (.makeRotationX (/ pi -2)))
        _ (-> geometry (.applyMatrix mat))
-       material (new THREE.MeshLambertMaterial #js { :color 0x00FF00 :opacity 0.5 :transparent true })
+       material (new THREE.MeshLambertMaterial #js { :color 0x00FF00 :opacity 0.5 :transparent true})
        circle (new THREE.Mesh geometry material)]
       (-> mesh (.add circle))
       (aset mesh "mark" circle)
@@ -68,21 +68,21 @@
         (let
           [bbox (-> mesh .-geometry .-boundingBox)
            bbox-geometry (new THREE.BoxGeometry
-                         (- (-> bbox .-max .-x) (-> bbox .-min .-x))
-                         (- (-> bbox .-max .-y) (-> bbox .-min .-y))
-                         (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
+                          (- (-> bbox .-max .-x) (-> bbox .-min .-x))
+                          (- (-> bbox .-max .-y) (-> bbox .-min .-y))
+                          (- (-> bbox .-max .-z) (-> bbox .-min .-z)))
            geo-translation (-> (new THREE.Vector3)
                              (.add (-> bbox .-min))
                              (.add (-> bbox .-max))
-                             (.divideScalar 2))
-           ]
+                             (.divideScalar 2))]
+
           (-> bbox-geometry (.translate
-                         (-> geo-translation .-x)
-                         (-> geo-translation .-y)
-                         (-> geo-translation .-z)))
+                             (-> geo-translation .-x)
+                             (-> geo-translation .-y)
+                             (-> geo-translation .-z)))
           (aset mesh "rts-bbox-geometry" bbox-geometry)
-          (-> bbox-geometry clone)))
-      ]
+          (-> bbox-geometry clone)))]
+
      (if clone?
        (-> geometry (.applyMatrix (-> mesh .-matrixWorld))))
      geometry)))
@@ -97,8 +97,8 @@
      camera (data (:camera component))
      width @(get-in component [:scene-properties :width])
      height @(get-in component [:scene-properties :height])
-     screen-boxes #js []
-     ]
+     screen-boxes #js []]
+
     (-> camera .updateMatrixWorld)
     (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
     (-> camera-view-projection-matrix
@@ -122,11 +122,11 @@
                           (-> screen-box .-min .-x)
                           (-> screen-box .-min .-y)
                           (-> screen-box .-max .-x)
-                          (-> screen-box .-max .-y)
-                          ]]
+                          (-> screen-box .-max .-y)]]
+
                 (aset box "mesh" mesh)
                 (-> screen-boxes (.push box))))))))
-      screen-boxes))
+    screen-boxes))
 
 ; function belongs to alternative METHOD 3
 ; http://stackoverflow.com/questions/21648630/radius-of-projected-sphere-in-screen-space
@@ -139,8 +139,8 @@
      v (-> camera .-position .clone)
      _ (-> v (.sub position))
      d (-> v .length)
-     r2 (infix (height / (2 * tan(fov))) * r3 / √(d * d - r3 * r3))
-     ]
+     r2 (infix (height / (2 * tan(fov))) * r3 / √(d * d - r3 * r3))]
+
     r2))
 
 ; function belongs to alternative METHOD 3
@@ -151,8 +151,8 @@
      camera-view-projection-matrix (new THREE.Matrix4)
      camera (data (:camera component))
      width @(get-in component [:scene-properties :width])
-     height @(get-in component [:scene-properties :height])
-     ]
+     height @(get-in component [:scene-properties :height])]
+
     (-> camera .updateMatrixWorld)
     (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
     (-> camera-view-projection-matrix
@@ -174,14 +174,14 @@
                   [screen-position
                    (scene/world-to-screen-fast width height camera-view-projection-matrix (-> group .-position))
                    r3 (-> mesh .-geometry .-boundingSphere .-radius)
-                   screen-radius (get-screen-radius height camera (-> group .-position) r3)
-                   ]
+                   screen-radius (get-screen-radius height camera (-> group .-position) r3)]
+
                   {
                    :x (-> screen-position .-x)
                    :y (-> screen-position .-y)
                    :r screen-radius
-                   :mesh mesh
-                   })
+                   :mesh mesh})
+
                 nil))))))))
 
 
@@ -202,7 +202,7 @@
 (defn
   frustum-check
   [component x1 y1 x2 y2]
-	(let
+  (let
     [camera (data (:camera component))
      z (-> camera .-near)
      screen-width @(:width (:scene-properties component))
@@ -213,8 +213,8 @@
      y2 (+ (* (/ y2 screen-height) -2) 1)
      proj-mat (new THREE.Matrix4)
      view-proj-mat (new THREE.Matrix4)
-     frustum (new THREE.Frustum)
-     ]
+     frustum (new THREE.Frustum)]
+
     (-> camera .updateMatrixWorld)
     (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
     (-> proj-mat
@@ -242,8 +242,8 @@
                     {
                      :unit (engine/get-unit-for-mesh (:units component) mesh)
                      :mesh mesh
-                     :mark circle
-                     })
+                     :mark circle})
+
                   nil)))))))))
 
 ; function belongs to alternative METHOD 1
@@ -267,8 +267,8 @@
             {
              :unit (engine/get-unit-for-mesh (:units component) mesh)
              :mesh mesh
-             :mark circle
-             }))))))
+             :mark circle}))))))
+
 
 ; function belongs to alternative METHOD 3
 ; http://stackoverflow.com/questions/401847/circle-rectangle-collision-detection-intersection
@@ -278,19 +278,19 @@
   (let
     [circle-x (:x circle)
      circle-y (:y circle)
-		 circle-r (:r circle)
+     circle-r (:r circle)
      rect-width (infix rect-x2 - rect-x1)
      rect-height (infix rect-y2 - rect-y1)
      circle-distance-x (infix abs(circle-x - rect-x1 + rect-width / 2))
      circle-distance-y (infix abs(circle-y - rect-y1 + rect-height / 2))
      check1 #(infix circle-distance-x > (rect-width / 2 + circle-r))
-		 check2 #(infix circle-distance-y > (rect-height / 2 + circle-r))
-		 check3 #(infix circle-distance-x <= (rect-width / 2))
-		 check4 #(infix circle-distance-y <= (rect-height / 2))
-		 corner-distance-sq #(infix (circle-distance-x - rect-width / 2) ** 2 + (circle-distance-y - rect-height / 2) ** 2)
-		 check5 #(infix corner-distance-sq() <= circle-r ** 2)
-     ]
-		(if
+     check2 #(infix circle-distance-y > (rect-height / 2 + circle-r))
+     check3 #(infix circle-distance-x <= (rect-width / 2))
+     check4 #(infix circle-distance-y <= (rect-height / 2))
+     corner-distance-sq #(infix (circle-distance-x - rect-width / 2) ** 2 + (circle-distance-y - rect-height / 2) ** 2)
+     check5 #(infix corner-distance-sq() <= circle-r ** 2)]
+
+    (if
      (infix check1() || check2())
      false
      (if
@@ -324,8 +324,8 @@
             {
              :unit (engine/get-unit-for-mesh (:units component) mesh)
              :mesh mesh
-             :mark circle
-             }))))))
+             :mark circle}))))))
+
 
 ; METHOD 1 slow and accurate
 ; (def check-intersect check-intersect-screen)
@@ -345,11 +345,11 @@
        x1 (:x start-pos)
        y1 (:y start-pos)]
       (if update
-        (reset! (:end-pos component) { :x x2 :y y2 }))
+        (reset! (:end-pos component) { :x x2 :y y2}))
       (let
         [[x1 x2] (if (< x1 x2) [x1 x2] [x2 x1])
-         [y1 y2] (if (< y1 y2) [y1 y2] [y2 y1])
-         ]
+         [y1 y2] (if (< y1 y2) [y1 y2] [y2 y1])]
+
         (if update
           (jayq/css
             (:$selection-div component)
@@ -357,9 +357,9 @@
              :left x1
              :top y1
              :width (- x2 x1)
-             :height (- y2 y1)
-             }
-            ))
+             :height (- y2 y1)}))
+
+
         (check-intersect component x1 y1 x2 y2)))))
 
 (defn
@@ -372,8 +372,8 @@
       [eps 1
        x (-> event-data .-offsetX)
        y (-> event-data .-offsetY)]
-      (reset! (:start-pos component) { :x (- x eps) :y (- y eps) })
-      (reset! (:end-pos component) { :x (+ x eps) :y (+ y eps) })
+      (reset! (:start-pos component) { :x (- x eps) :y (- y eps)})
+      (reset! (:end-pos component) { :x (+ x eps) :y (+ y eps)})
       (reset! (:selecting? component) true)
       (->
         (:$selection-div component)
@@ -383,8 +383,8 @@
            :left x
            :top y
            :width eps
-           :height eps
-           }))
+           :height eps}))
+
       (check-intersect component (- x eps) (- y eps) (+ x eps) (+ y eps)))
     (= (-> event-data .-which) RIGHT_MOUSE_BUTTON)
     (do
@@ -437,8 +437,8 @@
          (assoc :start-pos start-pos)
          (assoc :end-pos end-pos)
          (assoc :$selection-layer $selection-layer)
-         (assoc :$selection-div $selection-div))
-       ]
+         (assoc :$selection-div $selection-div))]
+
       (-> (data $overlay) (.after $selection-layer))
       (-> $selection-layer (.addClass scene/page-class))
       (-> $selection-layer (.addClass "autoresize"))

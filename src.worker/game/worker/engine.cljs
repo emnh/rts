@@ -3,8 +3,8 @@
     [com.stuartsierra.component :as component]
     [game.client.ground-local :as ground]
     [game.client.math :as math]
-    [game.worker.state :as state]
-    )
+    [game.worker.state :as state])
+
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
 (defn process
@@ -18,11 +18,11 @@
      (state/init-state
        {
         :unit-count unit-count
-        :buffer (-> buffer (.slice 0))
-        })
+        :buffer (-> buffer (.slice 0))})
+
      v3 (new js/THREE.Vector3)
-     ground-map @(:map-dict component)
-     ]
+     ground-map @(:map-dict component)]
+
     (doseq
       [unit-index (range unit-count)]
       (let
@@ -32,8 +32,8 @@
          move-target (state/get-move-target new-state unit-index)
          x (+ (-> position .-x) (* spread (+ (math/random) -0.5)))
          z (+ (-> position .-z) (* spread (+ (math/random) -0.5)))
-         y (ground/align-to-ground ground-map bbox x z)
-         ]
+         y (ground/align-to-ground ground-map bbox x z)]
+
         (-> v3 (.set x y z))
         (state/set-position new-state unit-index v3)))
     (reset! state new-state)
@@ -44,8 +44,8 @@
            #js
            {
             :unit-count unit-count
-            :buffer buffer
-            }]
+            :buffer buffer}]
+
           (reset! (:poll-state component) false)
           (-> js/self (.postMessage #js ["update" data] #js [buffer])))
         (do
@@ -53,6 +53,6 @@
     (let
       [end-time (-> (new js/Date) .getTime)
        elapsed (- end-time start-time)
-       timeout (max 0 (- 10 elapsed))
-       ]
+       timeout (max 0 (- 10 elapsed))]
+
       (js/setTimeout #(process component) timeout))))

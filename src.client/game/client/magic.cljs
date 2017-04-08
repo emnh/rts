@@ -10,13 +10,13 @@
     [game.client.math :as math]
     [game.client.scene :as scene]
     [game.client.engine :as engine]
-    [game.worker.state :as worker-state]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.worker.state :as worker-state])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (def simple-vertex-shader
-"
+ "
 varying vec2 vUV;
 varying vec3 vPosition;
 varying vec3 vLightFront;
@@ -29,11 +29,11 @@ void main() {
     gl_PointSize = 1.0;
   }
 }
-"
-)
+")
+
 
 (def simple-fragment-shader
-"
+ "
 varying vec2 vUV;
 uniform sampler2D map;
 
@@ -43,7 +43,7 @@ void main() {
 ")
 
 (def shared-vertex-shader
-"
+ "
 #define PI 3.141592653589793238462643383
 #define saturate(a) clamp(a, 0.0, 1.0)
 
@@ -74,12 +74,12 @@ float getMaxY() {
   float maxY = timePart * (boundingBoxMax.y - boundingBoxMin.y) + boundingBoxMin.y;
   return maxY;
 }
-"
-)
+")
+
 
 (def magic-vertex-shader
   (str shared-vertex-shader
-"
+   "
 
 attribute float boxIndex;
 attribute vec3 boxTranslation;
@@ -102,7 +102,7 @@ void main() {
       float dotNL = dot(geometryNormal, normalize(lightDirection));
       vec3 directLightColor_diffuse = PI * directLightColor;
       vLightFront = saturate(dotNL) * directLightColor_diffuse;
-    
+
       vIsJustBox = 1.0;
     }
     */
@@ -152,7 +152,7 @@ void main() {
 
 (def standard-vertex-shader
   (str shared-vertex-shader
-"
+   "
 void main() {
 
   vUV = uv * offsetRepeat.zw + offsetRepeat.xy;
@@ -174,7 +174,7 @@ void main() {
 "))
 
 (def standard-fragment-shader
-"
+ "
 #define RECIPROCAL_PI 0.31830988618
 #define TWOPI 6.28319
 
@@ -324,8 +324,8 @@ void main() {
   [init-renderer component]
   (let
     [divisor 1000.0
-     t (- (common/game-time) (:start-time (:magic component)))
-     ]
+     t (- (common/game-time) (:start-time (:magic component)))]
+
     (engine/for-each-unit
       (:units component)
       (fn
@@ -350,8 +350,8 @@ void main() {
   (fn [component]
     component)
   (fn [component]
-    component)
-  )
+    component))
+
 
 (defn get-materials
   [component]
@@ -364,20 +364,20 @@ void main() {
      {
       :STAR_OPACITY 0.5
       :STAR_SIZE 10.1
-      :PARTICLE_LIFE_TIME 1500.1
-      }
+      :PARTICLE_LIFE_TIME 1500.1}
+
      uniforms
      #js
      {
-      :buildTime #js { :value 10000.0 }
-      :map #js { :value nil }
-      :isCloud #js { :value 0.0 }
-      :time #js { :value 0.0 }
-      :offsetRepeat #js { :value (new THREE.Vector4 0 0 1 1) }
-      :lightDirection #js { :value light-direction }
-      :boundingBoxMin # js { :value (new js/THREE.Vector3) }
-      :boundingBoxMax # js { :value (new js/THREE.Vector3) }
-      }]
+      :buildTime #js { :value 10000.0}
+      :map #js { :value nil}
+      :isCloud #js { :value 0.0}
+      :time #js { :value 0.0}
+      :offsetRepeat #js { :value (new THREE.Vector4 0 0 1 1)}
+      :lightDirection #js { :value light-direction}
+      :boundingBoxMin # js { :value (new js/THREE.Vector3)}
+      :boundingBoxMax # js { :value (new js/THREE.Vector3)}}]
+
     {:standard-material
      (new js/THREE.ShaderMaterial
          #js
@@ -386,8 +386,8 @@ void main() {
           :uniforms uniforms
           :vertexShader standard-vertex-shader
           :fragmentShader standard-fragment-shader
-          :transparent true
-          })
+          :transparent true})
+
      :magic-material
      (new js/THREE.ShaderMaterial
          #js
@@ -396,8 +396,8 @@ void main() {
           :uniforms uniforms
           :vertexShader magic-vertex-shader
           :fragmentShader standard-fragment-shader
-          :transparent true
-          })}))
+          :transparent true})}))
+
 
 (defcom
   new-magic

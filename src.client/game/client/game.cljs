@@ -20,10 +20,10 @@
     [game.client.explosion :as explosion]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
-    [game.shared.state :as state :refer [with-simple-cause]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.state :as state :refer [with-simple-cause]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 ; TODO: validate params
 (defn new-system
@@ -33,7 +33,7 @@
      {
       :params params
       :config config/config
-      :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true }))
+      :renderer (new-jsobj #(new js/THREE.WebGLRenderer #js { :antialias true}))
       :scene (new-jsobj #(new js/THREE.Scene))
       :scene-properties (scene/new-scene-properties)
       :$overlay (new-jsobj #($ "<canvas/>"))
@@ -60,8 +60,6 @@
       :magic (magic/new-magic)
       :update-magic (magic/new-update-magic)
       :explosion (explosion/new-explosion)
-      :update-explosion (explosion/new-update-explosion)
-      }]
-    system
-    ))
+      :update-explosion (explosion/new-update-explosion)}]
 
+    system))

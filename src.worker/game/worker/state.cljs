@@ -19,8 +19,8 @@
    float32-buffer
    positions-offset
    bboxes-offset
-   move-targets-offset
-   ])
+   move-targets-offset])
+
 
 (defn -get-vector3
   [float32-buffer float32-offset index]
@@ -61,17 +61,17 @@
   [
    {
     :name :positions
-    :length (* unit-count xyz-size float32-size)
-    }
+    :length (* unit-count xyz-size float32-size)}
+
    {
     :name :bboxes
-    :length (* unit-count 2 xyz-size float32-size)
-    }
+    :length (* unit-count 2 xyz-size float32-size)}
+
    {
     :name :move-targets
-    :length (* unit-count xyz-size float32-size)
-    }
-   ])
+    :length (* unit-count xyz-size float32-size)}])
+
+
 
 (defn get-position
   [state index]
@@ -133,8 +133,8 @@
        [[dict offset] {:keys [name length get set]}]
        [
         (assoc dict (keyword (str (name-fn name) "-offset")) (/ offset float32-size))
-        (+ offset length)
-        ])
+        (+ offset length)])
+
      [offsets offset] (reduce reduce-fn [{} 0] state-format)
      state
      (map->State
@@ -142,7 +142,7 @@
          {
           :buffer buffer
           :int32-buffer int32-buffer
-          :float32-buffer float32-buffer
-          } offsets))
-     ]
+          :float32-buffer float32-buffer}
+         offsets))]
+
     state))

@@ -240,7 +240,7 @@ void main() {
     a = 0.0;
   }
   //vec3 change = vec3((sin(vTimePart * vUV) + 1.0) / 2.0, 0.0);
-  gl_FragColor = vec4(vec3(uv, 0.0) * 0.2 + outgoingLight, diffuseColor.a * a);
+  gl_FragColor = vec4(vec3(uv, 0.0) * 0.0 + outgoingLight, diffuseColor.a * a);
   //gl_FragColor = vec4(vec3(uv, 0.0), diffuseColor.a * a);
   //gl_FragColor = vec4(0.0, 1.0, 0.0, a);
 }

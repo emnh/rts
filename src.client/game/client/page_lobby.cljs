@@ -11,10 +11,10 @@
     [game.client.sente-setup :as sente-setup]
     [game.shared.schema :as schema]
     [sablono.core :as sablono :refer-macros [html]]
-    [clojure.string :as string :refer [join]]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [clojure.string :as string :refer [join]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   select-list-item
@@ -41,8 +41,8 @@
           (list-item
             (str players " " (:name g) ": " (join "," (map #(:display-name %) (vals (:players g)))))
             {:id (:id g)
-             :on-click select-list-item
-             })
+             :on-click select-list-item})
+
           (:id g))))))
 
 (rum/defc
@@ -57,7 +57,7 @@
 (rum/defc
   user-list < rum/reactive
   [state]
-  [:ul { :class "user-list" }
+  [:ul { :class "user-list"}
    (for
       [[i u] (map-indexed vector (:user-list (rum/react state)))]
       (rum/with-key (list-item (:display-name u)) i))])
@@ -65,7 +65,7 @@
 (rum/defc
   message-list < rum/reactive
   [state]
-  [:ul { :class "message-list" }
+  [:ul { :class "message-list"}
    (for
      [[i msg] (map-indexed vector (:message-list (rum/react state)))]
      (let
@@ -77,8 +77,8 @@
   [component event]
   (let
     [keyCode (-> event .-nativeEvent .-keyCode)
-     timeout (get-in component [:config :sente :request-timeout])
-     ]
+     timeout (get-in component [:config :sente :request-timeout])]
+
     (if
       (= keyCode (-> js/KeyEvent .-DOM_VK_RETURN))
       (do
@@ -100,9 +100,9 @@
            :type "text"
            :id "chat-input"
            :name "chat-input"
-           :on-key-down (partial input-handler component)
-           }]
-  )
+           :on-key-down (partial input-handler component)}])
+
+
 
 (defn new-game-handler
   [component event]
@@ -118,8 +118,8 @@
   [:button
    {:type "button"
     :class "btn btn-default btn-lg btn-outline"
-    :on-click (partial new-game-handler component)
-    }
+    :on-click (partial new-game-handler component)}
+
    "New Game"])
 
 (defn join-game-handler
@@ -130,7 +130,7 @@
       (sente-setup/send-cb
         (:sente-setup component)
         :rts/join-game
-        { :game-id game-id })
+        { :game-id game-id})
       (p/then
         (fn [reply]
           (println "join-game" reply)
@@ -143,8 +143,8 @@
    {
     :class "btn btn-default btn-lg btn-outline"
     :type "button"
-    :on-click (partial join-game-handler component)
-    } "Join Game"])
+    :on-click (partial join-game-handler component)}
+   "Join Game"])
 
 (rum/defc
   lobby < rum/static
@@ -154,42 +154,42 @@
     ; see https://github.com/r0man/sablono/issues/57
     [
      div-user-list (html
-                     [:div { :class "col-md-3" }
-                      [:h3 "Players" ]
+                     [:div { :class "col-md-3"}
+                      [:h3 "Players"]
                       (user-list state)])
      div-message-list (html
-                        [:div { :class "col-md-9" }
+                        [:div { :class "col-md-9"}
                          (message-list state)
                          (chat-input component)])
      div-game-buttons (html
                         [:div
                          {
                           :class "btn-group game-buttons col-md-12"
-                          :role "group"
-                          }
+                          :role "group"}
+
                          (new-game component)
                          (join-game component)])
      div-game-list (html
-                     [:div { :class "col-md-12" }
-                       [:div { :class "col-md-9" }
+                     [:div { :class "col-md-12"}
+                       [:div { :class "col-md-9"}
                         (header "Games")
                         (game-list state)
-                        div-game-buttons
-                        ]
-                      [:div { :class "col-md-3" }
+                        div-game-buttons]
+
+                      [:div { :class "col-md-3"}
                        (header "Profile")
-                       [:a { :href "logout" } "Logout"]
-                       ]
-                      ])
+                       [:a { :href "logout" } "Logout"]]])
+
+
      div-lobby-chat (html
-           [:div { :class "col-md-12" }
-            (header "Lobby Chat")
-            div-message-list
-            div-user-list])
+                     [:div { :class "col-md-12"}
+                      (header "Lobby Chat")
+                      div-message-list
+                      div-user-list])
      row1 [:div { :class "row" } div-game-list]
      row2 [:div { :class "row" } div-lobby-chat]
-     content (html [:div { :class "container" } row1 row2])
-     ]
+     content (html [:div { :class "container" } row1 row2])]
+
     content))
 
 (defn
@@ -230,10 +230,10 @@
         (atom {
                :user-list []
                :message-list []
-               :game-list []
-               }))
-     sente-setup (:sente-setup component)
-     ]
+               :game-list []}))
+
+     sente-setup (:sente-setup component)]
+
     (do
       (sente-setup/register-handler sente-setup :rts/user-list (partial update-user-list state))
       (sente-setup/register-handler sente-setup :rts/game-list (partial update-game-list state))
@@ -241,10 +241,10 @@
     (rum/mount (lobby component state) (aget (:$page component) 0))
     (->
       component
-      (assoc :state state)
-      )))
+      (assoc :state state))))
 
-(defn stop [component] 
+
+(defn stop [component]
   ;(println "unmounting lobby")
   (if-let
     [page (aget (:$page component) 0)]

@@ -6,12 +6,12 @@
       [cats.core :as m]
       [game.client.math :as math :refer [floor isNaN]]
       [game.client.common :as common :refer [data]]
-      [game.client.config :as config]
-      )
+      [game.client.config :as config])
+
   (:require-macros
     [infix.macros :refer [infix]]
-    [game.shared.macros :as macros :refer [defcom]]
-    ))
+    [game.shared.macros :as macros :refer [defcom]]))
+
 
 (def rgba-size 4)
 
@@ -30,8 +30,8 @@
      yd (infix ((y + height / 2) * y-faces / height))
      xi (floor xd)
      yi (floor yd)
-     idx (xy-index-to-index x-faces y-faces xi yi)
-     ]
+     idx (xy-index-to-index x-faces y-faces xi yi)]
+
     (xy-to-index-return. xd yd xi yi idx)))
 
 (defn get-height
@@ -51,8 +51,8 @@
      x1 (infix x - (xd % 1) * width / x-faces)
      x2 (infix x1 + 1 * width / x-faces)
      y1 (infix y - (yd % 1) * height / y-faces)
-     y2 (infix y1 + 1 * height / y-faces)
-     ]
+     y2 (infix y1 + 1 * height / y-faces)]
+
     ;(if (or (isNaN xi) (isNaN yi)) (throw (new js/Error "NaN")))
     (if
       (or
@@ -68,8 +68,8 @@
          fQ22 (aget height-field (xy-index-to-index x-faces y-faces (inc xi) (inc yi)))
          fxy1 (infix ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21)
          fxy2 (infix ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22)
-         fyy (infix ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2)
-         ]
+         fyy (infix ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2)]
+
         fyy))))
 
 (defn
@@ -88,8 +88,8 @@
      h21 (get-height ground x2 z1)
      h22 (get-height ground x2 z2)
      ;y (- (max hc h11 h12 h21 h22) (-> bbox .-min .-y))
-     y (- (math/max hc (math/max h11 (math/max h12 (math/max h21 h22)))) (-> bbox .-min .-y))
-     ]
+     y (- (math/max hc (math/max h11 (math/max h12 (math/max h21 h22)))) (-> bbox .-min .-y))]
+
     y))
 
 (defn get-map
@@ -110,7 +110,7 @@
                (-> material .-map (set! texture))
                (-> material .-needsUpdate (set! true)))
      grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
-     m-opts #js { :map grass }
+     m-opts #js { :map grass}
      x-faces (get-in config [:terrain :x-faces])
      y-faces (get-in config [:terrain :y-faces])
      max-elevation (get-in config [:terrain :max-elevation])
@@ -122,49 +122,49 @@
      height-field (new js/Float32Array length)
      data-texture-buffer (new js/Float32Array (* length rgba-size))
      ; make maximum value of 1.0
-     float-texture-divisor 256.0
-     ]
-      (-> geometry (.applyMatrix rotation))
-      (doseq
-         [i (range length)]
-         (let
-           [x (-> position (.getX i))
-            y (-> position (.getY i))
-            z (-> position (.getZ i))
-            y (-> simplex (.noise (/ x 100) (/ z 100)))
-            y (/ (+ y 1) 2)
-            y (+ (* y max-elevation) min-elevation)
-            idx (-> (xy-to-index width height x-faces y-faces x z) .-idx)
-            ]
-           (-> position (.setY i y))
-           (aset height-field idx y)
-           (doseq [j (range rgba-size)]
-             (aset data-texture-buffer (+ j (* idx rgba-size)) (/ y float-texture-divisor)))
-           ))
-      (-> geometry .computeFaceNormals)
-      (-> geometry .computeVertexNormals)
-      (let
-        [mesh (new THREE.Mesh geometry material)
-         data-texture
-         (new js/THREE.DataTexture
-              data-texture-buffer
-              x-faces
-              y-faces
-              js/THREE.RGBAFormat
-              js/THREE.FloatType)
-         ]
-        (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
-        (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
-        (-> data-texture .-needsUpdate (set! true))
-        (-> component
-          (assoc :width width)
-          (assoc :height height)
-          (assoc :x-faces x-faces)
-          (assoc :y-faces y-faces)
-          (assoc :height-field height-field)
-          (assoc :mesh mesh)
-          (assoc :data-texture data-texture)
-          (assoc :float-texture-divisor float-texture-divisor)))))
+     float-texture-divisor 256.0]
+
+    (-> geometry (.applyMatrix rotation))
+    (doseq
+       [i (range length)]
+       (let
+         [x (-> position (.getX i))
+          y (-> position (.getY i))
+          z (-> position (.getZ i))
+          y (-> simplex (.noise (/ x 100) (/ z 100)))
+          y (/ (+ y 1) 2)
+          y (+ (* y max-elevation) min-elevation)
+          idx (-> (xy-to-index width height x-faces y-faces x z) .-idx)]
+
+         (-> position (.setY i y))
+         (aset height-field idx y)
+         (doseq [j (range rgba-size)]
+           (aset data-texture-buffer (+ j (* idx rgba-size)) (/ y float-texture-divisor)))))
+
+    (-> geometry .computeFaceNormals)
+    (-> geometry .computeVertexNormals)
+    (let
+      [mesh (new THREE.Mesh geometry material)
+       data-texture
+       (new js/THREE.DataTexture
+            data-texture-buffer
+            x-faces
+            y-faces
+            js/THREE.RGBAFormat
+            js/THREE.FloatType)]
+
+      (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
+      (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
+      (-> data-texture .-needsUpdate (set! true))
+      (-> component
+        (assoc :width width)
+        (assoc :height height)
+        (assoc :x-faces x-faces)
+        (assoc :y-faces y-faces)
+        (assoc :height-field height-field)
+        (assoc :mesh mesh)
+        (assoc :data-texture data-texture)
+        (assoc :float-texture-divisor float-texture-divisor)))))
 
 (defcom
   new-init-ground

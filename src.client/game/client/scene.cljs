@@ -4,8 +4,8 @@
     [jayq.core :as jayq :refer [$]]
     [game.client.config :as config]
     [game.client.common :as common :refer [data]]
-    [com.stuartsierra.component :as component]
-    )
+    [com.stuartsierra.component :as component])
+
   (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]])
@@ -57,8 +57,8 @@
      renderer (data (:renderer component))
      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
      $game-content ($ (str "." page-class))
-     $game-canvases ($ (str ".autoresize." page-class))
-     ]
+     $game-canvases ($ (str ".autoresize." page-class))]
+
     (-> renderer (.setSize width height))
     (-> pixi-renderer (.resize width height))
     (if
@@ -78,8 +78,8 @@
     (-> $game-canvases (.width width))
     (-> $game-canvases (.height height))
     (reset! (get-in component [:scene-properties :width]) width)
-    (reset! (get-in component [:scene-properties :height]) height)
-    ))
+    (reset! (get-in component [:scene-properties :height]) height)))
+
 
 (defcom
   new-on-resize
@@ -107,8 +107,8 @@
        engine-stats (data engine-stats)
        $render-stats ($ (-> render-stats .-domElement))
        $engine-stats ($ (-> engine-stats .-domElement))
-       $container (:$page params)
-       ]
+       $container (:$page params)]
+
       (-> $container (.append $render-stats))
       (-> $render-stats (.addClass page-class))
       (-> $render-stats (.addClass "render-stats"))
@@ -116,8 +116,8 @@
         $render-stats
         {
          :top 0
-         :z-index 100
-         })
+         :z-index 100})
+
       (-> $container (.append $engine-stats))
       (-> $engine-stats (.addClass page-class))
       (-> $engine-stats (.addClass "engine-stats"))
@@ -125,8 +125,8 @@
         $engine-stats
         {
          :top "50px"
-         :z-index 100
-         })
+         :z-index 100})
+
       component))
   (fn [component]
     (-> ($ (str "." page-class)) .remove)
@@ -143,8 +143,8 @@
 (defn stop-scene
   [component]
   (-> ($ (str "." page-class)) .remove)
-  (assoc component :done false)
-  )
+  (assoc component :done false))
+
 
 (defcom
   new-init-scene
@@ -178,8 +178,8 @@
           (-> (data camera) (.lookAt pos)))
         (let
           [mesh (:mesh ground)
-           newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))
-           ]
+           newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
+
           (add scene newmesh))
         (assoc component :done true))
       component))
@@ -195,9 +195,9 @@
       height 100 ; will be set correctly later by resize
       FOV 35
       frustumFar 1000000
-      frustumNear 1
-      ]
-      (new js/THREE.PerspectiveCamera FOV (/ width height) frustumNear frustumFar)))
+      frustumNear 1]
+
+     (new js/THREE.PerspectiveCamera FOV (/ width height) frustumNear frustumFar)))
 
 (defrecord InitLight [config scene light1 light2 light3 light4]
   component/Lifecycle
@@ -208,8 +208,8 @@
        light2 (data light2)
        light3 (data light3)
        light4 (data light4)
-       origin (-> (data scene) .-position)
-       ]
+       origin (-> (data scene) .-position)]
+
 ;      (-> light1 .-color (set! (new js/THREE.Color 0xAAAAAA)))
       (-> light1 .-color (set! (new js/THREE.Color 0xFFFFFF)))
       (-> light2 .-color (set! (new js/THREE.Color 0x00FF00)))
@@ -243,8 +243,8 @@
       (-> light1 (.lookAt origin))
       (-> light2 (.lookAt origin))
       (-> light3 (.lookAt origin))
-      (-> light4 (.lookAt origin))
-      )
+      (-> light4 (.lookAt origin)))
+
     component)
   (stop [component]
     (if
@@ -264,8 +264,8 @@
 
 (defn get-view-element
   [renderer]
-  (-> (data renderer) .-domElement)
-  )
+  (-> (data renderer) .-domElement))
+
 
 (defn get-camera-focus
   [camera x y]
@@ -274,8 +274,8 @@
      _ (-> v (.unproject camera))
      dir (-> v (.sub (-> camera .-position)) .normalize)
      distance (/ (- (-> camera .-position .-y)) (-> dir .-y))
-     pos (-> (-> camera .-position .clone) (.add (-> dir (.multiplyScalar distance))))
-     ]
+     pos (-> (-> camera .-position .clone) (.add (-> dir (.multiplyScalar distance))))]
+
     pos))
 
 (defn world-to-screen

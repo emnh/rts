@@ -8,8 +8,8 @@
     [goog.events :as events]
     [goog.history.EventType :as EventType]
     [rum.core :as rum]
-    [bidi.bidi :as bidi]
-    )
+    [bidi.bidi :as bidi])
+
   (:require-macros [game.shared.macros :as macros :refer [defcom]])
   (:refer-clojure :exclude [remove])
   (:import goog.History))
@@ -39,10 +39,10 @@
        "sente-test" :sente-test
        "game-lobby/"
        {
-        [:id "/"] :game-lobby
-        }
-       "404" :not-found
-       }])
+        [:id "/"] :game-lobby}
+
+       "404" :not-found}])
+
 
 (def page-list (set (map :handler (bidi/route-seq routes))))
 (defn get-pages [] page-list)
@@ -60,9 +60,9 @@
   ; (println "mounting pages")
   [:div
      (for [pagekey (get-pages)]
-        (rum/with-key (page pagekey) (name pagekey)))
-   ]
-  )
+        (rum/with-key (page pagekey) (name pagekey)))])
+
+
 
 (defn
   handle-url
@@ -81,11 +81,11 @@
       (handler page-list)
       (do
         (let
-          [$page ($ (get-page-selector handler))
-           ]
+          [$page ($ (get-page-selector handler))]
+
           (-> $page (.removeClass "invisible")))
         ;(println "cmp" handler (:handler old-match))
-        (if 
+        (if
           (not= handler (:handler old-match))
           (do
             ;(println "routing-callback")
@@ -112,28 +112,28 @@
           (let
             [history (History.)]
             (goog.events/listen history EventType/NAVIGATE #(handle-url component (.-token %)))
-            (doto history (.setEnabled true))
-            )))
-     ]
+            (doto history (.setEnabled true)))))]
+
+
     (rum/mount (pages) (aget ($ "#pages") 0))
     ;(handle-url component (string/replace-first window.location.hash "#" ""))
     (->
       component
       (assoc :history history)
-      (assoc :handlers handlers)
-      )))
+      (assoc :handlers handlers))))
+
 
 (defn stop-router
   [component]
-    component)
+  component)
 
 (defcom
   new-router
   [routing-callback]
   [history route-match handlers]
   start-router
-  stop-router
-  )
+  stop-router)
+
 
 ; TODO: replace with game component state
 (defn game-active

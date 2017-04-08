@@ -12,16 +12,16 @@
               [game.client.progress-manager
                :as progress-manager
                :refer [get-progress-map]]
-              [sablono.core :as sablono :refer-macros [html]]
-              )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+              [sablono.core :as sablono :refer-macros [html]])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (rum/defc
   progress-bar < rum/static
   "complete is a number from 0 to 100"
   [text complete]
-  [:div { :id "units" :class "progress" }
+  [:div { :id "units" :class "progress"}
    [:div {
           :role "progressbar"
           :aria-valuenow complete
@@ -32,13 +32,13 @@
                (if (= (round complete) 100) " progress-bar-success" ""))
           :style
           {
-            :width (str (round complete) "%")
-           }
-          }
-    [:span { :class "" } text]
-    ]
-   ]
-  )
+            :width (str (round complete) "%")}}
+
+
+    [:span { :class "" } text]]])
+
+
+
 
 (defn
   format-progress
@@ -65,8 +65,8 @@
   [component]
   (let
     [progress-map (rum/react (get-progress-map (:progress-manager component)))]
-    [:ul { :class "progress-list" } (format-progress progress-map)]
-    ))
+    [:ul { :class "progress-list" } (format-progress progress-map)]))
+
 
 (rum/defc
   load-test < rum/static

@@ -4,8 +4,8 @@
     [game.client.math :as math]
     [game.worker.message :as message]
     [game.shared.state :as state
-     :refer [s-add-component s-readd-component with-simple-cause]]
-    )
+     :refer [s-add-component s-readd-component with-simple-cause]])
+
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
 (enable-console-print!)

@@ -51,11 +51,11 @@
   {
    :sente {
            :request-timeout 10000
-           :connection-timeout 10000
-           }
+           :connection-timeout 10000}
+
    :dom {
-         :controls-height 250
-         }
+         :controls-height 250}
+
    :units {
            :max-units (* 40 40)
            :count 40
@@ -64,8 +64,8 @@
            :random-location true
            :air-altitude 40
            :animated true
-           :collision-bounce 0.2
-           }
+           :collision-bounce 0.2}
+
    :terrain {
              :sea-level 0
              :min-elevation 10
@@ -74,16 +74,16 @@
              :x-faces 256
              :y-faces 256
              :width 4000
-             :height 4000
-             }
+             :height 4000}
+
    :controls {
               :zoom-speed (/ 50 1000)
               :scroll-speed 10
               :rotate-speed 0.03
               ;:origin (new js/THREE.Vector3 330 300 0)
-              :origin (new js/THREE.Vector3 -18 300 328)
-              }
-   })
+              :origin (new js/THREE.Vector3 -18 300 328)}})
+
+
 
 (defn get-terrain-width [config]
   (-> config :terrain :width))
