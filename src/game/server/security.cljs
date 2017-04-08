@@ -1,15 +1,15 @@
 (ns ^:figwheel-always game.server.security
   (:require
     [cljs.nodejs :as nodejs]
-    [cljs.pprint :as pprint])
-  )
+    [cljs.pprint :as pprint]))
+
 
 (nodejs/enable-util-print!)
 
 (defn ensureAuthenticated
   [req res next baseurl]
   (if
-    (or 
+    (or
       (-> req .isAuthenticated)
       (= (-> req .-path) "/login")
       (= (-> req .-path) "/bundle-deps.js")

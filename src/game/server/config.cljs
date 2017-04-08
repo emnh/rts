@@ -1,8 +1,8 @@
 (ns ^:figwheel-always game.server.config
   (:require
-    [cljs.nodejs :as nodejs]
-    )
-  )
+    [cljs.nodejs :as nodejs]))
+
+
 
 (nodejs/enable-util-print!)
 
@@ -23,7 +23,7 @@
   []
   (:production jsconfig))
 
-(def facebook-path 
+(def facebook-path
   (if
     (production?)
     "/.rts/facebook.json"
@@ -65,7 +65,7 @@
     (str "http://localhost:3451/" urlpath)))
 
 (def config
-  { 
+  {
    :default-map
    {
     :min-elevation 10
@@ -75,46 +75,43 @@
     :x-faces 200
     :y-faces 200
     :width 4000
-    :height 4000
-    }
+    :height 4000}
+
    :production (production?)
    :session
    {
-    :secret (-> fs (.readFileSync (str home "/.rts/session-secret") "utf8"))
-    }
+    :secret (-> fs (.readFileSync (str home "/.rts/session-secret") "utf8"))}
+
    :facebook
    {
-    :data facebook-data
-    }
+    :data facebook-data}
+
    :twitter
    {
-    :data twitter-data
-    }
+    :data twitter-data}
+
    :google
    {
-    :data google-data
-    }
+    :data google-data}
+
    :github
    {
-    :data github-data
-    }
+    :data github-data}
+
    :paths
    {
     :home home
-    :src (if (production?) "out.prod.client" "out.dev.client")
-    }
-   :server 
+    :src (if (production?) "out.prod.client" "out.dev.client")}
+
+   :server
    {
     :port (if (production?) 3551 3451)
     :url url
-    :sente-path (str "/" urlpath "chsk")
-    }
-   :db 
+    :sente-path (str "/" urlpath "chsk")}
+
+   :db
    {
-    :url (if 
+    :url (if
            (production?)
            "mongodb://mongodb:27017/rts"
-           "mongodb://localhost:27017/rts")
-    }
-   }
-  )
+           "mongodb://localhost:27017/rts")}})

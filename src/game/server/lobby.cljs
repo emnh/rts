@@ -9,10 +9,10 @@
     [game.server.db :as db]
     [game.server.games :as games]
     [game.server.sente-setup :as sente]
-    [game.shared.schema :as schema]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.shared.schema :as schema])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   dekeywordize-keys
@@ -52,8 +52,8 @@
            v
            {
             :display-name
-            (:displayName (first (by-uid (name k))))
-            }))))
+            (:displayName (first (by-uid (name k))))}))))
+
     {}
     players))
 
@@ -64,7 +64,7 @@
     [players (map #(:players %) games)
      uids (map name (flatten (map #(keys %) players)))
 ;     _ (println "uids" uids)
-     query { :_id { :$in (map db/get-object-id uids) } }]
+     query { :_id { :$in (map db/get-object-id uids)}}]
     (->
       (db/find (:db lobby) "users" query)
       (p/then
@@ -100,9 +100,9 @@
       :uid uid
       :user display-name
       :message ?data
-      :date (db/timestamp)
-      }
-     ]
+      :date (db/timestamp)}]
+
+
     (->
       (db/insert (:db lobby) "messages" doc)
       (p/then
@@ -133,11 +133,11 @@
         (doseq
          [doc docs]
           ; TODO: optimize by sending batch
-          (sente/send
-            sente
-            uid
-            :rts/chat-message
-            (message-from-db doc)))))))
+         (sente/send
+           sente
+           uid
+           :rts/chat-message
+           (message-from-db doc)))))))
 
 (defn new-game
   [lobby sente {:as ev-msg :keys [event id ?data uid ring-req ?reply-fn send-fn]}]

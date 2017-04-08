@@ -8,10 +8,10 @@
     [promesa.core :as p]
     [promesa.monad]
     [com.stuartsierra.component :as component]
-    [game.server.db :as db]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.server.db :as db])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defn
   join-game
@@ -19,16 +19,16 @@
   (let
     [query
      {
-      :_id (db/get-object-id game-id)
-      }
+      :_id (db/get-object-id game-id)}
+
      ops
      {
       :$set
       {
-       (str "players." uid) {}
-       }
-      }
-     ]
+       (str "players." uid) {}}}]
+
+
+
     ;(println "update db" query ops)
     (db/updateOne db "games" query ops)))
 
@@ -46,8 +46,8 @@
       :max-player-count 2
       :players
       {
-       userid {}
-       }
-      }]
+       userid {}}}]
+
+
     ;(println "games/new-game" game)
     (db/insert db "games" (clj->js game))))

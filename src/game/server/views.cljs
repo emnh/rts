@@ -5,8 +5,8 @@
     [hiccups.runtime :as hiccupsrt]
     [com.stuartsierra.component :as component]
     [game.server.config :as config]
-    [game.server.security :as security]
-    ))
+    [game.server.security :as security]))
+
 
 (defonce beautify (-> (nodejs/require "js-beautify") .-html))
 
@@ -19,21 +19,21 @@
       "./csscache/bootstrap-theme.min.css"
       "./csscache/font-awesome.css"
       "./csscache/bootstrap-social-docs.css"
-      "./csscache/bootstrap-social.css"
-      ]
+      "./csscache/bootstrap-social.css"]
+
      scripts
      [
-      "./bundle-deps.js"
-      ]
+      "./bundle-deps.js"]
+
      head (concat
             (for [c css]
-              [:link { :rel "stylesheet" :href c }])
+              [:link { :rel "stylesheet" :href c}])
             (for [script scripts]
               [:script {:type "text/javascript" :src script}]))
-     page [:html [:head head] [:body body]]
-     ]
-  (beautify (str "<!DOCTYPE html>" (html page)))
-  ))
+     page [:html [:head head] [:body body]]]
+
+   (beautify (str "<!DOCTYPE html>" (html page)))))
+
 
 (defn login-page
   [baseurl req res]
@@ -42,32 +42,32 @@
      a-fb
       [:a {
            :href (str baseurl "auth/facebook")
-           :class "btn btn-block btn-social btn-facebook"
-           }
-       [:i { :class "fa fa-facebook" }]
+           :class "btn btn-block btn-social btn-facebook"}
+
+       [:i { :class "fa fa-facebook"}]
        "Sign in with Facebook"]
      a-twitter
       [:a {
            :href (str baseurl "auth/twitter")
-           :class "btn btn-block btn-social btn-twitter"
-           }
-       [:i { :class "fa fa-twitter" }]
+           :class "btn btn-block btn-social btn-twitter"}
+
+       [:i { :class "fa fa-twitter"}]
        "Sign in with Twitter"]
      a-google
      [:a {
            :href (str baseurl "auth/google")
-           :class "btn btn-block btn-social btn-google"
-           }
-       [:i { :class "fa fa-google" }]
+           :class "btn btn-block btn-social btn-google"}
+
+       [:i { :class "fa fa-google"}]
        "Sign in with Google"]
      a-github
      [:a {
            :href (str baseurl "auth/github")
-           :class "btn btn-block btn-social btn-github"
-           }
-       [:i { :class "fa fa-github" }]
+           :class "btn btn-block btn-social btn-github"}
+
+       [:i { :class "fa fa-github"}]
        "Sign in with GitHub"]
-     div3 [:div { :class "col-sm-4 social-buttons" }
+     div3 [:div { :class "col-sm-4 social-buttons"}
            a-fb
            a-twitter
            a-google
@@ -75,6 +75,6 @@
      div2 [:div { :class "row" } div3]
      h1 [:h1 "Login Page"]
      div [:div { :class "container" } h1 div2]
-     body [:div { :class "jumbotron" } div]
-     ]
+     body [:div { :class "jumbotron" } div]]
+
     (. res (send (base-template body)))))

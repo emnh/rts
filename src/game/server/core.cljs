@@ -18,12 +18,12 @@
      :as state
      :refer [s-add-component
              s-readd-component
-             with-simple-cause]]
-    ))
+             with-simple-cause]]))
+
 
 ;(defonce origlog (-> js/console .-log))
 
-;(defonce logger (.colorConsole 
+;(defonce logger (.colorConsole
 ;                  (nodejs/require "tracer")
 ;                  #js
 ;                  {
@@ -50,22 +50,22 @@
 
 (defn debug
   []
-  (let 
+  (let
     [app (app/new-app)
      passport (passport/new-passport)
      passport
       (->
         passport
         (assoc :config config/config)
-        component/start)
-     ]
+        component/start)]
+
     (->
       app
       (assoc :config config/config)
       (assoc :passport passport)
       component/start)))
 
-(defn -main 
+(defn -main
   []
   (println "Main")
   (with-simple-cause #(swap! system component/stop-system))

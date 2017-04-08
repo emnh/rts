@@ -1,5 +1,5 @@
 (ns ^:figwheel-always game.server.dev
-  (:require 
+  (:require
     [cljs.nodejs :as nodejs]
     [figwheel.client :as fw]
     [figwheel.client.utils :as utils]
@@ -17,8 +17,8 @@
      :websocket-url (str "ws://"
                       (if (utils/html-env?) js/location.host "localhost:3450")
                       "/figwheel-ws")
-     :on-jsload on-js-reload
-     })
-  );(core/-main))
+     :on-jsload on-js-reload}))
+
+  ;(core/-main))
 
 (set! *main-cli-fn* -main)

@@ -3,8 +3,8 @@
     [cljs.pprint :as pprint]
     [clojure.pprint :as pprint2]
     [clojure.walk :as walk]
-    [com.stuartsierra.component :as component]
-    ))
+    [com.stuartsierra.component :as component]))
+
 
 (defn with-memoized-def-fn
   [expr]

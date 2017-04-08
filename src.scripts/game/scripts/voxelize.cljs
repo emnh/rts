@@ -7,10 +7,10 @@
     [cats.core :as m]
     [game.client.models :as models]
     [game.client.voxelize :as voxelize]
-    [cljs.nodejs :as nodejs]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [cljs.nodejs :as nodejs])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (enable-console-print!)
 
@@ -41,8 +41,8 @@
            voxel-dict (voxelize/voxelize-geometry geo voxel-count)
            voxel-dict (voxelize/fill-inside voxel-dict)
            voxel-dict-js (clj->js voxel-dict)
-           voxel-dict-msgpack (-> msgpack (.encode voxel-dict-js))
-           ]
+           voxel-dict-msgpack (-> msgpack (.encode voxel-dict-js))]
+
           (println "writing" out-fname)
           (-> fs (.writeFileSync out-fname voxel-dict-msgpack)))))))
 

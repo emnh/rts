@@ -1,22 +1,22 @@
 (ns ^:figwheel-always game.shared.state
   (:require
-    [com.stuartsierra.component :as component]
-    )
-  )
+    [com.stuartsierra.component :as component]))
+
+
 
 (defn s-add-component
   [local-system k v]
-  (if 
+  (if
     (not (k @local-system))
     (swap! local-system #(assoc % k v))))
 
 (defn s-readd-component
   [local-system k v]
-  (if 
+  (if
     (k @local-system)
     (println "stopping component" k)
-    (component/stop k)
-    )
+    (component/stop k))
+
   (swap! local-system #(assoc % k v)))
 
 (defn with-simple-cause
@@ -32,5 +32,4 @@
           (do
             (.log js/console simple-e)
             (.log js/console (aget simple-e "cause"))
-            (throw (aget simple-e "cause"))
-            ))))))
+            (throw (aget simple-e "cause"))))))))

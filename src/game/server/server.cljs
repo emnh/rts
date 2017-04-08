@@ -3,8 +3,8 @@
   (:require
     [cljs.nodejs :as nodejs]
     [hiccups.runtime :as hiccupsrt]
-    [com.stuartsierra.component :as component]
-    ))
+    [com.stuartsierra.component :as component]))
+
 
 (defonce http (nodejs/require "http"))
 (defonce express-ws (nodejs/require "express-ws"))
@@ -18,8 +18,8 @@
       component
       (let
         [server (.createServer http #((:app app) %1 %2))
-         port (get-in config [:server :port])
-         ]
+         port (get-in config [:server :port])]
+
         (-> server (.listen port))
         (-> component
           (assoc :server server)))))

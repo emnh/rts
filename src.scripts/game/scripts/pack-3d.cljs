@@ -6,10 +6,10 @@
     [promesa.core :as p]
     [cats.core :as m]
     [game.client.models :as models]
-    [cljs.nodejs :as nodejs]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [cljs.nodejs :as nodejs])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (enable-console-print!)
 
@@ -37,8 +37,8 @@
        _ (js-delete (-> json .-data .-attributes) "normal")
        _ (-> json .-data .-attributes .-position .-array (set! (-> geo .-attributes .-position .-array)))
        _ (-> json .-data .-attributes .-uv .-array (set! (-> geo .-attributes .-uv .-array)))
-       geo-msgpack (-> msgpack (.encode json))
-       ]
+       geo-msgpack (-> msgpack (.encode json))]
+
       (println "writing" out-fname)
       (-> fs (.writeFileSync out-fname geo-msgpack)))))
 

@@ -6,8 +6,8 @@
     [com.stuartsierra.component :as component]
     [game.server.config :as config]
     [game.server.security :as security]
-    [game.server.views :as views]
-    ))
+    [game.server.views :as views]))
+
 
 (defonce express (nodejs/require "express"))
 (defonce cookie-parser (nodejs/require "cookie-parser"))
@@ -25,12 +25,12 @@
   (let
     [session-secret (get-in config [:session :secret])]
     (-> app (.use (cookie-parser session-secret))))
-  (-> app (.use session ))
-  (-> app (.use (csurf #js { :cookie false })))
-  (-> app (.use (.urlencoded body-parser #js { :extended false } )))
+  (-> app (.use session))
+  (-> app (.use (csurf #js { :cookie false})))
+  (-> app (.use (.urlencoded body-parser #js { :extended false})))
   (-> app (.use (-> passport .initialize)))
-  (-> app (.use (-> passport .session)))
-  )
+  (-> app (.use (-> passport .session))))
+
 
 (defn init-static
   [app config]
@@ -40,18 +40,18 @@
   (. app (use (serve-static "resources/public" #js {:index "index.html"})))
   ; TODO: the following line requires a comment
   (. app (use (serve-static "..")))
-  (. app (use (serve-static (get-in config [:paths :src]))))
-  )
+  (. app (use (serve-static (get-in config [:paths :src])))))
+
 
 (defn init-routes
   [app config]
 
   (. app (get "/hello"
-    (fn [req res] (. res (send "Hello world")))))
+          (fn [req res] (. res (send "Hello world")))))
 
   (. app (get "/account"
-    (fn [req res] (. res (send (clj->js req.user))))))
-  )
+          (fn [req res] (. res (send (clj->js req.user)))))))
+
 
 (defn init-auth-routes
   [app config passport baseurl]
@@ -69,8 +69,8 @@
                   "github"
                   #js {
                        :failureRedirect (str baseurl "login")
-                       :successRedirect baseurl
-                       }))
+                       :successRedirect baseurl}))
+
               (fn [req res]
                 (println "github callback request")
                 (-> res (.redirect "/")))))
@@ -81,8 +81,8 @@
                   "google"
                   #js
                   {
-                   :scope "openid profile email https://www.googleapis.com/auth/plus.login https://www.googleapis.com/auth/plus.me"
-                   }))
+                   :scope "openid profile email https://www.googleapis.com/auth/plus.login https://www.googleapis.com/auth/plus.me"}))
+
               (fn [req res]
                 ; The request will be redirected to Google for authentication, so this
                 ; function will not be called.
@@ -92,11 +92,11 @@
               (-> passport
                 (.authenticate
                   "google"
-                  #js 
+                  #js
                   {
                    :failureRedirect (str baseurl "login")
-                   :successRedirect baseurl
-                   }))
+                   :successRedirect baseurl}))
+
               (fn [req res]
                 (-> res (.redirect "/")))))
 
@@ -106,9 +106,9 @@
               (-> passport
                 (.authenticate "twitter"
                   #js {
-                   :failureRedirect (str baseurl "login")
-                   :successRedirect baseurl
-                   }))))
+                       :failureRedirect (str baseurl "login")
+                       :successRedirect baseurl}))))
+
 
   (. app
     (get
@@ -126,8 +126,8 @@
                       "facebook"
                       #js {
                            :failureRedirect (str baseurl "login")
-                           :successRedirect baseurl
-                           }))
+                           :successRedirect baseurl}))
+
        (fn [req res]
          (-> res (.redirect "/")))))
 
@@ -136,8 +136,8 @@
        "/logout"
        (fn [req res]
          (-> req .logout)
-         (-> res (.redirect (str baseurl))))))
-  )
+         (-> res (.redirect (str baseurl)))))))
+
 
 (defn init-app
   [app config passport session]
@@ -149,8 +149,8 @@
   (init-routes app config)
   (let
     [baseurl (get-in config [:server :url])]
-    (init-auth-routes app config passport baseurl))
-  )
+    (init-auth-routes app config passport baseurl)))
+
 
 (defrecord App
   [app config passport session]
@@ -161,8 +161,8 @@
       (init-app app config (:passport passport) (:session session))
       (assoc component :app app)))
   (stop [component]
-    component)
-  )
+    component))
+
 
 (defn new-app
   []

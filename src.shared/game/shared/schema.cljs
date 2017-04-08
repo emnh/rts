@@ -1,7 +1,7 @@
 (ns ^:figwheel-always game.shared.schema
-	(:require [schema.core :as s
-						 :include-macros true ;; cljs only
-							 ]))
+  (:require [schema.core :as s
+             :include-macros true])) ;; cljs only
+
 
 ; TODO: id regex
 (def Id s/Str)
@@ -17,27 +17,27 @@
     :id Id
     :players
     {
-     Id 
+     Id
      {
-      :display-name s/Str
-      }
-     }
-    }
-   })
+      :display-name s/Str}}}})
+
+
+
+
 
 (def ChatMessage
   {
    :date js/Date
    :uid Id
    :user s/Str
-   :message s/Str
-   })
+   :message s/Str})
+
 
 (def UserList
   [{
-   :uid Id
-   :display-name s/Str
-   }])
+    :uid Id
+    :display-name s/Str}])
+
 
 (defn validate-game-list
   [game-list]

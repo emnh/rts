@@ -8,10 +8,10 @@
     [cats.core :as m]
     [cats.builtin]
     [game.server.config :as config]
-    [game.server.db :as db]
-    )
-  (:require-macros [game.shared.macros :as macros :refer [defcom]])
-  )
+    [game.server.db :as db])
+
+  (:require-macros [game.shared.macros :as macros :refer [defcom]]))
+
 
 (defonce gpassport (nodejs/require "passport"))
 (defonce FacebookStrategy (.-Strategy (nodejs/require "passport-facebook")))
@@ -21,36 +21,36 @@
 
 (defn init-passport
   [config db]
-  (-> gpassport 
-    (.serializeUser 
+  (-> gpassport
+    (.serializeUser
 ;      #(%2 nil %1)))
-      (fn [user done] 
+      (fn [user done]
         (let
-          [id-pair 
+          [id-pair
            {
             :id (aget user "id")
-            :provider (aget user "provider")
-            }
-           user-promise 
+            :provider (aget user "provider")}
+
+           user-promise
            (db/upsert
-              db 
+              db
               "users"
               (clj->js id-pair)
               user)]
           (->
             user-promise
             (p/then #(done nil (clj->js id-pair)))
-            (p/catch #(done % nil)))
-        ))))
+            (p/catch #(done % nil)))))))
+
   (-> gpassport
-    (.deserializeUser 
+    (.deserializeUser
 ;      #(%2 nil %1))))
-      (fn [id-pair done] 
+      (fn [id-pair done]
         (let
           [user-promise (db/find db "users" (js->clj id-pair :keywordize-keys true))]
           (p/then user-promise #(done nil (clj->js (first %))))
-          (p/catch user-promise #(done % nil))
-                  )))))
+          (p/catch user-promise #(done % nil)))))))
+
 
 (defn
   init-facebook
@@ -59,8 +59,8 @@
     [
      facebook-data
       (get-in config [:facebook :data])
-     { :keys [ :FACEBOOK_APP_ID :FACEBOOK_APP_SECRET ]}
-       (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
+     { :keys [ :FACEBOOK_APP_ID :FACEBOOK_APP_SECRET]}
+     (-> js/JSON (.parse facebook-data) (js->clj :keywordize-keys true))
      baseurl (get-in config [:server :url])
      facebook-function
       (fn
@@ -68,12 +68,12 @@
         (done nil profile))
      facebook-strategy
       (new FacebookStrategy #js {
-        :clientID FACEBOOK_APP_ID,
-        :clientSecret FACEBOOK_APP_SECRET,
-        :callbackURL (str baseurl "auth/facebook/callback"),
-        :enableProof false
-      } facebook-function)
-     ]
+                                 :clientID FACEBOOK_APP_ID,
+                                 :clientSecret FACEBOOK_APP_SECRET,
+                                 :callbackURL (str baseurl "auth/facebook/callback"),
+                                 :enableProof false}
+       facebook-function)]
+
     (-> passport (.use facebook-strategy))))
 
 (defn
@@ -83,27 +83,27 @@
     [twitter-data
      (get-in config [:twitter :data])
      baseurl (get-in config [:server :url])
-     { :keys [ :TWITTER_CONSUMER_KEY :TWITTER_CONSUMER_SECRET ] }
-      (-> js/JSON (.parse twitter-data) (js->clj :keywordize-keys true))
+     { :keys [ :TWITTER_CONSUMER_KEY :TWITTER_CONSUMER_SECRET]}
+     (-> js/JSON (.parse twitter-data) (js->clj :keywordize-keys true))
      twitter-fn
       (fn
         [token tokenSecret profile done]
-        (done nil profile)
-        )
+        (done nil profile))
+
      twitter-strategy
-      (new 
+      (new
         TwitterStrategy
-        #js 
+        #js
         {
          :consumerKey TWITTER_CONSUMER_KEY
          :consumerSecret TWITTER_CONSUMER_SECRET
-         :callbackURL (str baseurl "auth/twitter/callback")
-         }
-        twitter-fn)
-     ]
-    (-> passport (.use twitter-strategy))
-    )
-  )
+         :callbackURL (str baseurl "auth/twitter/callback")}
+
+        twitter-fn)]
+
+    (-> passport (.use twitter-strategy))))
+
+
 
 (defn
   init-google
@@ -111,8 +111,8 @@
   (let
     [google-data
       (get-in config [:google :data])
-     { :keys [ :GOOGLE_CONSUMER_KEY :GOOGLE_CONSUMER_SECRET ] }
-      (-> js/JSON (.parse google-data) (js->clj :keywordize-keys true))
+     { :keys [ :GOOGLE_CONSUMER_KEY :GOOGLE_CONSUMER_SECRET]}
+     (-> js/JSON (.parse google-data) (js->clj :keywordize-keys true))
      google-fn
       (fn
         [accessToken refreshToken profile done]
@@ -125,11 +125,11 @@
         {
          :clientID GOOGLE_CONSUMER_KEY
          :clientSecret GOOGLE_CONSUMER_SECRET
-         :callbackURL (str baseurl "auth/google/callback")
-         }
+         :callbackURL (str baseurl "auth/google/callback")}
+
         google-fn)]
-    (-> passport (.use google-strategy)))
-  )
+    (-> passport (.use google-strategy))))
+
 
 (defn
   init-github
@@ -137,8 +137,8 @@
   (let
     [github-data
       (get-in config [:github :data])
-     { :keys [ :GITHUB_CONSUMER_KEY :GITHUB_CONSUMER_SECRET ] }
-      (-> js/JSON (.parse github-data) (js->clj :keywordize-keys true))
+     { :keys [ :GITHUB_CONSUMER_KEY :GITHUB_CONSUMER_SECRET]}
+     (-> js/JSON (.parse github-data) (js->clj :keywordize-keys true))
      github-fn
       (fn
         [accessToken refreshToken profile done]
@@ -151,11 +151,11 @@
         {
          :clientID GITHUB_CONSUMER_KEY
          :clientSecret GITHUB_CONSUMER_SECRET
-         :callbackURL (str baseurl "auth/github/callback")
-         }
+         :callbackURL (str baseurl "auth/github/callback")}
+
         github-fn)]
-    (-> passport (.use github-strategy)))
-  )
+    (-> passport (.use github-strategy))))
+
 
 
 (defcom
