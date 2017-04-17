@@ -1,12 +1,16 @@
 # Introduction (Legacy version)
 
-Unfinished project, but you can see a [demo at github
-pages](http://emnh.github.io/rts/) and another [demo displaying only free
-3D models, not from SC2](http://alexis.lart.no/emh/snapshots/rts-free.git/).
+Unfinished project.
+You can see a [demo displaying only free 3D models, not from SC2](http://emh.lart.no/publish/rts-free.git/).
+The SC2 demo is not working because SC2 file host is not hosting them anymore,
+but the live code is still up at [github pages](http://emnh.github.io/rts/).
+If you want to play with the version as seen in demos you should check out the git "legacy" branch.
+The legacy version is written in JavaScript, while the new version is primarily in ClojureScript.
 
-SC2 files are retrieved from
+SC2 files were retrieved from
 [viewer.hiveworkshop.com](http://viewer.hiveworkshop.com/?q=Assets/units/zerg/baneling/baneling.m3)
 (not mine) through a [heroku CORS proxy](http://crossorigin.herokuapp.com/).
+
 Works best in Firefox, also in Chrome, not in IE and not tested with Safari.
 Only tested on Windows.
 
@@ -112,3 +116,10 @@ Not everything is linked up yet, so overview is here:
 
 ## Authentication
  - Remove authentication for everything except lobby and multiplayer
+
+## Terrain Improvements
+Combine the following:
+ - http://madebyevan.com/webgl-water/
+ - http://codeflow.org/entries/2011/nov/10/webgl-gpu-landscaping-and-erosion/
+ - https://threejs.org/examples/webgl_terrain_dynamic.html
+ - [ShaderToy: Reaction Diffusion 2-pass](https://www.shadertoy.com/view/XsG3z1)
