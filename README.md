@@ -120,6 +120,7 @@ Not everything is linked up yet, so overview is here:
 ## Terrain Improvements
 Combine the following:
  - http://madebyevan.com/webgl-water/
+ - [three.js version of Evan's WebGL Water](https://github.com/dblsai/WebGL-Fluid)
  - http://codeflow.org/entries/2011/nov/10/webgl-gpu-landscaping-and-erosion/
  - https://threejs.org/examples/webgl_terrain_dynamic.html
  - [ShaderToy: Reaction Diffusion 2-pass](https://www.shadertoy.com/view/XsG3z1)
