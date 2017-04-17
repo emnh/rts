@@ -124,3 +124,4 @@ Combine the following:
  - http://codeflow.org/entries/2011/nov/10/webgl-gpu-landscaping-and-erosion/
  - https://threejs.org/examples/webgl_terrain_dynamic.html
  - [ShaderToy: Reaction Diffusion 2-pass](https://www.shadertoy.com/view/XsG3z1)
+ - [Terrain LOD in WebGL](https://github.com/felixpalmer/lod-terrain)
