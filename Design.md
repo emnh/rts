@@ -51,3 +51,40 @@
  - Air units cannot overlap, unlike some other RTS.
   - This is just to unify collision mechanics.
   - Air units can fly over (low) ground units however.
+
+# Terrain Improvements
+Combine the following:
+ - http://madebyevan.com/webgl-water/
+ - [three.js version of Evan's WebGL Water](https://github.com/dblsai/WebGL-Fluid)
+ - http://codeflow.org/entries/2011/nov/10/webgl-gpu-landscaping-and-erosion/
+ - https://threejs.org/examples/webgl_terrain_dynamic.html
+ - [ShaderToy: Reaction Diffusion 2-pass](https://www.shadertoy.com/view/XsG3z1)
+ - [Felix Palmer: Terrain LOD in WebGL](https://github.com/felixpalmer/lod-terrain)
+ - [Charpie.fr: Terrain LOD in WebGL](http://charpie.fr/#home)
+ - [Zephyros Anemos: Terrain LOD in WebGL](http://www.zephyrosanemos.com/windstorm/current/live-demo.html)
+ - [Jeremy Bouny: Screenspace grid](http://jeremybouny.fr/experiments/screen_space_grid/)
+
+# Random thoughts about project structure and hot reloading
+
+- The goal is fast hot reloading and iterative development.
+- The problem is asynchronous loading of big textures and 3d objects, unpacking of compressed resources and compiling shaders.
+- All application state is kept in a nested global state dictionary.
+- View objects in the application state are somehow secondary citizens.
+ These are for example DOM objects corresponding to a view,
+ the actual image data for an image URL and array buffers containing generated 3d data.
+ We don't want to display large view objects while debugging.
+ We also don't want to do update comparisons with them so we need
+ to check if the function that generated (owns) them or its dependencies changed when
+ deciding whether to regenerate view objects.
+ Thus the decision to rerun functions on code reload depends on changed functions
+ as well as the application state.
+ We can keep view objects in memory while reloading or put them in localStorage (google "requestquota demo"),
+ as page reloads are sometimes necessary to clean up even with figwheel and mostly reloadable code.
+- We should also load the page quickly and as synchronously as possible with just cubes for 3d models and with a simple noise texture shader,
+  then replace models and textures as assets are loaded.
+- We also want interactive shader recompilation ala shadertoy or glslsandbox for experimentation and for user customization.
+- All functions should take a dictionary as input and return a dictionary as output.
+We want to scan all functions to see whether their inputs and outputs match,
+without having to specify dependencies other than in direct usage.
+- Adding static verification and tools would be nice, but can we do it without leaving ClojureScript?
+Perhaps schemas are enough.

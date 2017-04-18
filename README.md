@@ -116,15 +116,3 @@ Not everything is linked up yet, so overview is here:
 
 ## Authentication
  - Remove authentication for everything except lobby and multiplayer
-
-## Terrain Improvements
-Combine the following:
- - http://madebyevan.com/webgl-water/
- - [three.js version of Evan's WebGL Water](https://github.com/dblsai/WebGL-Fluid)
- - http://codeflow.org/entries/2011/nov/10/webgl-gpu-landscaping-and-erosion/
- - https://threejs.org/examples/webgl_terrain_dynamic.html
- - [ShaderToy: Reaction Diffusion 2-pass](https://www.shadertoy.com/view/XsG3z1)
- - [Felix Palmer: Terrain LOD in WebGL](https://github.com/felixpalmer/lod-terrain)
- - [Charpie.fr: Terrain LOD in WebGL](http://charpie.fr/#home)
- - [Zephyros Anemos: Terrain LOD in WebGL](http://www.zephyrosanemos.com/windstorm/current/live-demo.html)
- - [Jeremy Bouny: Screenspace grid](http://jeremybouny.fr/experiments/screen_space_grid/)
