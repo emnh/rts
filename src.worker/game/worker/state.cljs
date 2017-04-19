@@ -10,7 +10,9 @@
    width
    height
    x-faces
-   y-faces])
+   y-faces
+   x-vertices
+   y-vertices])
 
 (defrecord
   State
