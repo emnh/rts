@@ -70,11 +70,13 @@
              :sea-level 0
              :min-elevation 10
              :max-elevation 48
-             ; must be power of two, because of DataTexture
+             ; must be power of two - 1, because of DataTexture
              :x-faces 256
              :y-faces 256
-             :width 4000
-             :height 4000}
+             :width 5120
+             :height 5120}
+             ;:width 4000
+             ;:height 4000}
 
    :controls {
               :zoom-speed (/ 50 1000)

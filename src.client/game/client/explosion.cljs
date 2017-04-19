@@ -17,7 +17,8 @@
   [init-renderer component]
   (let
     [
-     divisor 1000.0
+     ;alive-duration 1000.0
+     alive-duration 0.0
      current-time (common/game-time)]
 
     (engine/for-each-unit
@@ -32,7 +33,6 @@
            old-time (:add-time unit)
            new-time (- current-time old-time)
            duration (-> uniforms .-duration .-value)
-           alive-duration (* 1.0 divisor) ;duration
            total-duration (+ duration alive-duration)
            mod-new-time (mod new-time total-duration)
            sub-new-time (- mod-new-time alive-duration)
@@ -62,6 +62,7 @@ uniform sampler2D groundTexture;
 uniform float terrainWidth;
 uniform float terrainHeight;
 uniform float floatTextureDivisor;
+uniform vec3 boxSize;
 
 attribute float boxIndex;
 attribute vec3 boxTranslation;
@@ -96,7 +97,7 @@ float getGroundHeight(vec2 xy) {
   const float boxHeight = 2.0;
   xy.x = (xy.x + terrainWidth / 2.0) / terrainWidth;
   xy.y = (xy.y + terrainHeight / 2.0) / terrainHeight;
-  float groundLevel = texture2D(groundTexture, xy.xy).r * floatTextureDivisor + boxHeight;
+  float groundLevel = texture2D(groundTexture, xy).r * floatTextureDivisor + boxHeight;
   return groundLevel;
 }
 
@@ -117,16 +118,33 @@ void main() {
 
   if (time == 0.0) {
     doLighting(normalize(normal));
+    //position += sin(time);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
     return;
   }
 
-  float interval = duration; // * (random(boxIndex) + 0.001);
+  vec4 worldPosition = modelMatrix * vec4(vec3(0.0), 1.0);
+  worldPosition /= worldPosition.w;
+  float groundLevel = -worldPosition.y; //getGroundHeight(worldPosition.xz + r.xz) - worldPosition.y;
+
+  float animateDuration = 2500.0;
+
+  if (time <= animateDuration) {
+    doLighting(normalize(normal));
+    vec3 animatePosition = position;
+    animatePosition.y += max(5.0 * boxSize.y * (sin(4.0 * PI * time / animateDuration) + 1.0) / 2.0, 0.0);
+    groundLevel = getGroundHeight(worldPosition.xz) - worldPosition.y;
+    //animatePosition.y += groundLevel;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(animatePosition, 1.0);
+    return;
+  }
+
+  float interval = duration - animateDuration; // * (random(boxIndex) + 0.001);
   float factor = 4.0; // give time to finish falling
-  float timePart = factor * mod(time, interval) / interval;
+  float timePart = factor * mod(time - animateDuration, interval) / interval;
   vTimePart = timePart / factor;
 	//float rnd = random(boxTranslation.x + boxTranslation.y + boxTranslation.z) - 0.5;
-	float rnd = random(boxIndex) - 0.5;
+  float rnd = random(boxIndex) - 0.5;
 
 	// https://en.wikipedia.org/wiki/Equations_of_motion
 	float v0abs = 30.0 * (1.0 + rnd);
@@ -136,10 +154,6 @@ void main() {
 	vec3 v0 = v0base * v0abs + vec3(0.0, 20.0, 0.0);
 	vec3 a = vec3(0.0, -100.0, 0.0);
 	vec3 r = boxTranslation + v0 * timePart + a * timePart * timePart / 2.0;
-
-  vec4 worldPosition = modelMatrix * vec4(vec3(0.0), 1.0);
-  worldPosition /= worldPosition.w;
-  float groundLevel = -worldPosition.y; //getGroundHeight(worldPosition.xz + r.xz) - worldPosition.y;
 
   float Xa = a.y / 2.0;
   float Xb = v0.y;
@@ -190,7 +204,6 @@ void main() {
 
 uniform float time;
 uniform sampler2D map;
-
 uniform vec3 boxSize;
 
 // Simple random function

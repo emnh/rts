@@ -147,7 +147,9 @@
       :width (:width ground)
       :height (:height ground)
       :x-faces (:x-faces ground)
-      :y-faces (:y-faces ground)}
+      :y-faces (:y-faces ground)
+      :x-vertices (:x-vertices ground)
+      :y-vertices (:y-vertices ground)}
 
      camera-dict
      {
@@ -260,7 +262,8 @@
       [starting (atom true)
        units (atom [])
        mesh-to-screenbox-map (atom {})
-       mesh-to-unit-map (atom {})]
+       mesh-to-unit-map (atom {})
+       maxr 10]
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
         (m/mlet
@@ -269,11 +272,15 @@
            voxel-dict (:voxels-load-promise model)]
           (if @starting
             (doseq
-              [i (range 2)]
+              [i (range maxr)
+               j (range maxr)]
               (let
                 [spread 150.0
                  xpos (- (* (math/random) 2.0 spread) spread)
                  zpos (- (* (math/random) 2.0 spread) spread)
+                 ;xpos (* (- i (/ maxr 2.0)) 5.0)
+                 ;zpos (* (- j (/ maxr 2.0)) 5.0)
+                 yoff 1.0
                  material (-> (:standard-material magic) .clone)
                  _ (-> material .-uniforms .-map .-value (set! texture))
                  rep (new js/THREE.Vector4
@@ -288,6 +295,15 @@
                  bbox (-> voxel-geometry .-boundingBox)
                  bounding-box-min (-> voxel-geometry .-boundingBox .-min)
                  bounding-box-max (-> voxel-geometry .-boundingBox .-max)
+                 debugBox (new js/THREE.BoxGeometry 1.0 1.0 1.0)
+                 _ (-> debugBox .center)
+                 debugMaterial (new js/THREE.MeshLambertMaterial #js { :color 0x0000FF})
+                 debugMesh1 (new js/THREE.Mesh debugBox debugMaterial)
+                 debugMesh2 (new js/THREE.Mesh debugBox debugMaterial)
+                 debugMesh3 (new js/THREE.Mesh debugBox debugMaterial)
+                 debugMesh4 (new js/THREE.Mesh debugBox debugMaterial)
+                 debugMesh5 (new js/THREE.Mesh debugBox debugMaterial)
+                 ;_ (console.log bounding-box-min bounding-box-max)
                  _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
                  mesh (new js/THREE.Mesh geometry material)
@@ -307,7 +323,7 @@
                     ;_ (-> voxel-material .-uniforms .-duration .-value
                     ;    (set! (+ 500.0 (* (math/random) 30000.0))))
                     _ (-> voxel-material .-uniforms .-duration .-value
-                        (set! 2500.0))
+                        (set! 5000.0))
                     _ (->
                         voxel-material .-uniforms .-boxSize .-value
                         (set! (new js/THREE.Vector3 (:voxel-width voxel-dict) (:voxel-height voxel-dict) (:voxel-depth voxel-dict))))
@@ -332,17 +348,62 @@
                    :build-mesh mesh
                    :stars-mesh cloud
                    :explosion-mesh explosion-mesh}}]
-
-
-
                 (swap! units conj unit)
                 (swap! mesh-to-unit-map assoc mesh unit)
                 (swap! mesh-to-unit-map assoc explosion-mesh unit)
-                (-> group (.add mesh))
+                ;(-> group (.add mesh))
                 (-> mesh .-visible (set! false))
                 (-> cloud .-visible (set! false))
-                (-> group (.add cloud))
+                ;(-> group (.add cloud))
                 (-> group (.add explosion-mesh))
+                (let
+                  [x (+ xpos (-> bbox .-min .-x))
+                   z (+ zpos (-> bbox .-min .-z))
+                   y (+ yoff (ground/get-height ground x z))]
+                  (doto (-> debugMesh1 .-position)
+                    (aset "x" (- x xpos))
+                    (aset "y" (- y ypos))
+                    (aset "z" (- z zpos))))
+                (let
+                  [x (+ xpos (-> bbox .-max .-x))
+                   z (+ zpos (-> bbox .-min .-z))
+                   y (+ yoff (ground/get-height ground x z))]
+                  (doto (-> debugMesh2 .-position)
+                    (aset "x" (- x xpos))
+                    (aset "y" (- y ypos))
+                    (aset "z" (- z zpos))))
+                (let
+                  [x (+ xpos (-> bbox .-min .-x))
+                   z (+ zpos (-> bbox .-max .-z))
+                   y (+ yoff (ground/get-height ground x z))]
+                  (doto (-> debugMesh3 .-position)
+                    (aset "x" (- x xpos))
+                    (aset "y" (- y ypos))
+                    (aset "z" (- z zpos))))
+                (let
+                  [x (+ xpos (-> bbox .-max .-x))
+                   z (+ zpos (-> bbox .-max .-z))
+                   y (+ yoff (ground/get-height ground x z))]
+                  (doto (-> debugMesh4 .-position)
+                    (aset "x" (- x xpos))
+                    (aset "y" (- y ypos))
+                    (aset "z" (- z zpos))))
+                (let
+                  [x xpos
+                   z zpos
+                   y (+ yoff (ground/get-height ground x z))
+                   ys (* 2.0 (ground/get-height ground x z))]
+                  ;(-> debugMesh5 .-scale .-y (set! ys))
+                  (doto (-> debugMesh5 .-position)
+                    (aset "x" (- x xpos))
+                    ;(aset "y" (- y ypos))
+                    (aset "y" (- y ypos))
+                    (aset "z" (- z zpos))))
+                ;(-> group (.add debugMesh1))
+                ;(-> group (.add debugMesh2))
+                ;(-> group (.add debugMesh3))
+                ;(-> group (.add debugMesh4))
+                ;(-> group (.add debugMesh5))
                 (scene/add scene group)
                 (doto (-> group .-position)
                   (aset "x" xpos)

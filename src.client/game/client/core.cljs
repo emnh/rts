@@ -95,6 +95,7 @@
 
 (s-readd-component system :config config/config)
 
+; TODO: find out and document why simplex is not in the game system
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
 
 (def standalone false)
