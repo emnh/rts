@@ -1,4 +1,5 @@
 console.log("from worker");
+console.time("worker-load")
 
 CLOSURE_BASE_PATH = "../goog/"
 /**
@@ -22,3 +23,4 @@ importScripts(
     BASE_PATH + "jscache/three.js",
     BASE_PATH + "bundle-deps-worker.js");
 goog.require('game.worker.core');
+console.timeEnd("worker-load")
