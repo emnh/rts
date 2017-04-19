@@ -154,11 +154,13 @@
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
+    (-> js/DEBUG .-renderer (set! (data renderer)))
     (if-not done
       (do
         (doto
           (data renderer)
           (-> .-shadowMap .-enabled (set! true))
+          (-> .-shadowMap .-type (set! js/THREE.PCFSoftShadowMap))
           (-> .-shadowMap .-soft (set! true))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(-> ($ (-> % .-domElement)) (.addClass "game3d")))
@@ -179,7 +181,9 @@
         (let
           [mesh (:mesh ground)
            newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
-
+          (-> js/DEBUG .-ground (set! newmesh))
+          (-> newmesh .-receiveShadow (set! true))
+          ;(-> newmesh .-castShadow (set! true))
           (add scene newmesh))
         (assoc component :done true))
       component))
@@ -209,17 +213,19 @@
        light3 (data light3)
        light4 (data light4)
        origin (-> (data scene) .-position)]
+       ;testmesh (new js/THREE.Mesh (new js/THREE.SphereBufferGeometry 50 32 32) (new js/THREE.MeshLambertMaterial))]
 
 ;      (-> light1 .-color (set! (new js/THREE.Color 0xAAAAAA)))
       (-> light1 .-color (set! (new js/THREE.Color 0xFFFFFF)))
       (-> light2 .-color (set! (new js/THREE.Color 0x00FF00)))
       (-> light3 .-color (set! (new js/THREE.Color 0x0000FF)))
       (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
-      (-> light1 .-position (.set 5 10 -4))
+      (-> light1 .-position (.set -4 1000 500))
       (-> light2 .-position (.set 5 0 -4))
       (-> light3 .-position (.set -10 10 10))
       (-> light4 .-position (.set 0 10 0))
       (-> light1 .-target .-position (.copy origin))
+      (-> light1 .-target .-position .-y (set! 200))
       (-> light2 .-target .-position (.copy origin))
       (-> light3 .-target .-position (.copy origin))
       (-> light4 .-target .-position (.copy origin))
@@ -233,10 +239,20 @@
       (-> light1 .-shadow .-camera .-bottom (set! (+ (config/get-terrain-height config))))
       (-> light1 .-shadow .-camera .-near (set! (-> (get-camera) .-near)))
       (-> light1 .-shadow .-camera .-far (set! (-> (get-camera) .-far)))
-      (-> light1 .-shadow .-bias (set! -0.0001))
+      ;(-> light1 .-shadow (set! (new js/THREE.LightShadow (new js/THREE.PerspectiveCamera 50 1 1200 2500))))
+      (-> light1 .-shadow .-camera .-near (set! 0.0))
+      (-> light1 .-shadow .-camera .-far (set! 10000.0))
+      ;(-> testmesh .-position .-y (set! 150.0))
+      ;(-> testmesh .-castShadow (set! true))
+      ;(add scene testmesh)
+      ;(-> light1 .-shadow .-camera .-visible (set! true))
+      (-> light1 .-shadow .-bias (set! 0.0001))
+      (-> light1 .-shadow .-darkness (set! 0.5))
       (-> light1 .-shadow .-mapSize .-width (set! 2048))
       (-> light1 .-shadow .-mapSize .-height (set! 2048))
       (add scene light1)
+      (-> js/DEBUG .-light (set! light1))
+
 ;      (add scene light2)
 ;      (add scene light3)
 ;      (add scene light4)
@@ -292,7 +308,7 @@
 (defn world-to-screen-fast
   [width height matrix pos]
   (let
-    [v (-> pos .clone (.applyProjection matrix))
+    [v (-> pos .clone (.applyMatrix4 matrix))
      x (-> v .-x)
      y (-> v .-y)
      x (infix (x + 1) * width / 2)

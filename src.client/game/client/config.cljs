@@ -69,12 +69,14 @@
    :terrain {
              :sea-level 0
              :min-elevation 10
-             :max-elevation 48
-             ; must be power of two - 1, because of DataTexture
+             :max-elevation 65
+             ; must be power of two, because of DataTexture
+             ; XXX: power of two doesn't seem to be necessary anymore
+             ; but anyhow, width should be divisible by x-faces
              :x-faces 256
              :y-faces 256
-             :width 5120
-             :height 5120}
+             :width 512
+             :height 512}
              ;:width 4000
              ;:height 4000}
 

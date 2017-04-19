@@ -79,6 +79,7 @@
             ;(println "stopping system")
             (with-simple-cause #(swap! system component/stop-system))))
         ;(println "starting system")
+        (-> js/DEBUG (set! #js {}))
         (with-simple-cause #(swap! system component/start-system))))))
 
 (defonce reloading (atom false))

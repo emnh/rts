@@ -42,6 +42,7 @@
       :raycaster (new-jsobj #(new js/THREE.Raycaster))
       :camera (new-jsobj scene/get-camera)
       :light1 (new-jsobj #(new js/THREE.DirectionalLight))
+      ;:light1 (new-jsobj #(new js/THREE.SpotLight))
       :light2 (new-jsobj #(new js/THREE.DirectionalLight))
       :light3 (new-jsobj #(new js/THREE.DirectionalLight))
       :light4 (new-jsobj #(new js/THREE.DirectionalLight))

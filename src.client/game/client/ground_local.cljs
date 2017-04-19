@@ -116,6 +116,7 @@
   (let
     [
      texture-loader (new THREE.TextureLoader)
+     ;material (new js/THREE.MeshStandardMaterial)
      material (new js/THREE.MeshLambertMaterial)
      wrapping (-> js/THREE .-RepeatWrapping)
      width (config/get-terrain-width config)
@@ -127,6 +128,7 @@
                (-> texture .-wrapT (set! wrapping))
                (-> texture .-repeat (.set map-repeat-width map-repeat-height))
                (-> material .-map (set! texture))
+               ;(-> material .-envMap (set! texture))
                (-> material .-needsUpdate (set! true)))
      grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
      m-opts #js { :map grass}
@@ -145,7 +147,7 @@
      data-texture-buffer (new js/Float32Array (* length rgba-size))
      ; make maximum value of 1.0
      float-texture-divisor 256.0]
-
+    (-> material .-roughness (set! 0.5))
     (-> geometry (.applyMatrix rotation))
     (doseq
        [i (range length)]
@@ -153,8 +155,16 @@
          [x (-> position (.getX i))
           y (-> position (.getY i))
           z (-> position (.getZ i))
-          y (-> simplex (.noise (/ x 100) (/ z 100)))
+          scale 200.0
+          y (+
+              (* 1.0 (-> simplex (.noise (/ x (* 1.0 scale)) (/ z (* 1.0 scale)))))
+              (* 0.5 (-> simplex (.noise (/ x (* 0.5 scale)) (/ z (* 0.5 scale)))))
+              (* 0.25 (-> simplex (.noise (/ x (* 0.25 scale)) (/ z (* 0.25 scale)))))
+              (* 0.125 (-> simplex (.noise (/ x (* 0.125 scale)) (/ z (* 0.125 scale))))))
+              ;(-> simplex (.noise (/ x scale) (/ z scale))))
+          ;y (/ y (+ 1.0 0.5 0.25 0.125))
           y (/ (+ y 1.0) 2.0)
+          y (if (> y 1.0) 1.0 y)
           y (+ (* y max-elevation) min-elevation)
           idx (-> (xy-to-index width height x-faces y-faces x-vertices y-vertices x z) .-idx)
           idx2 (-> (xy-to-index width height x-faces y-faces (inc x-faces) (inc y-faces) x z) .-idx)]
@@ -175,7 +185,6 @@
             (inc y-faces)
             js/THREE.RGBAFormat
             js/THREE.FloatType)]
-
       (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
       (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
       (-> data-texture .-needsUpdate (set! true))
