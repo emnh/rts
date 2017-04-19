@@ -12,7 +12,6 @@
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))
 
-
 (def rgba-size 4)
 (def upvector (new js/THREE.Vector3 0.0 1.0 0.0))
 
@@ -118,11 +117,14 @@
      texture-loader (new THREE.TextureLoader)
      ;material (new js/THREE.MeshStandardMaterial)
      material (new js/THREE.MeshLambertMaterial)
+     ;material (new js/THREE.MeshPhongMaterial)
      wrapping (-> js/THREE .-RepeatWrapping)
      width (config/get-terrain-width config)
      height (config/get-terrain-height config)
-     map-repeat-width (/ width 100)
-     map-repeat-height (/ height 100)
+     ;map-repeat-width (/ width 100)
+     ;map-repeat-height (/ height 100)
+     map-repeat-width 6
+     map-repeat-height 6
      on-load (fn [texture]
                (-> texture .-wrapS (set! wrapping))
                (-> texture .-wrapT (set! wrapping))
@@ -130,8 +132,18 @@
                (-> material .-map (set! texture))
                ;(-> material .-envMap (set! texture))
                (-> material .-needsUpdate (set! true)))
-     grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
-     m-opts #js { :map grass}
+     ;grass (-> texture-loader (.load "models/images/grass.jpg" on-load))
+     grass (-> texture-loader (.load "models/images/grasslight-big.jpg" on-load))
+     on-load-normal
+      (fn [texture]
+        (-> texture .-wrapS (set! wrapping))
+        (-> texture .-wrapT (set! wrapping))
+        (-> texture .-repeat (.set map-repeat-width map-repeat-height))
+        (-> material .-normalMap (set! texture))
+        ;(-> material .-envMap (set! texture))
+        (-> material .-needsUpdate (set! true)))
+     grass (-> texture-loader (.load "models/images/grasslight-big-nm.jpg" on-load-normal))
+     ;m-opts #js { :map grass}
      x-faces (get-in config [:terrain :x-faces])
      y-faces (get-in config [:terrain :y-faces])
      x-vertices x-faces
@@ -148,14 +160,15 @@
      ; make maximum value of 1.0
      float-texture-divisor 256.0]
     (-> material .-roughness (set! 0.5))
-    (-> geometry (.applyMatrix rotation))
+    ;(-> geometry (.applyMatrix rotation))
+    (-> js/THREE.BufferGeometryUtils (.computeTangents geometry))
     (doseq
        [i (range length)]
        (let
          [x (-> position (.getX i))
-          y (-> position (.getY i))
-          z (-> position (.getZ i))
-          scale 200.0
+          z (-> position (.getY i))
+          y (-> position (.getZ i))
+          scale 1000.0
           y (+
               (* 1.0 (-> simplex (.noise (/ x (* 1.0 scale)) (/ z (* 1.0 scale)))))
               (* 0.5 (-> simplex (.noise (/ x (* 0.5 scale)) (/ z (* 0.5 scale)))))
@@ -169,10 +182,11 @@
           idx (-> (xy-to-index width height x-faces y-faces x-vertices y-vertices x z) .-idx)
           idx2 (-> (xy-to-index width height x-faces y-faces (inc x-faces) (inc y-faces) x z) .-idx)]
 
-         (-> position (.setY i y))
+         ;(-> position (.setY i y))
          (aset height-field idx y)
          (doseq [j (range rgba-size)]
-           (aset data-texture-buffer (+ j (* idx2 rgba-size)) (/ y float-texture-divisor)))))
+           (aset data-texture-buffer (+ j (* idx2 rgba-size)) (/ y float-texture-divisor)))
+         (aset data-texture-buffer (+ 3 (* idx2 rgba-size)) 1.0)))
 
     (-> geometry .computeFaceNormals)
     (-> geometry .computeVertexNormals)

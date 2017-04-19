@@ -3,7 +3,9 @@
     [cljs.pprint :as pprint]
     [jayq.core :as jayq :refer [$]]
     [game.client.config :as config]
+    [game.client.math :as math]
     [game.client.common :as common :refer [data]]
+    [game.client.ground-fancy :as ground-fancy]
     [com.stuartsierra.component :as component])
 
   (:require-macros
@@ -180,9 +182,12 @@
           (-> (data camera) (.lookAt pos)))
         (let
           [mesh (:mesh ground)
-           newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
+           newmaterial (ground-fancy/get-ground-material ground (data renderer))
+           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
           (-> js/DEBUG .-ground (set! newmesh))
           (-> newmesh .-receiveShadow (set! true))
+          (-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
+          ;(-> newmesh .-position .-y (set! -125.0))
           ;(-> newmesh .-castShadow (set! true))
           (add scene newmesh))
         (assoc component :done true))
@@ -203,7 +208,7 @@
 
      (new js/THREE.PerspectiveCamera FOV (/ width height) frustumNear frustumFar)))
 
-(defrecord InitLight [config scene light1 light2 light3 light4]
+(defrecord InitLight [camera config scene light1 light2 light3 light4]
   component/Lifecycle
   (start [component]
     (let
@@ -212,27 +217,35 @@
        light2 (data light2)
        light3 (data light3)
        light4 (data light4)
-       origin (-> (data scene) .-position)]
+       origin (-> (data scene) .-position)
+       width (config/get-terrain-width config)
+       height (config/get-terrain-height config)]
        ;testmesh (new js/THREE.Mesh (new js/THREE.SphereBufferGeometry 50 32 32) (new js/THREE.MeshLambertMaterial))]
 
 ;      (-> light1 .-color (set! (new js/THREE.Color 0xAAAAAA)))
       (-> light1 .-color (set! (new js/THREE.Color 0xFFFFFF)))
-      (-> light2 .-color (set! (new js/THREE.Color 0x00FF00)))
-      (-> light3 .-color (set! (new js/THREE.Color 0x0000FF)))
+      (-> light2 .-color (set! (new js/THREE.Color 0xFF4400)))
+      (-> light3 .-color (set! (new js/THREE.Color 0x111111)))
       (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
-      (-> light1 .-position (.set -4 1000 500))
-      (-> light2 .-position (.set 5 0 -4))
+      (-> light1 .-intensity (set! 2.15))
+      (-> light2 .-intensity (set! 2.5))
+      (-> light1 .-position (.set 500 2000 0))
+      ; light2 y controls terrain light intensity
+      (-> light2 .-position (.set (- width) (- height) 0))
+      ;(-> light2 .-position (.set (- width) 150 (- height)))
+      ;(-> light2 .-position (.set (- width) 2560 (- height)))
+      ;(-> light2 .-position (.set 0 150 0))
       (-> light3 .-position (.set -10 10 10))
       (-> light4 .-position (.set 0 10 0))
       (-> light1 .-target .-position (.copy origin))
       (-> light1 .-target .-position .-y (set! 200))
-      (-> light2 .-target .-position (.copy origin))
-      (-> light3 .-target .-position (.copy origin))
+      ;(-> light2 .-target .-position (.copy origin))
+      ;(-> light3 .-target .-position (.copy origin))
       (-> light4 .-target .-position (.copy origin))
       (-> light1 .-castShadow (set! true))
-      (-> light2 .-castShadow (set! true))
-      (-> light3 .-castShadow (set! true))
-      (-> light4 .-castShadow (set! true))
+      (-> light2 .-castShadow (set! false))
+      (-> light3 .-castShadow (set! false))
+      (-> light4 .-castShadow (set! false))
       (-> light1 .-shadow .-camera .-left (set! (- (config/get-terrain-width config))))
       (-> light1 .-shadow .-camera .-top (set! (- (config/get-terrain-height config))))
       (-> light1 .-shadow .-camera .-right (set! (+ (config/get-terrain-width config))))
@@ -251,10 +264,11 @@
       (-> light1 .-shadow .-mapSize .-width (set! 2048))
       (-> light1 .-shadow .-mapSize .-height (set! 2048))
       (add scene light1)
-      (-> js/DEBUG .-light (set! light1))
-
-;      (add scene light2)
-;      (add scene light3)
+      (-> js/DEBUG .-light1 (set! light1))
+      (-> js/DEBUG .-light2 (set! light2))
+      (add scene light2)
+      ;(add camera light2)
+      (add scene light3)
 ;      (add scene light4)
       (-> light1 (.lookAt origin))
       (-> light2 (.lookAt origin))
@@ -276,7 +290,7 @@
   []
   (component/using
     (map->InitLight {})
-    [:config :scene :light1 :light2 :light3 :light4]))
+    [:camera :config :scene :light1 :light2 :light3 :light4]))
 
 (defn get-view-element
   [renderer]

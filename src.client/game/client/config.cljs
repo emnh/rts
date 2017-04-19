@@ -68,15 +68,15 @@
 
    :terrain {
              :sea-level 0
-             :min-elevation 10
-             :max-elevation 65
+             :min-elevation 0
+             :max-elevation 256
              ; must be power of two, because of DataTexture
              ; XXX: power of two doesn't seem to be necessary anymore
              ; but anyhow, width should be divisible by x-faces
-             :x-faces 256
-             :y-faces 256
-             :width 512
-             :height 512}
+             :x-faces 512
+             :y-faces 512
+             :width 5120
+             :height 5120}
              ;:width 4000
              ;:height 4000}
 
@@ -85,7 +85,8 @@
               :scroll-speed 10
               :rotate-speed 0.03
               ;:origin (new js/THREE.Vector3 330 300 0)
-              :origin (new js/THREE.Vector3 -18 300 328)}})
+              ;:origin (new js/THREE.Vector3 -18 300 328)}})
+              :origin (new js/THREE.Vector3 -1200 800 1200)}})
 
 
 

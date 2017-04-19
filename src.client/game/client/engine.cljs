@@ -274,9 +274,10 @@
               [i (range maxr)
                j (range maxr)]
               (let
-                [spread 150.0
+                [spread 1000.0
                  xpos (- (* (math/random) 2.0 spread) spread)
                  zpos (- (* (math/random) 2.0 spread) spread)
+                 rotation (* (* 2.0 math/pi) (math/random))
                  ;xpos (* (- i (/ maxr 2.0)) 5.0)
                  ;zpos (* (- j (/ maxr 2.0)) 5.0)
                  yoff 1.0
@@ -424,7 +425,9 @@
                 (doto (-> group .-position)
                   (aset "x" xpos)
                   (aset "y" ypos)
-                  (aset "z" zpos)))))))
+                  (aset "z" zpos))
+                (-> group .-scale (.set 5 5 5))
+                (-> group (.rotateOnAxis (new js/THREE.Vector3 0.0 1.0 0.0) rotation)))))))
       (-> component
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
