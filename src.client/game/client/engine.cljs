@@ -13,7 +13,6 @@
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
-
 (defn
   get-screenbox-for-mesh
   [component mesh]
@@ -327,9 +326,23 @@
                     _ (->
                         voxel-material .-uniforms .-boxSize .-value
                         (set! (new js/THREE.Vector3 (:voxel-width voxel-dict) (:voxel-height voxel-dict) (:voxel-depth voxel-dict))))
+                    depth-shader (-> js/THREE.ShaderLib .-depth)
+                    uniforms (-> js/THREE.UniformsUtils (.clone (-> depth-shader .-uniforms)))
+                    depth-material
+                    (new
+                      js/THREE.ShaderMaterial
+                      #js
+                      {
+                        :uniforms (js/THREE.UniformsUtils.merge #js [uniforms (-> voxel-material .-uniforms)])
+                        :vertexShader (-> voxel-material .-vertexShader)
+                        :fragmentShader (-> depth-shader .-fragmentShader)})
+                    _ (-> depth-material .-isMeshDepthMaterial (set! true))
+                    ;_ (-> depth-material .-depthPacking (set! js/THREE.BasicDepthPacking))
+                    _ (-> depth-material .-depthPacking (set! js/THREE.RGBADepthPacking))
+                    _ (-> js/DEBUG .-depthshader (set! (-> depth-shader .-fragmentShader)))
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)]
                     ;_ (-> explosion-mesh .-renderOrder (set! index))
-
+                   (-> explosion-mesh .-customDepthMaterial (set! depth-material))
                    explosion-mesh)
                  ypos (ground/align-to-ground ground bbox xpos zpos)
                  group (new js/THREE.Object3D)

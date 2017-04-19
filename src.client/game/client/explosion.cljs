@@ -36,10 +36,15 @@
            total-duration (+ duration alive-duration)
            mod-new-time (mod new-time total-duration)
            sub-new-time (- mod-new-time alive-duration)
-           mesh-visible (< sub-new-time 0)]
+           mesh-visible (< sub-new-time 0)
+           depth-uniforms (-> (-> voxels .-customDepthMaterial) .-uniforms)]
           (if-not mesh-visible
-            (-> uniforms .-time .-value (set! sub-new-time))
-            (-> uniforms .-time .-value (set! 0))))))))
+            (do
+              (-> uniforms .-time .-value (set! sub-new-time))
+              (-> depth-uniforms .-time .-value (set! sub-new-time)))
+            (do
+              (-> uniforms .-time .-value (set! 0))
+              (-> depth-uniforms .-time .-value (set! 0)))))))))
 
 (defcom
   new-update-explosion
@@ -72,6 +77,7 @@ varying float vBoxIndex;
 varying vec2 vUV;
 varying float vTimePart;
 varying vec3 vBoxOffset;
+varying float vFragDepth;
 
 // http://www.neilmendoza.com/glsl-rotation-about-an-arbitrary-axis/
 mat4 rotationMatrix(vec3 axis, float angle)
@@ -108,6 +114,24 @@ void doLighting(vec3 geometryNormal) {
   vLightFront = saturate(dotNL) * directLightColor_diffuse;
 }
 
+void logDepthBuf() {
+  #ifdef USE_LOGDEPTHBUF
+
+	gl_Position.z = log2(max( EPSILON, gl_Position.w + 1.0 )) * logDepthBufFC;
+
+	#ifdef USE_LOGDEPTHBUF_EXT
+
+		vFragDepth = 1.0 + gl_Position.w;
+
+	#else
+
+		gl_Position.z = (gl_Position.z - 1.0) * gl_Position.w;
+
+	#endif
+
+  #endif
+}
+
 void main() {
   vBoxIndex = boxIndex;
   vUV = uv;
@@ -120,6 +144,7 @@ void main() {
     doLighting(normalize(normal));
     //position += sin(time);
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    logDepthBuf();
     return;
   }
 
@@ -136,6 +161,7 @@ void main() {
     groundLevel = getGroundHeight(worldPosition.xz) - worldPosition.y;
     //animatePosition.y += groundLevel;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(animatePosition, 1.0);
+    logDepthBuf();
     return;
   }
 
@@ -184,6 +210,8 @@ void main() {
   float maxValueOfAfterImpact = factor - impactTime;
   vec3 newPosition = r + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
+
+  logDepthBuf();
 
   /*
   mat = rotationMatrix(vec3(1.0, 0.0, 0.0), -timePart * 4.0 * PI);
