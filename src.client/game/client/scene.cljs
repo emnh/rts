@@ -184,9 +184,10 @@
           [mesh (:mesh ground)
            newmaterial (ground-fancy/get-ground-material ground (data renderer))
            newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
+           ;newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
           (-> js/DEBUG .-ground (set! newmesh))
           (-> newmesh .-receiveShadow (set! true))
-          (-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
+          ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
           ;(-> newmesh .-position .-y (set! -125.0))
           ;(-> newmesh .-castShadow (set! true))
           (add scene newmesh))
@@ -227,8 +228,10 @@
       (-> light2 .-color (set! (new js/THREE.Color 0xFF4400)))
       (-> light3 .-color (set! (new js/THREE.Color 0x111111)))
       (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
-      (-> light1 .-intensity (set! 2.15))
-      (-> light2 .-intensity (set! 2.5))
+      ;(-> light1 .-intensity (set! 1.15))
+      ;(-> light2 .-intensity (set! 1.5))
+      (-> light1 .-intensity (set! 1.5))
+      (-> light2 .-intensity (set! 2.0))
       (-> light1 .-position (.set 500 2000 0))
       ; light2 y controls terrain light intensity
       (-> light2 .-position (.set (- width) (- height) 0))

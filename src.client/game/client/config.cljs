@@ -73,10 +73,10 @@
              ; must be power of two, because of DataTexture
              ; XXX: power of two doesn't seem to be necessary anymore
              ; but anyhow, width should be divisible by x-faces
-             :x-faces 512
-             :y-faces 512
-             :width 5120
-             :height 5120}
+             :x-faces 256
+             :y-faces 256
+             :width 4096
+             :height 4096}
              ;:width 4000
              ;:height 4000}
 

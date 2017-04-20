@@ -194,7 +194,8 @@ void main() {
   vec3 rImpact = boxTranslation + v0 * timePart + a * timePart * timePart / 2.0;
   r.x = sign(r.x) * min(abs(r.x), abs(rImpact.x));
   r.z = sign(r.z) * min(abs(r.z), abs(rImpact.z));
-  groundLevel = getGroundHeight(worldPosition.xz + r.xz) - worldPosition.y;
+  vec4 worldGroundPosition = modelMatrix * vec4(r.x, 0.0, r.z, 1.0);
+  groundLevel = getGroundHeight(worldGroundPosition.xz) - worldPosition.y;
   r.y = max(r.y, groundLevel);
 
 	mat4 mat = rotationMatrix(normalizedBoxTranslation, -timePart * 4.0 * PI * rnd);

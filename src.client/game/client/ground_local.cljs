@@ -154,20 +154,23 @@
      geometry (new js/THREE.PlaneBufferGeometry width height x-faces y-faces)
      rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
      position (-> geometry .-attributes .-position)
+     uv (-> geometry .-attributes .-uv)
      length (-> position .-count)
      height-field (new js/Float32Array length)
      data-texture-buffer (new js/Float32Array (* length rgba-size))
      ; make maximum value of 1.0
      float-texture-divisor 256.0]
     (-> material .-roughness (set! 0.5))
-    ;(-> geometry (.applyMatrix rotation))
+    (-> geometry (.applyMatrix rotation))
     (-> js/THREE.BufferGeometryUtils (.computeTangents geometry))
     (doseq
        [i (range length)]
        (let
          [x (-> position (.getX i))
-          z (-> position (.getY i))
-          y (-> position (.getZ i))
+          y (-> position (.getY i))
+          z (-> position (.getZ i))
+          uvx (infix (x + (width / 2.0)) / width)
+          uvy (infix (z + (height / 2.0)) / height)
           scale 1000.0
           y (+
               (* 1.0 (-> simplex (.noise (/ x (* 1.0 scale)) (/ z (* 1.0 scale)))))
@@ -183,10 +186,12 @@
           idx2 (-> (xy-to-index width height x-faces y-faces (inc x-faces) (inc y-faces) x z) .-idx)]
 
          ;(-> position (.setY i y))
+         (-> uv (.setX i uvx))
+         (-> uv (.setY i uvy))
          (aset height-field idx y)
          (doseq [j (range rgba-size)]
-           (aset data-texture-buffer (+ j (* idx2 rgba-size)) (/ y float-texture-divisor)))
-         (aset data-texture-buffer (+ 3 (* idx2 rgba-size)) 1.0)))
+           (aset data-texture-buffer (+ j (* idx rgba-size)) (/ y float-texture-divisor)))
+         (aset data-texture-buffer (+ 3 (* idx rgba-size)) 1.0)))
 
     (-> geometry .computeFaceNormals)
     (-> geometry .computeVertexNormals)
@@ -195,8 +200,10 @@
        data-texture
        (new js/THREE.DataTexture
             data-texture-buffer
-            (inc x-faces)
-            (inc y-faces)
+            ;(inc x-faces)
+            ;(inc y-faces)
+            x-faces
+            y-faces
             js/THREE.RGBAFormat
             js/THREE.FloatType)]
       (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
