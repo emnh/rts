@@ -64,6 +64,7 @@
       :explosion (explosion/new-explosion)
       :update-explosion (explosion/new-update-explosion)
       :compute-shader (water/new-compute-shader)
-      :water (water/new-init-water)}]
+      :water (water/new-init-water)
+      :update-water (water/new-update-water)}]
 
     system))

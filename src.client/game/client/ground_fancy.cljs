@@ -15,6 +15,7 @@
   [ground renderer]
   (let
     [ mesh (:mesh ground)
+      config (:config ground)
       texture-loader (new THREE.TextureLoader)
       material (new js/THREE.MeshStandardMaterial)
       terrain-shader (-> js/THREE.ShaderTerrain .-terrain)
@@ -75,7 +76,8 @@
       _ (-> material .-uniforms .-diffuse .-value (.setHex 0xFFFFFF))
       _ (-> material .-uniforms .-specular .-value (.setHex 0xFFFFFF))
       _ (-> material .-uniforms .-shininess .-value (set! 30))
-      _ (-> material .-uniforms .-uDisplacementScale .-value (set! 256))
+      max-elevation (get-in config [:terrain :max-elevation])
+      _ (-> material .-uniforms .-uDisplacementScale .-value (set! max-elevation))
       _ (-> material .-uniforms .-uRepeatBase .-value (.set 1 1))
       _ (-> material .-uniforms .-uRepeatOverlay .-value (.set 6 6))
       _ (-> material .-uniforms .-enableDiffuse1 .-value (set! true))

@@ -7,6 +7,7 @@
     [game.client.overlay :as overlay]
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
+    [game.client.water :as water]
     [com.stuartsierra.component :as component])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
@@ -34,6 +35,7 @@
      (-> render-stats .update)
      (magic/on-render component (:update-magic component))
      (explosion/on-render component (:update-explosion component))
+     (water/on-render component (:update-water component))
      (-> renderer (.render scene camera))
      (overlay/on-xp-render component three-overlay)
      (js/requestAnimationFrame (partial render-loop component)))))
@@ -42,7 +44,7 @@
   new-init-renderer
   [renderer three-overlay camera
    scene render-stats pixi-overlay
-   update-magic update-explosion]
+   update-magic update-explosion update-water]
   [running last-frame-time last-frame-elapsed]
   (fn [component]
     (let

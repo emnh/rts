@@ -71,7 +71,8 @@
     ; main is loading twice in figwheel for some reason
     ; TODO: figure out why instead of skipping run number 1
     (if-not
-      (= old-run-count 1)
+      ; XXX: my edit procedure triggers 2 writes per update, so skip odd runs
+      (= (rem old-run-count 2) 1)
       (do
         (if
           (> old-run-count 0)

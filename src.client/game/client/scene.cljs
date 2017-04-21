@@ -151,7 +151,7 @@
 (defcom
   new-init-scene
   ; depends on init-stats because stats elements must be appended first
-  [params renderer $overlay camera scene config ground init-stats]
+  [params renderer $overlay camera scene config ground init-stats water]
   [done]
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
@@ -167,6 +167,8 @@
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-type (set! js/THREE.PCFSoftShadowMap))
           (-> .-shadowMap .-soft (set! true))
+          (-> .-context (.getExtension "OES_texture_float"))
+          (-> .-context (.getExtension "OES_texture_float_linear"))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(-> ($ (-> % .-domElement)) (.addClass "game3d")))
           (#(-> ($ (-> % .-domElement)) (.addClass "autoresize"))))
@@ -186,14 +188,17 @@
         (let
           [mesh (:mesh ground)
            newmaterial (ground-fancy/get-ground-material ground (data renderer))
-           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
+           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)
+           water-mesh (:mesh water)
+           new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))]
            ;newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
           (-> js/DEBUG .-ground (set! newmesh))
           (-> newmesh .-receiveShadow (set! true))
           ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
           ;(-> newmesh .-position .-y (set! -125.0))
           ;(-> newmesh .-castShadow (set! true))
-          (add scene newmesh))
+          (add scene newmesh)
+          (add scene new-water-mesh))
         (assoc component :done true))
       component))
   (fn [component]
