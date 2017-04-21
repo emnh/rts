@@ -147,10 +147,12 @@ uniform float uWaterThreshold;
 uniform float uWaterElevation;
 uniform float uGroundElevation;
 uniform vec2 uWaterSize;
+uniform vec2 uResolution;
 uniform sampler2D tGroundHeight;
 uniform sampler2D tWaterHeight;
 
 varying float vHeight;
+varying vec3 vNormal;
 
 void main() {
 
@@ -169,6 +171,11 @@ void main() {
 
   vHeight = height / 2.5;
 
+  float val = texture2D( tWaterHeight, puv ).x;
+  float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x;
+  float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x;
+  vNormal = 0.5 * normalize( vec3( val - valU, 0.05, val - valV ) ) + 0.5;
+
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
 ")
@@ -181,11 +188,28 @@ uniform vec2 uResolution;
 uniform sampler2D tWater;
 
 varying float vHeight;
+varying vec3 vNormal;
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
-  vec4 color = texture2D(tWater, (uv + vHeight) * 4.0);
-  gl_FragColor = vec4(color.rgb * vHeight * 2.5, 1.0);
+
+  // directional lights
+
+  // vec3 dirDiffuse = normalize(vec3(0.0) - vec3(500.0, 2000.0, 0.0));
+  vec3 dirDiffuse = vec3(0.0, 1.0, 0.0);
+
+  vec3 normal = vNormal;
+  //normal = vec3(0.0, -1.0, 0.0);
+
+  vec3 totalDiffuseLight = vec3(0.0);
+
+  vec3 dirVector = dirDiffuse;
+  vec3 dirLightColor = vec3(1.0);
+  float dirDiffuseWeight = max( dot( normal, dirVector ), 0.0 );
+  totalDiffuseLight += dirLightColor * dirDiffuseWeight;
+
+  vec4 color = texture2D(tWater, uv * 4.0);
+  gl_FragColor = vec4(color.rgb * totalDiffuseLight, 1.0);
 }
 ")
 
