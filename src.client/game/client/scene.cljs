@@ -170,6 +170,7 @@
           (-> .-shadowMap .-soft (set! true))
           (-> .-context (.getExtension "OES_texture_float"))
           (-> .-context (.getExtension "OES_texture_float_linear"))
+          (-> .-context (.getExtension "OES_standard_derivatives"))
           (#(-> ($ (-> % .-domElement)) (.addClass page-class)))
           (#(-> ($ (-> % .-domElement)) (.addClass "game3d")))
           (#(-> ($ (-> % .-domElement)) (.addClass "autoresize"))))
@@ -242,7 +243,7 @@
       ;(-> light1 .-intensity (set! 1.5))
       ;(-> light2 .-intensity (set! 2.0))
       ;(-> light1 .-position (.set 500 2000 0))
-      (-> light1 .-position (.set 500 2000 0))
+      (-> light1 .-position (.set 0 2000 0))
       ; light2 y controls terrain light intensity
       ;(-> light2 .-position (.set (- width) 0 (- height)))
       (-> light2 .-position (.set 0 256 0))

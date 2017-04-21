@@ -67,7 +67,7 @@ float getContribution(vec2 uv, float u, float uTotal) {
       //ux = max(totalHeight - uTotal, -u);
       ux = max(totalHeight - uTotal, -u);
   }
-  // ux = totalHeight - uTotal;
+  //ux = totalHeight - uTotal;
   bool ht = hitTest(uv);
   if (ht) {
   	ux = 0.0;
@@ -137,8 +137,9 @@ void main() {
     */
   }
 
-  if (nu < 0.0 || hitTest(uv)) {
-      nu = 0.0;
+  float minnu = 0.01;
+  if (nu < minnu || hitTest(uv)) {
+      nu = minnu;
       v = 0.0;
   }
   if (nu > 1.5) {
@@ -175,16 +176,20 @@ void main() {
   float groundHeight = ground * uGroundElevation;
   vec4 water = texture2D(tWaterHeight, puv);
 
+  // TODO: make as uniform
   const float heightDivisor = 25.0;
 
   float height = water.x / heightDivisor;
 
   if (ground < uWaterThreshold) {
-    newPosition.y = groundHeight + height * uWaterElevation;
-    // newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
+    // newPosition.y = groundHeight + height * uWaterElevation;
+    newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
     // newPosition.y = uWaterThreshold * uGroundElevation;
+  } else {
+    newPosition.y = uWaterThreshold * uGroundElevation;
   }
 
+  // TODO: compute separately, so we can reuse in caustics shader
   float val = texture2D( tWaterHeight, puv ).x / heightDivisor;
   float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x / heightDivisor;
   float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x / heightDivisor;
@@ -208,147 +213,181 @@ void main() {
 }
 ")
 
-(def water-fragment-shader
- "
-precision highp float;
+(def helper-functions
+  "
+  precision highp float;
 
-uniform vec3 uEye;
-uniform vec3 uLight;
-uniform vec2 uResolution;
-uniform sampler2D tWater;
-uniform sampler2D tTiles;
-uniform sampler2D tWaterHeight;
-uniform sampler2D tCausticTex;
+  uniform float uTime;
+  uniform vec3 uEye;
+  uniform vec3 uLight;
+  uniform vec2 uResolution;
+  uniform vec2 uWaterSize;
+  uniform sampler2D tWater;
+  uniform sampler2D tTiles;
+  uniform sampler2D tWaterHeight;
+  uniform sampler2D tCausticTex;
+
+  const float IOR_AIR = 1.0;
+  const float IOR_WATER = 1.333;
+  const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
+  const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+  const float poolHeight = 1.0;
+  // XXX: hack. make big cube so that rim is not visible
+  const vec3 cubeMul = vec3(5.0, 1.0, 5.0);
+
+  struct Intersection{
+  	float t;
+  	float hit;
+  	vec3 hitPoint;
+  	vec3 normal;
+  	vec3 color;
+  };
+
+  struct Plane{
+  	vec3 position;
+  	vec3 normal;
+  };
+
+  vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
+    vec3 tMin = (cubeMin * cubeMul - origin) / ray;
+    vec3 tMax = (cubeMax * cubeMul - origin) / ray;
+    vec3 t1 = min(tMin, tMax);
+    vec3 t2 = max(tMin, tMax);
+    float tNear = max(max(t1.x, t1.y), t1.z);
+    float tFar = min(min(t2.x, t2.y), t2.z);
+    return vec2(tNear, tFar);
+  }
+
+  vec3 lookupTile(vec2 uv) {
+    const float repeat = 6.0;
+    vec3 rgb = texture2D(tTiles, uv * repeat).rgb;
+    return rgb;
+  }
+
+  #define MAX_ITER 11
+
+  float getFakeCaustic(vec2 uv) {
+  	// vec2 p = uv * 10.0 - vec2(19.0);
+    vec2 p = uv * 10.0 - vec2(19.0);
+  	vec2 i = p;
+  	float c = 1.0;
+  	float inten = .05;
+
+  	for (int n = 0; n < MAX_ITER; n++)
+  	{
+  		float t = (uTime / 1000.0) * (1.0 - (3.0 / float(n+1)));
+  		i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+  		c += 1.0/length(vec2(p.x / (2.*sin(i.x+t)/inten),p.y / (cos(i.y+t)/inten)));
+  	}
+  	c /= float(MAX_ITER);
+  	c = 1.5-sqrt(pow(c,3.+0.5));
+  	return clamp(c*c*c*c, 0.0, 1.0);
+  }
+
+  vec3 getWallColor(vec3 origin, vec3 point) {
+    float scale = 0.5;
+
+    vec3 wallColor;
+    vec3 normal;
+
+    if (abs(point.x) > 0.999) {
+      //wallColor = texture2D(tTiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
+      wallColor = lookupTile(point.yz * 0.5 + vec2(1.0, 0.5));
+      normal = vec3(-point.x, 0.0, 0.0);
+    } else if (abs(point.z) > 0.999) {
+      //wallColor = texture2D(tTiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
+      wallColor = lookupTile(point.yx * 0.5 + vec2(1.0, 0.5));
+      normal = vec3(0.0, 0.0, -point.z);
+    } else {
+      //wallColor = texture2D(tTiles, point.xz * 0.5 + 0.5).rgb;
+      wallColor = lookupTile(point.xz * 0.5 + 0.5);
+      normal = vec3(0.0, 1.0, 0.0);
+    }
+
+    wallColor = lookupTile(point.xz * 0.5 + 0.5);
+    normal = vec3(0.0, 1.0, 0.0);
+
+    // scale *= 2.0;
+    // scale /= length(point); /* pool ambient occlusion */
+    // scale /= clamp(length(point), 0.2, 1.0); /* pool ambient occlusion */
+    // TODO: re-enable
+    scale /= distance(origin, point) * 5.0; /* pool ambient occlusion */
+    // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
+
+    /* caustics */
+    vec3 refractedLight = -refract(-uLight, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+    float diffuse = max(0.0, dot(refractedLight, normal));
+    // vec4 info = texture2D(tWaterHeight, point.xz * 0.5 + 0.5);
+    // if (point.y < info.r) {
+    if (true) {
+      vec2 causticsUV = 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5;
+      causticsUV = fract(causticsUV);
+      // TODO: crevert
+      // causticsUV = fract(point.xz);
+      // causticsUV = fract(vPosition.xz);
+      // vec4 caustic = texture2D(tCausticTex, causticsUV);
+      float caustic = getFakeCaustic(sin(point.xz) + 1.0);
+      //scale += diffuse * caustic;
+      // TODO: crevert
+      // scale += diffuse * caustic.r * 2.0 * caustic.g;
+    } else {
+      /* shadow for the rim of the pool */
+      vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+      diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
+
+      scale += diffuse * 0.5;
+    }
+
+    return wallColor * scale;
+  }
+
+  void intersectPlane(vec3 cPos, vec3 ray, Plane p, inout Intersection i){
+  	float d = -dot(p.position, p.normal);
+  	float v = dot(ray, p.normal);
+  	float t = -(dot(cPos, p.normal) + d) / v;
+  	if(t > 0.0 && t < i.t){
+  		i.t = t;
+  		i.hit = 1.0;
+  		i.hitPoint = vec3(
+  			cPos.x + t * ray.x,
+  			cPos.y + t * ray.y,
+  			cPos.z + t * ray.z
+  		);
+  		i.normal = p.normal;
+      /*
+  		float diff = clamp(dot(i.normal, lightDirection), 0.1, 1.0);
+  		float m = mod(i.hitPoint.x, 2.0);
+  		float n = mod(i.hitPoint.z, 2.0);
+  		if((m > 1.0 && n > 1.0) || (m < 1.0 && n < 1.0)){
+  			diff -= 0.5;
+  		}
+
+  		t = min(i.hitPoint.z, 100.0) * 0.01;
+  		i.color = vec3(diff + t);
+      */
+  	}
+  }
+
+  float intersectFloor(vec3 origin, vec3 ray) {
+    Intersection i;
+  	i.t = 1.0e+30;
+  	i.hit = 0.0;
+  	i.hitPoint = vec3(0.0);
+  	i.normal = vec3(0.0);
+  	i.color = vec3(0.0);
+    Plane plane;
+    plane.position = vec3(0.0, 0.0, 0.0);
+  	plane.normal = vec3(0.0, 1.0, 0.0);
+    intersectPlane(origin, ray, plane, i);
+    return i.t;
+  }
+")
+
+(def water-fragment-shader-part1
+ "
 
 varying vec3 vNormal;
 varying vec3 vPosition;
-
-const float IOR_AIR = 1.0;
-const float IOR_WATER = 1.333;
-const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
-const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
-const float poolHeight = 1.0;
-// XXX: hack. make big cube so that rim is not visible
-const vec3 cubeMul = vec3(5.0, 1.0, 5.0);
-
-struct Intersection{
-	float t;
-	float hit;
-	vec3 hitPoint;
-	vec3 normal;
-	vec3 color;
-};
-
-struct Plane{
-	vec3 position;
-	vec3 normal;
-};
-
-vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
-  vec3 tMin = (cubeMin * cubeMul - origin) / ray;
-  vec3 tMax = (cubeMax * cubeMul - origin) / ray;
-  vec3 t1 = min(tMin, tMax);
-  vec3 t2 = max(tMin, tMax);
-  float tNear = max(max(t1.x, t1.y), t1.z);
-  float tFar = min(min(t2.x, t2.y), t2.z);
-  return vec2(tNear, tFar);
-}
-
-vec3 lookupTile(vec2 uv) {
-  const float repeat = 6.0;
-  vec3 rgb = texture2D(tTiles, uv * repeat).rgb;
-  return rgb;
-}
-
-vec3 getWallColor(vec3 origin, vec3 point) {
-  float scale = 0.5;
-
-  vec3 wallColor;
-  vec3 normal;
-
-  if (abs(point.x) > 0.999) {
-    //wallColor = texture2D(tTiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
-    wallColor = lookupTile(point.yz * 0.5 + vec2(1.0, 0.5));
-    normal = vec3(-point.x, 0.0, 0.0);
-  } else if (abs(point.z) > 0.999) {
-    //wallColor = texture2D(tTiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
-    wallColor = lookupTile(point.yx * 0.5 + vec2(1.0, 0.5));
-    normal = vec3(0.0, 0.0, -point.z);
-  } else {
-    //wallColor = texture2D(tTiles, point.xz * 0.5 + 0.5).rgb;
-    wallColor = lookupTile(point.xz * 0.5 + 0.5);
-    normal = vec3(0.0, 1.0, 0.0);
-  }
-
-  wallColor = lookupTile(point.xz * 0.5 + 0.5);
-  normal = vec3(0.0, 1.0, 0.0);
-
-  // scale *= 2.0;
-  // scale /= length(point); /* pool ambient occlusion */
-  // scale /= clamp(length(point), 0.2, 1.0); /* pool ambient occlusion */
-  scale /= distance(origin, point) * 5.0; /* pool ambient occlusion */
-  // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
-
-  /* caustics */
-  vec3 refractedLight = -refract(-uLight, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
-  float diffuse = max(0.0, dot(refractedLight, normal));
-  vec4 info = texture2D(tWaterHeight, point.xz * 0.5 + 0.5);
-  if (true && point.y < info.r) {
-    vec4 caustic = texture2D(tCausticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
-    // TODO: caustics
-    caustic = vec4(0.0);
-    scale += diffuse * caustic.r * 2.0 * caustic.g;
-  } else {
-    /* shadow for the rim of the pool */
-    vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
-
-    scale += diffuse * 0.5;
-  }
-
-  return wallColor * scale;
-}
-
-void intersectPlane(vec3 cPos, vec3 ray, Plane p, inout Intersection i){
-	float d = -dot(p.position, p.normal);
-	float v = dot(ray, p.normal);
-	float t = -(dot(cPos, p.normal) + d) / v;
-	if(t > 0.0 && t < i.t){
-		i.t = t;
-		i.hit = 1.0;
-		i.hitPoint = vec3(
-			cPos.x + t * ray.x,
-			cPos.y + t * ray.y,
-			cPos.z + t * ray.z
-		);
-		i.normal = p.normal;
-    /*
-		float diff = clamp(dot(i.normal, lightDirection), 0.1, 1.0);
-		float m = mod(i.hitPoint.x, 2.0);
-		float n = mod(i.hitPoint.z, 2.0);
-		if((m > 1.0 && n > 1.0) || (m < 1.0 && n < 1.0)){
-			diff -= 0.5;
-		}
-
-		t = min(i.hitPoint.z, 100.0) * 0.01;
-		i.color = vec3(diff + t);
-    */
-	}
-}
-
-float intersectFloor(vec3 origin, vec3 ray) {
-  Intersection i;
-	i.t = 1.0e+30;
-	i.hit = 0.0;
-	i.hitPoint = vec3(0.0);
-	i.normal = vec3(0.0);
-	i.color = vec3(0.0);
-  Plane plane;
-  plane.position = vec3(0.0, 0.0, 0.0);
-	plane.normal = vec3(0.0, 1.0, 0.0);
-  intersectPlane(origin, ray, plane, i);
-  return i.t;
-}
 
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
@@ -366,7 +405,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
     } else {
       // TODO: sky cube
       // color = textureCube(sky, ray).rgb;
-      color = vec3(1.0);
+      color = vec3(0.0);
       color += vec3(pow(max(0.0, dot(uLight, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
     }
   }
@@ -380,6 +419,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
 
+  // TODO: delete this unnecessary part
   // directional lights
   vec3 dirDiffuse = normalize(uLight);
   //vec3 dirDiffuse = vec3(0.0, 1.0, 0.0);
@@ -394,8 +434,8 @@ void main() {
   float dirDiffuseWeight = max( dot( normal, dirVector ), 0.0 );
   totalDiffuseLight += dirLightColor * dirDiffuseWeight;
 
-  vec4 color = texture2D(tWater, uv * 4.0);
-  gl_FragColor = vec4(color.rgb * totalDiffuseLight, 1.0);
+  //vec4 color = texture2D(tWater, uv * 4.0);
+  //gl_FragColor = vec4(color.rgb * totalDiffuseLight, 1.0);
 
   // START Wallace water
 
@@ -408,7 +448,151 @@ void main() {
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
+  // TODO: crevert
+  fresnel = 0.0;
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
+}
+")
+
+(def water-fragment-shader (+ helper-functions water-fragment-shader-part1))
+
+(def caustics-shader-vertex-part1
+  "
+  varying vec3 oldPos;
+  varying vec3 newPos;
+  varying vec3 ray;
+  varying vec2 vUV;
+
+  attribute vec3 position;
+
+  /* project the ray onto the plane */
+  vec3 project(vec3 origin, vec3 ray, vec3 refractedLight) {
+    vec2 tcube = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    // tcube.y = intersectFloor(origin, ray);
+    origin += ray * tcube.y;
+    float tplane = (-origin.y - 1.0) / refractedLight.y;
+    return origin + refractedLight * tplane;
+  }
+
+  void main() {
+    // TODO: make as uniform
+    const float heightDivisor = 25.0;
+
+    vec3 pVertex = position.xyz / vec3(uWaterSize.x / 2.0, 1.0, uWaterSize.y / 2.0);
+    pVertex.xyz = pVertex.xzy;
+    pVertex.z = 0.0;
+
+    vec2 puv = vec2(position.xz / uWaterSize) + vec2(0.5, 0.5);
+    vUV = puv;
+    vec4 info = texture2D(tWaterHeight, puv);
+
+    // pVertex.y = info.r;
+
+    //info.ba *= 0.5;
+    //vec3 normal = vec3(info.b, sqrt(1.0 - dot(info.ba, info.ba)), info.a);
+
+    // TODO: compute separately, so we can reuse in caustics shader
+    float val = info.x / heightDivisor;
+    float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x / heightDivisor;
+    float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x / heightDivisor;
+    vec3 normal = 0.5 * normalize( vec3( val - valU, 0.05, val - valV ) ) + 0.5;
+
+    /*
+    vec2 delta = 1.0 / uResolution.xy;
+    vec2 coord = puv;
+    float height = info.r;
+    vec3 dx = vec3(delta.x, texture2D(tWaterHeight, vec2(coord.x + delta.x, coord.y)).r / heightDivisor - height, 0.0);
+    vec3 dy = vec3(0.0, texture2D(tWaterHeight, vec2(coord.x, coord.y + delta.y)).r / heightDivisor - height, delta.y);
+    normal.xz = normalize(cross(dy, dx)).xz;
+    normal.y = sqrt(1.0 - dot(normal.xz, normal.xz));
+    */
+
+    /* project the vertices along the refracted vertex ray */
+    vec3 refractedLight = refract(-uLight, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+    ray = refract(-uLight, normal, IOR_AIR / IOR_WATER);
+    oldPos = project(pVertex.xzy, refractedLight, refractedLight);
+    newPos = project(pVertex.xzy + vec3(0.0, info.r, 0.0), ray, refractedLight);
+
+    gl_Position = vec4(0.75 * (newPos.xz + refractedLight.xz / refractedLight.y), 0.0, 1.0);
+
+    gl_Position = vec4((puv - 0.5) * 2.0, 0.0, 1.0);
+  }
+")
+
+(def caustics-vertex-shader (+ helper-functions caustics-shader-vertex-part1))
+
+(def caustics-shader-fragment-part1
+  "
+#extension GL_OES_standard_derivatives : enable
+")
+
+(def caustics-shader-fragment-part2
+  "
+    varying vec3 oldPos;
+    varying vec3 newPos;
+    varying vec3 ray;
+
+    void main() {
+      /* if the triangle gets smaller, it gets brighter, and vice versa */
+      float oldArea = length(dFdx(oldPos)) * length(dFdy(oldPos));
+      float newArea = length(dFdx(newPos)) * length(dFdy(newPos));
+      gl_FragColor = vec4(oldArea / newArea * 0.2, 1.0, 0.0, 0.0);
+      gl_FragColor = vec4(oldArea / newArea * 0.2, 0.0, 0.0, 0.0);
+
+      // vec3 refractedLight = refract(-uLight, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+
+      /* compute a blob shadow and make sure we only draw a shadow if the player is blocking the light */
+      /*
+      vec3 dir = (sphereCenter - newPos) / sphereRadius;
+      vec3 area = cross(dir, refractedLight);
+      float shadow = dot(area, area);
+      float dist = dot(dir, -refractedLight);
+      shadow = 1.0 + (shadow - 1.0) / (0.05 + dist * 0.025);
+      shadow = clamp(1.0 / (1.0 + exp(-shadow)), 0.0, 1.0);
+      shadow = mix(1.0, shadow, clamp(dist * 2.0, 0.0, 1.0));
+      gl_FragColor.g = shadow;
+      */
+
+      /* shadow for the rim of the pool */
+      /*
+      vec2 t = intersectCube(newPos, -refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+      gl_FragColor.r *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (newPos.y - refractedLight.y * t.y - 2.0 / 12.0)));
+      */
+    }
+")
+
+(def caustics-fragment-shader-hide
+  (+ caustics-shader-fragment-part1 helper-functions caustics-shader-fragment-part2))
+
+; TODO: remove fake caustics shader once real is working
+(def caustics-fragment-shader
+  "
+// water turbulence effect by joltz0r 2013-07-04, improved 2013-07-07
+// Altered
+#ifdef GL_ES
+precision mediump float;
+#endif
+
+uniform vec2 uResolution;
+uniform float uTime;
+
+#define MAX_ITER 11
+
+void main( void ) {
+	vec2 p = (gl_FragCoord.xy / uResolution) * 10.0 - vec2(19.0);
+	vec2 i = p;
+	float c = 1.0;
+	float inten = .05;
+
+	for (int n = 0; n < MAX_ITER; n++)
+	{
+		float t = (uTime / 1000.0) * (1.0 - (3.0 / float(n+1)));
+		i = p + vec2(cos(t - i.x) + sin(t + i.y), sin(t - i.y) + cos(t + i.x));
+		c += 1.0/length(vec2(p.x / (2.*sin(i.x+t)/inten),p.y / (cos(i.y+t)/inten)));
+	}
+	c /= float(MAX_ITER);
+	c = 1.5-sqrt(pow(c,3.+0.5));
+	gl_FragColor = vec4(vec3(c*c*c*c), 1.0);
 }
 ")
 
@@ -463,7 +647,10 @@ void main() {
      compute-material (:compute-material water)
      init-material (:init-material water)
      water-material (-> (:mesh water) .-material)
-     time (common/game-time)]
+     time (common/game-time)
+     caustics-scene (:caustics-scene water)
+     caustics-material (:caustics-material water)
+     caustics-render-target (:caustics-render-target water)]
     (if
       (= @render-target-index 0)
       (do
@@ -477,12 +664,24 @@ void main() {
       (set! time))
     (-> quad .-material (set! compute-material))
     (-> renderer (.render scene camera render-target1 true))
+    (->
+      caustics-material .-uniforms .-uTime .-value
+      (set! time))
+    ; TODO: crevert
+    ;(-> renderer (.render caustics-scene camera caustics-render-target true))
+    (-> quad .-material (set! caustics-material))
+    (-> renderer (.render scene camera caustics-render-target true))
+    (-> renderer (.render scene camera))
+    ;(-> renderer (.render caustics-scene camera))
     ;(->
     ;  compute-material .-uniforms .-tWaterHeight .-value
     ;  (set! (-> render-target1 .-texture)))
     ;(->
     ;  water-material .-uniforms .-tWaterHeight .-value
     ;  (set! (-> render-target1 .-texture)))
+    (->
+      water-material .-uniforms .-uTime .-value
+      (set! time))
     (swap! render-target-index inc)))
 
 (defcom
@@ -519,6 +718,9 @@ void main() {
       ry y-faces
       render-target1 (new js/THREE.WebGLRenderTarget rx ry pars)
       render-target2 (new js/THREE.WebGLRenderTarget rx ry pars)
+      caustics-rx 1024
+      caustics-ry 1024
+      caustics-render-target (new js/THREE.WebGLRenderTarget caustics-rx caustics-ry pars)
       ground (:ground component)
       ; TODO: replace with lake map
       water-threshold 0.5
@@ -558,13 +760,14 @@ void main() {
       uniforms
         #js
         {
+          :uTime #js { :value nil}
           :uWaterThreshold #js { :value water-threshold}
           :uGroundElevation #js { :value max-elevation}
           :uWaterElevation #js { :value max-water-elevation}
           :uWaterSize #js { :value (new js/THREE.Vector2 width height)}
           :tWater #js { :value nil}
           :tTiles #js { :value nil}
-          :tCausticTex #js { :value nil}
+          :tCausticTex #js { :value (-> caustics-render-target .-texture)}
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
           :tGroundHeight #js { :value (:data-texture ground)}
           :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
@@ -580,6 +783,27 @@ void main() {
             :uniforms uniforms
             :vertexShader water-vertex-shader
             :fragmentShader water-fragment-shader})
+      caustics-scene (new js/THREE.Scene)
+      caustics-uniforms
+        #js
+        {
+          :tWaterHeight #js { :value (-> render-target1 .-texture)}
+          :uWaterSize #js { :value (new js/THREE.Vector2 width height)}
+          :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
+          :uLight #js { :value uLight}
+          :uTime #js { :value nil}}
+      caustics-material
+        (new
+          ; TODO: crevert
+          js/THREE.ShaderMaterial
+          #js
+          {
+            :uniforms caustics-uniforms
+            :vertexShader simple-vertex-shader
+            :fragmentShader caustics-fragment-shader})
+      caustics-mesh (new js/THREE.Mesh geometry caustics-material)
+      _ (-> caustics-mesh .-frustumCulled (set! false))
+      _ (-> caustics-scene (.add caustics-mesh))
       wrapping (-> js/THREE .-RepeatWrapping)
       texture-loader (new THREE.TextureLoader)
       on-load
@@ -605,14 +829,18 @@ void main() {
       (assoc :render-target2 render-target2)
       (assoc :compute-material compute-material)
       (assoc :init-material init-material)
-      (assoc :mesh mesh))))
+      (assoc :mesh mesh)
+      (assoc :caustics-scene caustics-scene)
+      (assoc :caustics-render-target caustics-render-target)
+      (assoc :caustics-material caustics-material))))
 
 (defcom
   new-init-water
   [config params compute-shader ground camera light1]
   ;[mesh height-field width height x-faces y-faces x-vertices y-vertices data-texture float-texture-divisor]
   [mesh render-target1 render-target2
-   compute-material init-material]
+   compute-material init-material
+   caustics-scene caustics-render-target caustics-material]
   (fn [component]
     (if-not
       mesh
