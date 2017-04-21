@@ -26,12 +26,19 @@ precision highp float;
 #define PI 3.14
 uniform vec2 uResolution;
 
+// Simple random function
+float random(float co)
+{
+		return fract(sin(co*12.989) * 43758.545);
+}
+
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
   float height = ((sin(2.0 * PI * uv.x * 20.0) + 1.0) / 2.0 +
                   (sin(2.0 * PI * uv.y * 20.0) + 1.0) / 2.0) /
                   2.0;
-  gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+  float rnd = random(length(uv) + uv.x + uv.y);
+  gl_FragColor = vec4(rnd, 0.0, 1.0, 1.0);
 }
 ")
 
@@ -46,11 +53,9 @@ uniform float uTime;
 uniform sampler2D tWaterHeight;
 uniform sampler2D tGroundHeight;
 
-#define HEIGHT 2.5
-
 bool hitTest(vec2 uvn) {
     float h = texture2D(tGroundHeight, uvn).x;
-    if (h > HEIGHT) {
+    if (h >= uWaterThreshold) {
         return true;
     }
     return false;
@@ -67,7 +72,8 @@ float getContribution(vec2 uv, float u, float uTotal) {
       //ux = max(totalHeight - uTotal, -u);
       ux = max(totalHeight - uTotal, -u);
   }
-  //ux = totalHeight - uTotal;
+  // ux = totalHeight - uTotal;
+  ux = waterHeight - u;
   bool ht = hitTest(uv);
   if (ht) {
   	ux = 0.0;
@@ -110,34 +116,45 @@ void main() {
   vec2 uv4 = vec2(uv.x, uv.y-dy);
   float umy = getContribution(uv4, u, uTotal);
 
-  bool onlyRain = terrainHeight > uWaterThreshold;
+  // bool onlyRain = terrainHeight >= uWaterThreshold;
 
   // new elevation
-  float nu = u + du + 0.1*(umx+ux+umy+uy);
-  if (onlyRain) {
+  float waterSpeed = 0.001;
+  float nu = u + du + waterSpeed * (umx+ux+umy+uy);
+  /*if (onlyRain) {
       nu = u + 0.5 * (umx+ux+umy+uy);
-  }
+      nu = 0.0;
+  }*/
 
   // wave decay
-  nu = 0.999999*nu;
+  // nu = 0.999999*nu;
 
   // new velocity
   float v = nu - u;
 
+  /*
   if (onlyRain) {
     v = 0.0;
   }
+  */
 
   // rain
+  /*
   if (onlyRain) {
-    nu += 0.00001;
-    /*
-    float rnd = random(uv.x + uv.y);
-    nu = sin(rnd * uTime * 5.0 / 1000.0 + rnd);
-    */
+    if (uTime < 10000.0) {
+      // nu += 0.00001;
+      float rnd = random(length(uv) + uv.x + uv.y);
+      nu = 5.0 * ((sin(rnd * uTime * 5.0 / 1000.0 + rnd) + 1.0) / 2.0);
+    }
+  }*/
+
+  float minnu = 0.0;
+  if (hitTest(uv)) {
+      nu = minnu;
+      v = 0.0;
   }
 
-  float minnu = 0.01;
+  /*
   if (nu < minnu || hitTest(uv)) {
       nu = minnu;
       v = 0.0;
@@ -145,7 +162,7 @@ void main() {
   if (nu > 1.5) {
       nu = 1.5;
       v /= 1.1;
-  }
+  }*/
 
   gl_FragColor = vec4(nu, v, 1.0, 1.0);
 }
@@ -181,13 +198,15 @@ void main() {
 
   float height = water.x / heightDivisor;
 
-  if (ground < uWaterThreshold) {
+  if (ground < uWaterThreshold + (water.x - 0.5)) {
     // newPosition.y = groundHeight + height * uWaterElevation;
-    newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
+    // newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
+    newPosition.y = uWaterThreshold * uGroundElevation + water.x * uWaterElevation;
     // newPosition.y = uWaterThreshold * uGroundElevation;
   } else {
     newPosition.y = uWaterThreshold * uGroundElevation;
   }
+  newPosition.y = 0.3 * uGroundElevation + water.x * uWaterElevation;
 
   // TODO: compute separately, so we can reuse in caustics shader
   float val = texture2D( tWaterHeight, puv ).x / heightDivisor;
@@ -230,6 +249,10 @@ void main() {
   const float IOR_AIR = 1.0;
   const float IOR_WATER = 1.333;
   const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
+  // gold color
+  // const vec3 abovewaterColor = vec3(1.25, 1.0, 0.25);
+  // lava color
+  // const vec3 abovewaterColor = vec3(1.25, 0.0, 0.25);
   const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
   const float poolHeight = 1.0;
   // XXX: hack. make big cube so that rim is not visible
@@ -311,7 +334,12 @@ void main() {
     // scale /= length(point); /* pool ambient occlusion */
     // scale /= clamp(length(point), 0.2, 1.0); /* pool ambient occlusion */
     // TODO: re-enable
-    scale /= distance(origin, point) * 5.0; /* pool ambient occlusion */
+    float p = 3.0;
+    // sparkling/incandescent water
+    // scale /= pow(distance(origin, point), 3.0) * 5000.0; /* pool ambient occlusion */
+    // normal water
+    scale /= pow(distance(origin, point), 1.0) * 5.0; /* pool ambient occlusion */
+    // scale /= 0.2;
     // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
 
     /* caustics */
@@ -417,27 +445,7 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
 }
 
 void main() {
-  vec2 uv = gl_FragCoord.xy / uResolution;
-
-  // TODO: delete this unnecessary part
-  // directional lights
-  vec3 dirDiffuse = normalize(uLight);
-  //vec3 dirDiffuse = vec3(0.0, 1.0, 0.0);
-
   vec3 normal = normalize(vNormal);
-  // normal = vec3(0.0, -1.0, 0.0);
-
-  vec3 totalDiffuseLight = vec3(0.0);
-
-  vec3 dirVector = dirDiffuse;
-  vec3 dirLightColor = vec3(1.0);
-  float dirDiffuseWeight = max( dot( normal, dirVector ), 0.0 );
-  totalDiffuseLight += dirLightColor * dirDiffuseWeight;
-
-  //vec4 color = texture2D(tWater, uv * 4.0);
-  //gl_FragColor = vec4(color.rgb * totalDiffuseLight, 1.0);
-
-  // START Wallace water
 
   vec3 incomingRay = normalize(vPosition - uEye);
 
@@ -449,7 +457,7 @@ void main() {
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
 
   // TODO: crevert
-  fresnel = 0.0;
+  // fresnel = 0.0;
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }
 ")

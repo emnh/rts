@@ -121,7 +121,7 @@ THREE.ShaderTerrain = {
 					"colDiffuse1 = GammaToLinear( colDiffuse1, float( GAMMA_FACTOR ) );",
 					"colDiffuse2 = GammaToLinear( colDiffuse2, float( GAMMA_FACTOR ) );",
 
-					"diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - texture2D( tDisplacement, uvBase ) * 256.0 / 80.0);",
+					"diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - texture2D( tDisplacement, uvBase ) * 256.0 / 156.0 + 0.5);",
 
 				" } else if( enableDiffuse1 ) {",
 

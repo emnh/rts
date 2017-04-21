@@ -68,7 +68,7 @@
           :vertexShader (-> terrain-shader .-vertexShader)
           :fragmentShader (-> terrain-shader .-fragmentShader)
           :lights true
-          :fog true})
+          :fog false})
       _ (-> material .-uniforms .-tNormal .-value (set! (-> normal-map .-texture)))
       _ (-> material .-uniforms .-uNormalScale .-value (set! 3.5))
       _ (-> material .-uniforms .-tDisplacement .-value (set! (:data-texture ground)))
