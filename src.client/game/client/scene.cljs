@@ -157,6 +157,7 @@
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
     (-> js/DEBUG .-renderer (set! (data renderer)))
+    (-> js/DEBUG .-camera (set! (data camera)))
     (if-not done
       (do
         (-> (data scene) .-fog (set! (new js/THREE.Fog 0x050505 500 4000)))

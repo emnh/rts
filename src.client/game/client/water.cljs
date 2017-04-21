@@ -42,6 +42,7 @@ precision highp float;
 #define PI 3.14
 uniform vec2 uResolution;
 uniform float uWaterThreshold;
+uniform float uTime;
 uniform sampler2D tWaterHeight;
 uniform sampler2D tGroundHeight;
 
@@ -72,6 +73,12 @@ float getContribution(vec2 uv, float u, float uTotal) {
   	ux = 0.0;
   }
   return ux;
+}
+
+// Simple random function
+float random(float co)
+{
+		return fract(sin(co*12.989) * 43758.545);
 }
 
 void main() {
@@ -124,6 +131,10 @@ void main() {
   // rain
   if (onlyRain) {
     nu += 0.00001;
+    /*
+    float rnd = random(uv.x + uv.y);
+    nu = sin(rnd * uTime * 5.0 / 1000.0 + rnd);
+    */
   }
 
   if (nu < 0.0 || hitTest(uv)) {
@@ -160,16 +171,17 @@ void main() {
 
   vec2 puv = vec2(position.xz / uWaterSize) + vec2(0.5, 0.5);
 
-  float groundHeight = texture2D(tGroundHeight, puv).x;
+  float ground = texture2D(tGroundHeight, puv).x;
+  float groundHeight = ground * uGroundElevation;
   vec4 water = texture2D(tWaterHeight, puv);
 
   const float heightDivisor = 25.0;
 
   float height = water.x / heightDivisor;
 
-  if (groundHeight < uWaterThreshold) {
-    // newPosition.y = groundHeight * uGroundElevation + height * uWaterElevation;
-    newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
+  if (ground < uWaterThreshold) {
+    newPosition.y = groundHeight + height * uWaterElevation;
+    // newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
     // newPosition.y = uWaterThreshold * uGroundElevation;
   }
 
@@ -216,10 +228,25 @@ const float IOR_WATER = 1.333;
 const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
 const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
 const float poolHeight = 1.0;
+// XXX: hack. make big cube so that rim is not visible
+const vec3 cubeMul = vec3(5.0, 1.0, 5.0);
+
+struct Intersection{
+	float t;
+	float hit;
+	vec3 hitPoint;
+	vec3 normal;
+	vec3 color;
+};
+
+struct Plane{
+	vec3 position;
+	vec3 normal;
+};
 
 vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
-  vec3 tMin = (cubeMin - origin) / ray;
-  vec3 tMax = (cubeMax - origin) / ray;
+  vec3 tMin = (cubeMin * cubeMul - origin) / ray;
+  vec3 tMax = (cubeMax * cubeMul - origin) / ray;
   vec3 t1 = min(tMin, tMax);
   vec3 t2 = max(tMin, tMax);
   float tNear = max(max(t1.x, t1.y), t1.z);
@@ -229,10 +256,11 @@ vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
 
 vec3 lookupTile(vec2 uv) {
   const float repeat = 6.0;
-  return texture2D(tTiles, uv * repeat).rgb;
+  vec3 rgb = texture2D(tTiles, uv * repeat).rgb;
+  return rgb;
 }
 
-vec3 getWallColor(vec3 point) {
+vec3 getWallColor(vec3 origin, vec3 point) {
   float scale = 0.5;
 
   vec3 wallColor;
@@ -252,10 +280,13 @@ vec3 getWallColor(vec3 point) {
     normal = vec3(0.0, 1.0, 0.0);
   }
 
-  //wallColor = lookupTile(point.xz * 0.5 + 0.5);
-  //normal = vec3(0.0, 1.0, 0.0);
+  wallColor = lookupTile(point.xz * 0.5 + 0.5);
+  normal = vec3(0.0, 1.0, 0.0);
 
-  scale /= length(point); /* pool ambient occlusion */
+  // scale *= 2.0;
+  // scale /= length(point); /* pool ambient occlusion */
+  // scale /= clamp(length(point), 0.2, 1.0); /* pool ambient occlusion */
+  scale /= distance(origin, point) * 5.0; /* pool ambient occlusion */
   // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
 
   /* caustics */
@@ -265,7 +296,7 @@ vec3 getWallColor(vec3 point) {
   if (true && point.y < info.r) {
     vec4 caustic = texture2D(tCausticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
     // TODO: caustics
-    caustic = vec4(0.5);
+    caustic = vec4(0.0);
     scale += diffuse * caustic.r * 2.0 * caustic.g;
   } else {
     /* shadow for the rim of the pool */
@@ -278,16 +309,60 @@ vec3 getWallColor(vec3 point) {
   return wallColor * scale;
 }
 
+void intersectPlane(vec3 cPos, vec3 ray, Plane p, inout Intersection i){
+	float d = -dot(p.position, p.normal);
+	float v = dot(ray, p.normal);
+	float t = -(dot(cPos, p.normal) + d) / v;
+	if(t > 0.0 && t < i.t){
+		i.t = t;
+		i.hit = 1.0;
+		i.hitPoint = vec3(
+			cPos.x + t * ray.x,
+			cPos.y + t * ray.y,
+			cPos.z + t * ray.z
+		);
+		i.normal = p.normal;
+    /*
+		float diff = clamp(dot(i.normal, lightDirection), 0.1, 1.0);
+		float m = mod(i.hitPoint.x, 2.0);
+		float n = mod(i.hitPoint.z, 2.0);
+		if((m > 1.0 && n > 1.0) || (m < 1.0 && n < 1.0)){
+			diff -= 0.5;
+		}
+
+		t = min(i.hitPoint.z, 100.0) * 0.01;
+		i.color = vec3(diff + t);
+    */
+	}
+}
+
+float intersectFloor(vec3 origin, vec3 ray) {
+  Intersection i;
+	i.t = 1.0e+30;
+	i.hit = 0.0;
+	i.hitPoint = vec3(0.0);
+	i.normal = vec3(0.0);
+	i.color = vec3(0.0);
+  Plane plane;
+  plane.position = vec3(0.0, 0.0, 0.0);
+	plane.normal = vec3(0.0, 1.0, 0.0);
+  intersectPlane(origin, ray, plane, i);
+  return i.t;
+}
+
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   if (ray.y < 0.0) {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    color = getWallColor(origin + ray * t.y);
+    t.y = intersectFloor(origin, ray);
+    vec3 hit = origin + ray * t.y;
+    color = getWallColor(origin, hit);
   } else {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    t.y = intersectFloor(origin, ray);
     vec3 hit = origin + ray * t.y;
     if (hit.y < 2.0 / 12.0) {
-      color = getWallColor(hit);
+      color = getWallColor(origin, hit);
     } else {
       // TODO: sky cube
       // color = textureCube(sky, ray).rgb;
@@ -295,7 +370,10 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
       color += vec3(pow(max(0.0, dot(uLight, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
     }
   }
-  if (ray.y < 0.0) color *= waterColor;
+  if (ray.y < 0.0) {
+    float gray = (color.r + color.g + color.b) / 3.0;
+    color = gray * waterColor;
+  }
   return color;
 }
 
@@ -384,7 +462,8 @@ void main() {
       [(:render-target2 water) (:render-target1 water)])
      compute-material (:compute-material water)
      init-material (:init-material water)
-     water-material (-> (:mesh water) .-material)]
+     water-material (-> (:mesh water) .-material)
+     time (common/game-time)]
     (if
       (= @render-target-index 0)
       (do
@@ -393,6 +472,9 @@ void main() {
     (->
       compute-material .-uniforms .-tWaterHeight .-value
       (set! (-> render-target2 .-texture)))
+    (->
+      compute-material .-uniforms .-uTime .-value
+      (set! time))
     (-> quad .-material (set! compute-material))
     (-> renderer (.render scene camera render-target1 true))
     ;(->
@@ -443,6 +525,7 @@ void main() {
       compute-uniforms
         #js
         {
+          :uTime #js { :value nil}
           :uWaterThreshold #js { :value water-threshold}
           :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
@@ -485,7 +568,9 @@ void main() {
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
           :tGroundHeight #js { :value (:data-texture ground)}
           :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
-          :uEye #js { :value (-> camera .-position)}
+          ;:uEye #js { :value (-> camera .-position)}
+          ; fixed eye at this position experimentally found to look better
+          :uEye #js { :value (new js/THREE.Vector3 -1526.0 800.0 973.0)}
           :uLight #js { :value uLight}}
       material
         (new
