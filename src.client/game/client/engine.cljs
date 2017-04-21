@@ -262,6 +262,13 @@
        units (atom [])
        mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})
+       debugBoxSize 10.0
+       debugBoxHeight 3.0
+       debugBox (new js/THREE.BoxGeometry debugBoxSize debugBoxHeight debugBoxSize)
+       ;debugBox (new js/THREE.PlaneBufferGeometry debugBoxSize debugBoxSize 1.0 1.0)
+       ;rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
+       ;_ (-> debugBox (.applyMatrix rotation))
+       _ (-> debugBox .center)
        maxr 10]
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
@@ -295,8 +302,6 @@
                  bbox (-> voxel-geometry .-boundingBox)
                  bounding-box-min (-> voxel-geometry .-boundingBox .-min)
                  bounding-box-max (-> voxel-geometry .-boundingBox .-max)
-                 debugBox (new js/THREE.BoxGeometry 10.0 10.0 10.0)
-                 _ (-> debugBox .center)
                  debugMaterial (new js/THREE.MeshStandardMaterial #js { :color 0x0000FF})
                  debugMesh1 (new js/THREE.Mesh debugBox debugMaterial)
                  debugMesh2 (new js/THREE.Mesh debugBox debugMaterial)
@@ -343,8 +348,9 @@
                     explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)]
                     ;_ (-> explosion-mesh .-renderOrder (set! index))
                    (-> explosion-mesh .-customDepthMaterial (set! depth-material))
+                   (-> explosion-mesh .-position .-y (set! debugBoxHeight))
                    explosion-mesh)
-                 ypos (ground/align-to-ground ground bbox xpos zpos)
+                 ypos (+ yoff (ground/align-to-ground ground bbox xpos zpos))
                  group (new js/THREE.Object3D)
                  unit
                  {
@@ -408,13 +414,13 @@
                   [x xpos
                    z zpos
                    y (+ yoff (ground/get-height ground x z))
-                   ys (* 2.0 (ground/get-height ground x z))]
+                   ys (* 2.0 (ground/get-height ground x z))
+                   y (-> bbox .-min .-y)]
                   ;(-> debugMesh5 .-scale .-y (set! ys))
                   (doto (-> debugMesh5 .-position)
-                    (aset "x" (- x xpos))
-                    ;(aset "y" (- y ypos))
-                    (aset "y" (- y ypos))
-                    (aset "z" (- z zpos))))
+                    ;(aset "x" (- x xpos))
+                    (aset "y" y)))
+                    ;(aset "z" (- z zpos))))
                 ;(-> group (.add debugMesh1))
                 ;(-> group (.add debugMesh2))
                 ;(-> group (.add debugMesh3))
