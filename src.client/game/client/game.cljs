@@ -18,6 +18,7 @@
     [game.client.ground-local :as ground-local]
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
+    [game.client.water :as water]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]])
@@ -61,6 +62,8 @@
       :magic (magic/new-magic)
       :update-magic (magic/new-update-magic)
       :explosion (explosion/new-explosion)
-      :update-explosion (explosion/new-update-explosion)}]
+      :update-explosion (explosion/new-update-explosion)
+      :compute-shader (water/new-compute-shader)
+      :water (water/new-init-water)}]
 
     system))

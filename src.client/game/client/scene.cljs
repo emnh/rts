@@ -159,8 +159,11 @@
     (-> js/DEBUG .-renderer (set! (data renderer)))
     (if-not done
       (do
+        (-> (data scene) .-fog (set! (new js/THREE.Fog 0x050505 500 4000)))
+        (-> (data scene) .-fog .-color (.setHSL 0.1 0.5 0.8))
         (doto
           (data renderer)
+          (-> (.setClearColor (-> (data scene) .-fog .-color)))
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-type (set! js/THREE.PCFSoftShadowMap))
           (-> .-shadowMap .-soft (set! true))
@@ -228,13 +231,14 @@
       (-> light2 .-color (set! (new js/THREE.Color 0xFF4400)))
       (-> light3 .-color (set! (new js/THREE.Color 0x111111)))
       (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
-      ;(-> light1 .-intensity (set! 1.15))
-      ;(-> light2 .-intensity (set! 1.5))
-      (-> light1 .-intensity (set! 1.5))
-      (-> light2 .-intensity (set! 2.0))
+      (-> light1 .-intensity (set! 0.8))
+      (-> light2 .-intensity (set! 1.5))
+      ;(-> light1 .-intensity (set! 1.5))
+      ;(-> light2 .-intensity (set! 2.0))
       (-> light1 .-position (.set 500 2000 0))
       ; light2 y controls terrain light intensity
-      (-> light2 .-position (.set (- width) (- height) 0))
+      ;(-> light2 .-position (.set (- width) 0 (- height)))
+      (-> light2 .-position (.set 0 256 0))
       ;(-> light2 .-position (.set (- width) 150 (- height)))
       ;(-> light2 .-position (.set (- width) 2560 (- height)))
       ;(-> light2 .-position (.set 0 150 0))

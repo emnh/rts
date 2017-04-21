@@ -111,7 +111,7 @@
     y))
 
 (defn get-map
-  [component config mesh simplex]
+  [component config simplex]
   (let
     [
      texture-loader (new THREE.TextureLoader)
@@ -228,7 +228,7 @@
   (fn [component]
     (if-not
       mesh
-      (get-map component config mesh (:simplex params))
+      (get-map component config (:simplex params))
       component))
   (fn [component]
     component))

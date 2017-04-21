@@ -19,7 +19,7 @@
       material (new js/THREE.MeshStandardMaterial)
       terrain-shader (-> js/THREE.ShaderTerrain .-terrain)
       uniforms-terrain (-> js/THREE.UniformsUtils (.clone (-> terrain-shader .-uniforms)))
-      normal-shader js/THREE.NormalMapShader
+      normal-shader (-> js/THREE .-NormalMapShader)
       rx 256
       ry 256
       pars
@@ -34,6 +34,7 @@
       _ (-> uniforms-normal .-height .-value (set! 0.05))
       _ (-> uniforms-normal .-resolution .-value (.set rx ry))
       _ (-> uniforms-normal .-heightMap .-value (set! (:data-texture ground)))
+      _ (-> js/DEBUG .-uniforms (set! uniforms-normal))
       normal-material
       (new
         js/THREE.ShaderMaterial
@@ -42,16 +43,19 @@
           :uniforms uniforms-normal
           :vertexShader (-> normal-shader .-vertexShader)
           :fragmentShader (-> normal-shader .-fragmentShader)
-          :lights true
+          :lights false
           :fog false})
+      ;normal-material (new js/THREE.MeshLambertMaterial)
       screen-width (-> js/window .-innerWidth)
       screen-height (-> js/window .-innerHeight)
       plane (new js/THREE.PlaneBufferGeometry screen-width screen-height)
       quad-target (new js/THREE.Mesh plane normal-material)
+      _ (-> quad-target .-position .-z (set! -500))
       scene-render-target (new js/THREE.Scene)
       camera-ortho (new js/THREE.OrthographicCamera (/ screen-width -2) (/ screen-width 2) (/ screen-height 2) (/ screen-height -2) -10000 10000)
       _ (-> camera-ortho .-position .-z (set! 100))
       _ (-> scene-render-target (.add camera-ortho))
+      _ (-> scene-render-target (.add quad-target))
       _ (-> renderer (.render scene-render-target camera-ortho normal-map true))
       ;_ (-> uniforms-terrain .-tNormal .-value (set! (-> normal-map .-texture)))
       material
@@ -63,9 +67,9 @@
           :vertexShader (-> terrain-shader .-vertexShader)
           :fragmentShader (-> terrain-shader .-fragmentShader)
           :lights true
-          :fog false})
+          :fog true})
       _ (-> material .-uniforms .-tNormal .-value (set! (-> normal-map .-texture)))
-      _ (-> material .-uniforms .-uNormalScale .-value (set! 1.0))
+      _ (-> material .-uniforms .-uNormalScale .-value (set! 3.5))
       _ (-> material .-uniforms .-tDisplacement .-value (set! (:data-texture ground)))
       _ (-> material .-uniforms .-tDisplacement .-needsUpdate (set! true))
       _ (-> material .-uniforms .-diffuse .-value (.setHex 0xFFFFFF))
@@ -73,7 +77,7 @@
       _ (-> material .-uniforms .-shininess .-value (set! 30))
       _ (-> material .-uniforms .-uDisplacementScale .-value (set! 256))
       _ (-> material .-uniforms .-uRepeatBase .-value (.set 1 1))
-      _ (-> material .-uniforms .-uRepeatOverlay .-value (.set 12 12))
+      _ (-> material .-uniforms .-uRepeatOverlay .-value (.set 6 6))
       _ (-> material .-uniforms .-enableDiffuse1 .-value (set! true))
       _ (-> material .-uniforms .-enableDiffuse2 .-value (set! true))
       _ (-> material .-uniforms .-needsUpdate (set! true))
