@@ -240,6 +240,7 @@
       (-> light2 .-intensity (set! 1.5))
       ;(-> light1 .-intensity (set! 1.5))
       ;(-> light2 .-intensity (set! 2.0))
+      ;(-> light1 .-position (.set 500 2000 0))
       (-> light1 .-position (.set 500 2000 0))
       ; light2 y controls terrain light intensity
       ;(-> light2 .-position (.set (- width) 0 (- height)))

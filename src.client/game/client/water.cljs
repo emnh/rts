@@ -151,8 +151,8 @@ uniform vec2 uResolution;
 uniform sampler2D tGroundHeight;
 uniform sampler2D tWaterHeight;
 
-varying float vHeight;
 varying vec3 vNormal;
+varying vec3 vPosition;
 
 void main() {
 
@@ -162,19 +162,35 @@ void main() {
 
   float groundHeight = texture2D(tGroundHeight, puv).x;
   vec4 water = texture2D(tWaterHeight, puv);
-  float height = water.x;
+
+  const float heightDivisor = 25.0;
+
+  float height = water.x / heightDivisor;
 
   if (groundHeight < uWaterThreshold) {
     // newPosition.y = groundHeight * uGroundElevation + height * uWaterElevation;
     newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
+    // newPosition.y = uWaterThreshold * uGroundElevation;
   }
 
-  vHeight = height / 2.5;
-
-  float val = texture2D( tWaterHeight, puv ).x;
-  float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x;
-  float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x;
+  float val = texture2D( tWaterHeight, puv ).x / heightDivisor;
+  float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x / heightDivisor;
+  float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x / heightDivisor;
   vNormal = 0.5 * normalize( vec3( val - valU, 0.05, val - valV ) ) + 0.5;
+
+  /*
+  vec2 delta = 1.0 / uResolution.xy;
+  vec2 coord = puv;
+  vec3 dx = vec3(delta.x, texture2D(tWaterHeight, vec2(coord.x + delta.x, coord.y)).r / heightDivisor - height, 0.0);
+  vec3 dy = vec3(0.0, texture2D(tWaterHeight, vec2(coord.x, coord.y + delta.y)).r / heightDivisor - height, delta.y);
+  vNormal.xz = normalize(cross(dy, dx)).xz;
+  vNormal.y = sqrt(1.0 - dot(vNormal.xz, vNormal.xz));
+  */
+
+  vPosition =
+    vec3(newPosition.x * 2.0 / uWaterSize.x,
+         height,
+         newPosition.z * 2.0 / uWaterSize.y);
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
@@ -184,22 +200,114 @@ void main() {
  "
 precision highp float;
 
+uniform vec3 uEye;
+uniform vec3 uLight;
 uniform vec2 uResolution;
 uniform sampler2D tWater;
+uniform sampler2D tTiles;
+uniform sampler2D tWaterHeight;
+uniform sampler2D tCausticTex;
 
-varying float vHeight;
 varying vec3 vNormal;
+varying vec3 vPosition;
+
+const float IOR_AIR = 1.0;
+const float IOR_WATER = 1.333;
+const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
+const vec3 underwaterColor = vec3(0.4, 0.9, 1.0);
+const float poolHeight = 1.0;
+
+vec2 intersectCube(vec3 origin, vec3 ray, vec3 cubeMin, vec3 cubeMax) {
+  vec3 tMin = (cubeMin - origin) / ray;
+  vec3 tMax = (cubeMax - origin) / ray;
+  vec3 t1 = min(tMin, tMax);
+  vec3 t2 = max(tMin, tMax);
+  float tNear = max(max(t1.x, t1.y), t1.z);
+  float tFar = min(min(t2.x, t2.y), t2.z);
+  return vec2(tNear, tFar);
+}
+
+vec3 lookupTile(vec2 uv) {
+  const float repeat = 6.0;
+  return texture2D(tTiles, uv * repeat).rgb;
+}
+
+vec3 getWallColor(vec3 point) {
+  float scale = 0.5;
+
+  vec3 wallColor;
+  vec3 normal;
+
+  if (abs(point.x) > 0.999) {
+    //wallColor = texture2D(tTiles, point.yz * 0.5 + vec2(1.0, 0.5)).rgb;
+    wallColor = lookupTile(point.yz * 0.5 + vec2(1.0, 0.5));
+    normal = vec3(-point.x, 0.0, 0.0);
+  } else if (abs(point.z) > 0.999) {
+    //wallColor = texture2D(tTiles, point.yx * 0.5 + vec2(1.0, 0.5)).rgb;
+    wallColor = lookupTile(point.yx * 0.5 + vec2(1.0, 0.5));
+    normal = vec3(0.0, 0.0, -point.z);
+  } else {
+    //wallColor = texture2D(tTiles, point.xz * 0.5 + 0.5).rgb;
+    wallColor = lookupTile(point.xz * 0.5 + 0.5);
+    normal = vec3(0.0, 1.0, 0.0);
+  }
+
+  //wallColor = lookupTile(point.xz * 0.5 + 0.5);
+  //normal = vec3(0.0, 1.0, 0.0);
+
+  scale /= length(point); /* pool ambient occlusion */
+  // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
+
+  /* caustics */
+  vec3 refractedLight = -refract(-uLight, vec3(0.0, 1.0, 0.0), IOR_AIR / IOR_WATER);
+  float diffuse = max(0.0, dot(refractedLight, normal));
+  vec4 info = texture2D(tWaterHeight, point.xz * 0.5 + 0.5);
+  if (true && point.y < info.r) {
+    vec4 caustic = texture2D(tCausticTex, 0.75 * (point.xz - point.y * refractedLight.xz / refractedLight.y) * 0.5 + 0.5);
+    // TODO: caustics
+    caustic = vec4(0.5);
+    scale += diffuse * caustic.r * 2.0 * caustic.g;
+  } else {
+    /* shadow for the rim of the pool */
+    vec2 t = intersectCube(point, refractedLight, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    diffuse *= 1.0 / (1.0 + exp(-200.0 / (1.0 + 10.0 * (t.y - t.x)) * (point.y + refractedLight.y * t.y - 2.0 / 12.0)));
+
+    scale += diffuse * 0.5;
+  }
+
+  return wallColor * scale;
+}
+
+vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
+  vec3 color;
+  if (ray.y < 0.0) {
+    vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    color = getWallColor(origin + ray * t.y);
+  } else {
+    vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
+    vec3 hit = origin + ray * t.y;
+    if (hit.y < 2.0 / 12.0) {
+      color = getWallColor(hit);
+    } else {
+      // TODO: sky cube
+      // color = textureCube(sky, ray).rgb;
+      color = vec3(1.0);
+      color += vec3(pow(max(0.0, dot(uLight, ray)), 5000.0)) * vec3(10.0, 8.0, 6.0);
+    }
+  }
+  if (ray.y < 0.0) color *= waterColor;
+  return color;
+}
 
 void main() {
   vec2 uv = gl_FragCoord.xy / uResolution;
 
   // directional lights
+  vec3 dirDiffuse = normalize(uLight);
+  //vec3 dirDiffuse = vec3(0.0, 1.0, 0.0);
 
-  // vec3 dirDiffuse = normalize(vec3(0.0) - vec3(500.0, 2000.0, 0.0));
-  vec3 dirDiffuse = vec3(0.0, 1.0, 0.0);
-
-  vec3 normal = vNormal;
-  //normal = vec3(0.0, -1.0, 0.0);
+  vec3 normal = normalize(vNormal);
+  // normal = vec3(0.0, -1.0, 0.0);
 
   vec3 totalDiffuseLight = vec3(0.0);
 
@@ -210,6 +318,19 @@ void main() {
 
   vec4 color = texture2D(tWater, uv * 4.0);
   gl_FragColor = vec4(color.rgb * totalDiffuseLight, 1.0);
+
+  // START Wallace water
+
+  vec3 incomingRay = normalize(vPosition - uEye);
+
+  vec3 reflectedRay = reflect(incomingRay, normal);
+  vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);
+  float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
+
+  vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
+  vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
+
+  gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }
 ")
 
@@ -347,6 +468,10 @@ void main() {
       _ (-> geometry (.applyMatrix rotation))
       max-water-elevation (get-in config [:terrain :water-elevation])
       max-elevation (get-in config [:terrain :max-elevation])
+      camera (data (:camera component))
+      light1 (data (:light1 component))
+      uLight (-> light1 .-position .clone)
+      _ (-> uLight .normalize)
       uniforms
         #js
         {
@@ -355,9 +480,13 @@ void main() {
           :uWaterElevation #js { :value max-water-elevation}
           :uWaterSize #js { :value (new js/THREE.Vector2 width height)}
           :tWater #js { :value nil}
+          :tTiles #js { :value nil}
+          :tCausticTex #js { :value nil}
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
           :tGroundHeight #js { :value (:data-texture ground)}
-          :uResolution #js { :value (new js/THREE.Vector2 rx ry)}}
+          :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
+          :uEye #js { :value (-> camera .-position)}
+          :uLight #js { :value uLight}}
       material
         (new
           js/THREE.ShaderMaterial
@@ -367,14 +496,24 @@ void main() {
             :vertexShader water-vertex-shader
             :fragmentShader water-fragment-shader})
       wrapping (-> js/THREE .-RepeatWrapping)
-      on-load (fn [texture]
-                (-> texture .-wrapS (set! wrapping))
-                (-> texture .-wrapT (set! wrapping))
-                (-> texture .-repeat (.set 10.0 10.0))
-                (-> material .-uniforms .-tWater .-value (set! texture))
-                (-> material .-needsUpdate (set! true)))
       texture-loader (new THREE.TextureLoader)
+      on-load
+        (fn [texture]
+          (-> texture .-wrapS (set! wrapping))
+          (-> texture .-wrapT (set! wrapping))
+          (-> texture .-repeat (.set 10.0 10.0))
+          (-> material .-uniforms .-tWater .-value (set! texture))
+          (-> material .-needsUpdate (set! true)))
       _ (-> texture-loader (.load "models/images/water.jpg" on-load))
+      on-load-tiles
+        (fn [texture]
+          (-> texture .-wrapS (set! wrapping))
+          (-> texture .-wrapT (set! wrapping))
+          (-> texture .-repeat (.set 1.0 1.0))
+          (-> material .-uniforms .-tTiles .-value (set! texture))
+          (-> material .-needsUpdate (set! true)))
+      ;_ (-> texture-loader (.load "models/images/tiles.jpg" on-load-tiles))
+      _ (-> texture-loader (.load "models/images/grasslight-big.jpg" on-load-tiles))
       mesh (new js/THREE.Mesh geometry material)]
     (-> component
       (assoc :render-target1 render-target1)
@@ -385,7 +524,7 @@ void main() {
 
 (defcom
   new-init-water
-  [config params compute-shader ground]
+  [config params compute-shader ground camera light1]
   ;[mesh height-field width height x-faces y-faces x-vertices y-vertices data-texture float-texture-divisor]
   [mesh render-target1 render-target2
    compute-material init-material]
