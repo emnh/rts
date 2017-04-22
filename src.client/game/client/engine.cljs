@@ -255,7 +255,8 @@
 (defcom
   new-test-units
   [ground scene init-scene resources magic explosion]
-  [starting units mesh-to-screenbox-map mesh-to-unit-map units-container]
+  [starting units mesh-to-screenbox-map mesh-to-unit-map
+   units-container units-minimap-container]
   (fn [component]
     (let
       [starting (atom true)
@@ -270,8 +271,10 @@
        ;_ (-> debugBox (.applyMatrix rotation))
        _ (-> debugBox .center)
        maxr 10
-       units-container (new js/THREE.Object3D)]
+       units-container (new js/THREE.Object3D)
+       units-minimap-container (new js/THREE.Object3D)]
       (scene/add scene units-container)
+      (scene/add scene units-minimap-container)
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
         (m/mlet
@@ -305,12 +308,21 @@
                  bbox (-> voxel-geometry .-boundingBox)
                  bounding-box-min (-> voxel-geometry .-boundingBox .-min)
                  bounding-box-max (-> voxel-geometry .-boundingBox .-max)
-                 debugMaterial (new js/THREE.MeshStandardMaterial #js { :color 0x0000FF})
+                 debugMaterial (new js/THREE.MeshStandardMaterial #js { :color 0x0000FF :fog false})
                  debugMesh1 (new js/THREE.Mesh debugBox debugMaterial)
                  debugMesh2 (new js/THREE.Mesh debugBox debugMaterial)
                  debugMesh3 (new js/THREE.Mesh debugBox debugMaterial)
                  debugMesh4 (new js/THREE.Mesh debugBox debugMaterial)
                  debugMesh5 (new js/THREE.Mesh debugBox debugMaterial)
+                 minimap-material
+                  (new js/THREE.MeshBasicMaterial #js { :color 0x0000FF :fog false})
+                 minimap-material2
+                  (new js/THREE.MeshBasicMaterial #js { :color 0x000000 :fog false :side js/THREE.BackSide})
+                 ; TODO: could be plane instead of box
+                 minimap-marker (new js/THREE.Mesh debugBox minimap-material)
+                 minimap-marker-border (new js/THREE.Mesh debugBox minimap-material2)
+                 minimap-border-scale 2.0
+                 minimap-group (new js/THREE.Object3D)
                  ;_ (console.log bounding-box-min bounding-box-max)
                  _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
                  _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
@@ -433,10 +445,19 @@
                 (-> group (.add debugMesh5))
                 ;(scene/add scene group)
                 (-> units-container (.add group))
-                (doto (-> group .-position)
-                  (aset "x" xpos)
-                  (aset "y" ypos)
-                  (aset "z" zpos))
+                (->
+                  minimap-marker-border .-scale
+                  (.set minimap-border-scale minimap-border-scale minimap-border-scale))
+                ;(-> minimap-marker-border .-renderOrder (set! 1))
+                ;(-> minimap-marker .-renderOrder (set! 0))
+                (doto
+                  minimap-group
+                  (.add minimap-marker)
+                  (.add minimap-marker-border)
+                  (-> .-position (.set xpos ypos zpos))
+                  (-> .-scale (.set 10.0 10.0 10.0)))
+                (-> units-minimap-container (.add minimap-group))
+                (-> group .-position (.set xpos ypos zpos))
                 ;(-> group .-scale (.set 5 5 5))
                 (-> group (.rotateOnAxis (new js/THREE.Vector3 0.0 1.0 0.0) rotation)))))))
       (-> component
@@ -444,18 +465,21 @@
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
         (assoc :starting starting)
-        (assoc :units-container units-container))))
+        (assoc :units-container units-container)
+        (assoc :units-minimap-container units-minimap-container))))
   (fn [component]
     (println "stopping units")
     (if starting
       (reset! starting false))
     (if units
-      (scene/remove scene units-container)
-      (for-each-unit
-        component
-        (fn
-          [_ unit]
-          (-> units-container (.remove (get-unit-group unit))))))
+      (do
+        (scene/remove scene units-container)
+        (scene/remove scene units-minimap-container)
+        (for-each-unit
+          component
+          (fn
+            [_ unit]
+            (-> units-container (.remove (get-unit-group unit)))))))
     (->
       component
       (assoc :starting nil)

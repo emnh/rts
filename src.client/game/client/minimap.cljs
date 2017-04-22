@@ -18,9 +18,9 @@
       renderer (:minimap-renderer component)
       scene (data (:scene init-renderer))
       minimap-camera (:minimap-camera component)
-      units-container (:units-container (:units component))
-      ;left -30
-      ;bottom -20
+      units (:units component)
+      units-container (:units-container units)
+      units-minimap-container (:units-minimap-container units)
       left 0
       bottom 0
       width (:width component)
@@ -31,8 +31,10 @@
     (-> renderer (.setScissorTest true))
     (-> renderer (.setClearColor 0x000000))
     (-> units-container .-visible (set! false))
+    (-> units-minimap-container .-visible (set! true))
     (-> renderer (.render scene minimap-camera))
-    (-> units-container .-visible (set! true))))
+    (-> units-container .-visible (set! true))
+    (-> units-minimap-container .-visible (set! false))))
 
 (defcom
   new-minimap
