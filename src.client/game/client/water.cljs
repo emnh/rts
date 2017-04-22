@@ -55,7 +55,7 @@ uniform sampler2D tGroundHeight;
 
 bool hitTest(vec2 uvn) {
     float h = texture2D(tGroundHeight, uvn).x;
-    if (h >= uWaterThreshold) {
+    if (h >= uWaterThreshold + 0.1) {
         return true;
     }
     return false;
@@ -211,7 +211,7 @@ void main() {
   }
   */
   if (uOverWater > 0.5) {
-    newPosition.y = 0.3 * uGroundElevation + water.x * uWaterElevation;
+    newPosition.y = uWaterThreshold * uGroundElevation + water.x * uWaterElevation;
   } else {
     if (ground <= 0.3) {
       newPosition.y = ground * uGroundElevation + 1.0;
@@ -255,8 +255,10 @@ void main() {
   uniform vec3 uLight;
   uniform vec2 uResolution;
   uniform vec2 uWaterSize;
+  uniform float uWaterThreshold;
   uniform sampler2D tWater;
   uniform sampler2D tTiles;
+  uniform sampler2D tGroundHeight;
   uniform sampler2D tWaterHeight;
   uniform sampler2D tCausticTex;
 
@@ -432,11 +434,7 @@ void main() {
   	if(t > 0.0 && t < i.t){
   		i.t = t;
   		i.hit = 1.0;
-  		i.hitPoint = vec3(
-  			cPos.x + t * ray.x,
-  			cPos.y + t * ray.y,
-  			cPos.z + t * ray.z
-  		);
+  		i.hitPoint = cPos + t * ray;
   		i.normal = p.normal;
       /*
   		float diff = clamp(dot(i.normal, lightDirection), 0.1, 1.0);
@@ -452,7 +450,7 @@ void main() {
   	}
   }
 
-  float intersectFloor(vec3 origin, vec3 ray) {
+  vec3 intersectFloor(vec3 origin, vec3 ray) {
     Intersection i;
   	i.t = 1.0e+30;
   	i.hit = 0.0;
@@ -460,10 +458,36 @@ void main() {
   	i.normal = vec3(0.0);
   	i.color = vec3(0.0);
     Plane plane;
-    plane.position = vec3(0.0, 0.0, 0.0);
+    vec2 uv = (origin.xz + 1.0) / 2.0;
+    float height = texture2D(tGroundHeight, uv).x;
+    float fac = 1.0 / 3.0;
+    plane.position = vec3(0.0, fac * (height - uWaterThreshold - 0.05), 0.0);
+
   	plane.normal = vec3(0.0, 1.0, 0.0);
     intersectPlane(origin, ray, plane, i);
-    return i.t;
+    float t1 = i.t;
+    if (i.t < 0.0) {
+      t1 = 0.0;
+    }
+
+    plane.position = vec3(0.0, 0.0, 0.0);
+    intersectPlane(origin, ray, plane, i);
+    float t2 = i.t;
+    if (i.t < 0.0) {
+      t2 = 0.0;
+    }
+
+    float t = mix(t2, t1, 0.25);
+    vec3 hit = origin + t * ray;
+
+    /*
+    vec2 uv = i.hitPoint.xz;
+    uv = clamp(uv, 0.0, 1.0);
+    float height = texture2D(tGroundHeight, uv).x;
+    vec3 hit = i.hitPoint;
+    hit.y += height / 5.0;
+    */
+    return hit;
   }
 
   float intersectRoof(vec3 origin, vec3 ray) {
@@ -494,13 +518,13 @@ vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
   if (ray.y < 0.0) {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    t.y = intersectFloor(origin, ray);
     vec3 hit = origin + ray * t.y;
+    hit = intersectFloor(origin, ray);
     color = getWallColor(origin, hit);
   } else {
     vec2 t = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    t.y = intersectFloor(origin, ray);
     vec3 hit = origin + ray * t.y;
+    hit = intersectFloor(origin, ray);
     if (hit.y < 2.0 / 12.0) {
       color = getWallColor(origin, hit);
     } else {
@@ -537,8 +561,6 @@ void main() {
 
 (def caustics-shader-vertex-part1
   "
-  uniform sampler2D tGroundHeight;
-
   varying vec3 oldPos;
   varying vec3 newPos;
   varying vec3 ray;
@@ -548,8 +570,9 @@ void main() {
   /* project the ray onto the plane */
   vec3 project(vec3 origin, vec3 ray, vec3 refractedLight) {
     vec2 tcube = intersectCube(origin, ray, vec3(-1.0, -poolHeight, -1.0), vec3(1.0, 2.0, 1.0));
-    // tcube.y = intersectFloor(origin, ray);
+    vec3 hit = intersectFloor(origin, ray);
     origin += ray * tcube.y;
+    origin = hit;
     float tplane = (-origin.y - 1.0) / refractedLight.y;
     return origin + refractedLight * tplane;
   }
@@ -772,7 +795,7 @@ void main() {
       caustics-render-target (new js/THREE.WebGLRenderTarget caustics-rx caustics-ry pars)
       ground (:ground component)
       ; TODO: replace with lake map
-      water-threshold 1.0
+      water-threshold 0.3
       compute-uniforms
         #js
         {
