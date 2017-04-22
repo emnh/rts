@@ -78,9 +78,13 @@
                 ;_ (println "voxels" (:voxels voxel-dict))
 ;                voxel-dict (assoc voxel-dict :uvs (new js/Float32Array (flatten (:uvs voxel-dict))))
                 voxel-geometry (voxelize/voxelize-output voxel-dict)
+                scale (:post-scale model)
+                bbox (-> voxel-geometry .-boundingBox)
+                mat (new js/THREE.Matrix4)
+                _ (-> mat (.makeScale scale scale scale))
+                _ (-> bbox (.applyMatrix4 mat))
                 ; TODO: post-transform-geometry is just a hack
-                voxel-geometry (post-transform-geometry model voxel-geometry)
-                ;voxel-geometry (transform-geometry model voxel-geometry)
+                ;voxel-geometry (post-transform-geometry model voxel-geometry)
                 voxel-dict (assoc voxel-dict :geometry voxel-geometry)]
 ;               (.log js/console "uvs" (-> voxel-geometry (.getAttribute "uv")))
                (resolve voxel-dict))))]

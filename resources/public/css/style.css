@@ -124,6 +124,9 @@ body.fullscreen {
 .adjust-settings li {
   list-style: none;
   list-style-type: none;
+  border: 1px solid black;
+  padding: 5px;
+  margin: 5px;
 }
 
 /*#page-game-test ul {*/

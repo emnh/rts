@@ -240,7 +240,7 @@
       (-> light2 .-color (set! (new js/THREE.Color 0xFF4400)))
       (-> light3 .-color (set! (new js/THREE.Color 0x111111)))
       (-> light4 .-color (set! (new js/THREE.Color 0x220000)))
-      (-> light1 .-intensity (set! 0.8))
+      (-> light1 .-intensity (set! 2.5))
       (-> light2 .-intensity (set! 1.5))
       ;(-> light1 .-intensity (set! 1.5))
       ;(-> light2 .-intensity (set! 2.0))

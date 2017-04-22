@@ -53,8 +53,12 @@ uniform float uTime;
 uniform sampler2D tWaterHeight;
 uniform sampler2D tGroundHeight;
 
+// adjustable settings
+uniform float uWaterSpeed;
+
 bool hitTest(vec2 uvn) {
     float h = texture2D(tGroundHeight, uvn).x;
+    // + 0.1 so that waves can hit the shore
     if (h >= uWaterThreshold + 0.1) {
         return true;
     }
@@ -119,8 +123,7 @@ void main() {
   // bool onlyRain = terrainHeight >= uWaterThreshold;
 
   // new elevation
-  float waterSpeed = 0.001;
-  float nu = u + du + waterSpeed * (umx+ux+umy+uy);
+  float nu = u + du + uWaterSpeed * (umx+ux+umy+uy);
   /*if (onlyRain) {
       nu = u + 0.5 * (umx+ux+umy+uy);
       nu = 0.0;
@@ -265,6 +268,7 @@ void main() {
   // adjustable settings
   uniform float uWaterDepthEffect;
   uniform vec3 uAboveWaterColor;
+  uniform float uLightIntensity;
 
   const float IOR_AIR = 1.0;
   const float IOR_WATER = 1.333;
@@ -557,7 +561,7 @@ void main() {
   vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, uAboveWaterColor);
   vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, uAboveWaterColor);
 
-  gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
+  gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0) * uLightIntensity / 2.5;
 }
 ")
 
@@ -807,7 +811,8 @@ void main() {
           :uWaterThreshold #js { :value water-threshold}
           :uResolution #js { :value (new js/THREE.Vector2 rx ry)}
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
-          :tGroundHeight #js { :value (:data-texture ground)}}
+          :tGroundHeight #js { :value (:data-texture ground)}
+          :uWaterSpeed #js { :value 0.001}}
       compute-material
         (new
           js/THREE.ShaderMaterial
@@ -833,6 +838,7 @@ void main() {
       light1 (data (:light1 component))
       uLight (-> light1 .-position .clone)
       _ (-> uLight .normalize)
+      ;_ (-> uLight (.multiply (-> light1 .-intensity)))
       uniforms
         #js
         {
@@ -851,6 +857,7 @@ void main() {
           ; fixed eye at this position experimentally found to look better
           :uEye #js { :value (new js/THREE.Vector3 -1526.0 800.0 973.0)}
           :uLight #js { :value uLight}
+          :uLightIntensity #js { :value (-> light1 .-intensity)}
           ;:uOverWater #js { :value 1.0}}
           :uWaterDepthEffect #js { :value 0.25}
           :uAboveWaterColor #js { :value (new js/THREE.Vector3 0.25 1.0 1.25)}}

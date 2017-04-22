@@ -248,7 +248,7 @@
    :rotation [0 0 0]
    ; TODO: post-rotation and post-scale are just temporary hacks
    :post-rotation [0 0 0]
-   :post-scale 1
+   :post-scale 2.5
    ;:texture-path "models/images/colormap.jpg"
    :texture-path "models/images/grayscale.png"
    :texture-repeat [1 1]

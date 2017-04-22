@@ -68,6 +68,7 @@ uniform float terrainWidth;
 uniform float terrainHeight;
 uniform float floatTextureDivisor;
 uniform vec3 boxSize;
+uniform float uScale;
 
 attribute float boxIndex;
 attribute vec3 boxTranslation;
@@ -143,7 +144,7 @@ void main() {
   if (time == 0.0) {
     doLighting(normalize(normal));
     //position += sin(time);
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position * uScale, 1.0);
     logDepthBuf();
     return;
   }
@@ -160,6 +161,7 @@ void main() {
     animatePosition.y += max(5.0 * boxSize.y * (sin(4.0 * PI * time / animateDuration) + 1.0) / 2.0, 0.0);
     groundLevel = getGroundHeight(worldPosition.xz) - worldPosition.y;
     //animatePosition.y += groundLevel;
+    animatePosition *= uScale;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(animatePosition, 1.0);
     logDepthBuf();
     return;
@@ -210,6 +212,7 @@ void main() {
 
   float maxValueOfAfterImpact = factor - impactTime;
   vec3 newPosition = r + rotatedOffset.xyz * (1.0 - afterImpact / maxValueOfAfterImpact);
+  newPosition *= uScale;
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 
   logDepthBuf();
@@ -310,7 +313,8 @@ void main() {
         :terrainWidth # js { :value (:width ground)}
         :terrainHeight #js { :value (:height ground)}
         :floatTextureDivisor #js { :value (:float-texture-divisor ground)}
-        :boxSize #js { :value (new js/THREE.Vector3 1.0 1.0 1.0)}}
+        :boxSize #js { :value (new js/THREE.Vector3 1.0 1.0 1.0)}
+        :uScale #js { :value 1.0}}
        material
        (new js/THREE.ShaderMaterial
             #js
@@ -318,7 +322,7 @@ void main() {
              :uniforms uniforms
              :vertexShader vertex-shader
              :fragmentShader fragment-shader
-             :transparent true})
+             :transparent false})
 
        component
        (-> component

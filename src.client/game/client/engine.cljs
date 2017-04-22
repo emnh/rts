@@ -281,7 +281,8 @@
               [i (range maxr)
                j (range maxr)]
               (let
-                [spread 1000.0
+                [scale (:post-scale model)
+                 spread 1000.0
                  xpos (- (* (math/random) 2.0 spread) spread)
                  zpos (- (* (math/random) 2.0 spread) spread)
                  rotation (* (* 2.0 math/pi) (math/random))
@@ -325,6 +326,7 @@
                     _ (-> texture .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
                     _ (-> voxel-material .-uniforms .-time .-value (set! 0))
+                    _ (-> voxel-material .-uniforms .-uScale .-value (set! (:post-scale model)))
                     ;_ (-> voxel-material .-uniforms .-duration .-value
                     ;    (set! (+ 500.0 (* (math/random) 30000.0))))
                     _ (-> voxel-material .-uniforms .-duration .-value
@@ -417,6 +419,7 @@
                    ys (* 2.0 (ground/get-height ground x z))
                    y (-> bbox .-min .-y)]
                   ;(-> debugMesh5 .-scale .-y (set! ys))
+                  (-> debugMesh5 .-scale (.set scale scale scale))
                   (doto (-> debugMesh5 .-position)
                     ;(aset "x" (- x xpos))
                     (aset "y" y)))

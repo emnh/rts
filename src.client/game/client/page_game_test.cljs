@@ -141,6 +141,22 @@
         [:input
           {
             :type "range"
+            :value 0.001
+            :min 0.001
+            :max 0.5
+            :step 0.001
+            :on-change
+              (fn
+                [event]
+                (do
+                  (update-compute-uniform "uWaterSpeed" component event)
+                  (re-render component event)))}]
+        [:label "Water Speed"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
             :value 0.4
             :min 0.0
             :max 1.0
@@ -208,7 +224,35 @@
                 (fn [uniforms value]
                   (set! (-> uniforms .-uAboveWaterColor .-value .-z) value))
                 component)}]
-        [:label "Water Blue Color"]]]])
+        [:label "Water Blue Color"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
+            :value
+              (let
+                [
+                  subsystem (:subsystem component)
+                  light1 (data (:light1 subsystem))
+                  value
+                    (if subsystem
+                      (-> light1 .-intensity)
+                      0.0)]
+                value)
+            :min 0.0
+            :max 5.0
+            :step 0.1
+            :on-change
+              (fn [event]
+                (let
+                  [
+                    subsystem (:subsystem component)
+                    light1 (data (:light1 subsystem))
+                    value (-> event .-target .-value)]
+                  (-> light1 .-intensity (set! value))
+                  (update-uniform "uLightIntensity" component event)))}]
+        [:label "DirLight Intensity"]]]])
 
 (rum/defc
   test-buttons < rum/static
