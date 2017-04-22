@@ -91,6 +91,125 @@
       (fn [i unit]
         (-> (engine/get-unit-explosion unit) .-visible (set! checked))))))
 
+; TODO: implement in terms of update-uniform-f
+(defn update-uniform
+  [uniform component event]
+  (let
+    [subsystem (:subsystem component)
+     water (:water subsystem)
+     mesh (:mesh water)
+     material (.-material mesh)
+     uniforms (.-uniforms material)
+     value (-> event .-target .-value)]
+    (-> (aget uniforms uniform) .-value (set! value))))
+
+(defn re-render
+  [component event]
+  (let
+    [subsystem (:subsystem component)
+     update-water (:update-water subsystem)
+     render-target-index (:render-target-index update-water)]
+    (reset! render-target-index 0)))
+
+(defn update-compute-uniform
+  [uniform component event]
+  (let
+    [subsystem (:subsystem component)
+     water (:water subsystem)
+     material (:compute-material water)
+     uniforms (.-uniforms material)
+     value (-> event .-target .-value)]
+    (-> (aget uniforms uniform) .-value (set! value))))
+
+(defn update-uniform-f
+  [f component event]
+  (let
+    [subsystem (:subsystem component)
+     water (:water subsystem)
+     mesh (:mesh water)
+     material (.-material mesh)
+     uniforms (.-uniforms material)
+     value (-> event .-target .-value)]
+    (f uniforms value)))
+
+(rum/defc
+  adjust-settings < rum/static
+  [component]
+  [:div { :class "adjust-settings"}
+    [:ul { :class "vertical-list"}
+      [:li
+        [:input
+          {
+            :type "range"
+            :value 0.4
+            :min 0.0
+            :max 1.0
+            :step 0.01
+            :on-change
+              (fn
+                [event]
+                (do
+                  (update-uniform "uWaterThreshold" component event)
+                  (update-compute-uniform "uWaterThreshold" component event)
+                  (re-render component event)))}]
+        [:label "Water Level"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
+            :value 0.25
+            :min 0.0
+            :max 1.0
+            :step 0.01
+            :on-change (partial update-uniform "uWaterDepthEffect" component)}]
+        [:label "Water Depth Effect"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
+            :value 0.25
+            :min 0.0
+            :max 2.0
+            :step 0.01
+            :on-change
+              (partial update-uniform-f
+                (fn [uniforms value]
+                  (set! (-> uniforms .-uAboveWaterColor .-value .-x) value))
+                component)}]
+        [:label "Water Red Color"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
+            :value 1.0
+            :min 0.0
+            :max 2.0
+            :step 0.01
+            :on-change
+              (partial update-uniform-f
+                (fn [uniforms value]
+                  (set! (-> uniforms .-uAboveWaterColor .-value .-y) value))
+                component)}]
+        [:label "Water Green Color"]]
+
+      [:li
+        [:input
+          {
+            :type "range"
+            :value 1.25
+            :min 0.0
+            :max 2.0
+            :step 0.01
+            :on-change
+              (partial update-uniform-f
+                (fn [uniforms value]
+                  (set! (-> uniforms .-uAboveWaterColor .-value .-z) value))
+                component)}]
+        [:label "Water Blue Color"]]]])
+
 (rum/defc
   test-buttons < rum/static
   [component]
@@ -156,8 +275,7 @@
            [:div
             {
              :id "game"}]
-
-
+           (adjust-settings component)
            (test-buttons component)])))
 
 

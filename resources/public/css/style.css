@@ -111,6 +111,21 @@ body.fullscreen {
   z-index: 4;
 }
 
+.adjust-settings {
+  position: fixed;
+  width: 200px;
+  height: 600px;
+  top: 50px;
+  right: 50px;
+  z-index: 5;
+  background: white;
+}
+
+.adjust-settings li {
+  list-style: none;
+  list-style-type: none;
+}
+
 /*#page-game-test ul {*/
 /*  margin-top: 5px;*/
 /*  padding-left: 0;*/

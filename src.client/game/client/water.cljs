@@ -262,9 +262,13 @@ void main() {
   uniform sampler2D tWaterHeight;
   uniform sampler2D tCausticTex;
 
+  // adjustable settings
+  uniform float uWaterDepthEffect;
+  uniform vec3 uAboveWaterColor;
+
   const float IOR_AIR = 1.0;
   const float IOR_WATER = 1.333;
-  const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
+  // const vec3 abovewaterColor = vec3(0.25, 1.0, 1.25);
   // gold color
   // const vec3 abovewaterColor = vec3(1.25, 1.0, 0.25);
   // lava color
@@ -477,7 +481,7 @@ void main() {
       t2 = 0.0;
     }
 
-    float t = mix(t2, t1, 0.25);
+    float t = mix(t2, t1, uWaterDepthEffect);
     vec3 hit = origin + t * ray;
 
     /*
@@ -550,8 +554,8 @@ void main() {
   vec3 refractedRay = refract(incomingRay, normal, IOR_AIR / IOR_WATER);
   float fresnel = mix(0.25, 1.0, pow(1.0 - dot(normal, -incomingRay), 3.0));
 
-  vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, abovewaterColor);
-  vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, abovewaterColor);
+  vec3 reflectedColor = getSurfaceRayColor(vPosition, reflectedRay, uAboveWaterColor);
+  vec3 refractedColor = getSurfaceRayColor(vPosition, refractedRay, uAboveWaterColor);
 
   gl_FragColor = vec4(mix(refractedColor, reflectedColor, fresnel), 1.0);
 }
@@ -795,7 +799,7 @@ void main() {
       caustics-render-target (new js/THREE.WebGLRenderTarget caustics-rx caustics-ry pars)
       ground (:ground component)
       ; TODO: replace with lake map
-      water-threshold 0.3
+      water-threshold 0.4
       compute-uniforms
         #js
         {
@@ -846,8 +850,10 @@ void main() {
           ;:uEye #js { :value (-> camera .-position)}
           ; fixed eye at this position experimentally found to look better
           :uEye #js { :value (new js/THREE.Vector3 -1526.0 800.0 973.0)}
-          :uLight #js { :value uLight}}
+          :uLight #js { :value uLight}
           ;:uOverWater #js { :value 1.0}}
+          :uWaterDepthEffect #js { :value 0.25}
+          :uAboveWaterColor #js { :value (new js/THREE.Vector3 0.25 1.0 1.25)}}
       material
         (new
           js/THREE.ShaderMaterial
