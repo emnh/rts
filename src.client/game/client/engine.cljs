@@ -255,7 +255,7 @@
 (defcom
   new-test-units
   [ground scene init-scene resources magic explosion]
-  [starting units mesh-to-screenbox-map mesh-to-unit-map]
+  [starting units mesh-to-screenbox-map mesh-to-unit-map units-container]
   (fn [component]
     (let
       [starting (atom true)
@@ -269,7 +269,9 @@
        ;rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
        ;_ (-> debugBox (.applyMatrix rotation))
        _ (-> debugBox .center)
-       maxr 10]
+       maxr 10
+       units-container (new js/THREE.Object3D)]
+      (scene/add scene units-container)
       (doseq
         [[index model] (map-indexed vector (:resource-list resources))]
         (m/mlet
@@ -429,7 +431,8 @@
                 ;(-> group (.add debugMesh3))
                 ;(-> group (.add debugMesh4))
                 (-> group (.add debugMesh5))
-                (scene/add scene group)
+                ;(scene/add scene group)
+                (-> units-container (.add group))
                 (doto (-> group .-position)
                   (aset "x" xpos)
                   (aset "y" ypos)
@@ -440,17 +443,19 @@
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
-        (assoc :starting starting))))
+        (assoc :starting starting)
+        (assoc :units-container units-container))))
   (fn [component]
     (println "stopping units")
     (if starting
       (reset! starting false))
     (if units
+      (scene/remove scene units-container)
       (for-each-unit
         component
         (fn
           [_ unit]
-          (scene/remove scene (get-unit-group unit)))))
+          (-> units-container (.remove (get-unit-group unit))))))
     (->
       component
       (assoc :starting nil)

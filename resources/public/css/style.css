@@ -129,6 +129,13 @@ body.fullscreen {
   margin: 5px;
 }
 
+canvas.game-content.minimap {
+  position: absolute;
+  left: auto;
+  top: auto;
+  bottom: 0px;
+}
+
 /*#page-game-test ul {*/
 /*  margin-top: 5px;*/
 /*  padding-left: 0;*/

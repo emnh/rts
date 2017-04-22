@@ -19,6 +19,7 @@
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
     [game.client.water :as water]
+    [game.client.minimap :as minimap]
     [sablono.core :as sablono :refer-macros [html]]
     [clojure.string :as string :refer [join]]
     [game.shared.state :as state :refer [with-simple-cause]])
@@ -65,6 +66,7 @@
       :update-explosion (explosion/new-update-explosion)
       :compute-shader (water/new-compute-shader)
       :water (water/new-init-water)
-      :update-water (water/new-update-water)}]
+      :update-water (water/new-update-water)
+      :minimap (minimap/new-minimap)}]
 
     system))

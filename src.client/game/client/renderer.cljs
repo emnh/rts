@@ -8,6 +8,7 @@
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
     [game.client.water :as water]
+    [game.client.minimap :as minimap]
     [com.stuartsierra.component :as component])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
@@ -27,8 +28,11 @@
       overlay-renderer (:overlay-renderer three-overlay)
       render-stats (data (:render-stats component))
       pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
-      pixi-stage (get-in component [:pixi-overlay :stage])]
-
+      pixi-stage (get-in component [:pixi-overlay :stage])
+      minimap (:minimap component)
+      minimap-camera (:minimap-camera minimap)
+      width (-> renderer .-domElement .-width)
+      height (-> renderer .-domElement .-height)]
      (reset! (:last-frame-elapsed component) elapsed-time)
      (reset! (:last-frame-time component) end-time)
       ; TODO: generic component render
@@ -36,7 +40,13 @@
      (magic/on-render component (:update-magic component))
      (explosion/on-render component (:update-explosion component))
      (water/on-render component (:update-water component))
+     ;(println ["wh" width height])
+     (-> renderer (.setViewport 0 0 width height))
+     (-> renderer (.setScissor 0 0 width height))
+     (-> renderer (.setScissorTest false))
+     (-> renderer (.setClearColor (-> scene .-fog .-color)))
      (-> renderer (.render scene camera))
+     (minimap/on-render component minimap)
      (overlay/on-xp-render component three-overlay)
      (js/requestAnimationFrame (partial render-loop component)))))
 
@@ -44,7 +54,8 @@
   new-init-renderer
   [renderer three-overlay camera
    scene render-stats pixi-overlay
-   update-magic update-explosion update-water]
+   update-magic update-explosion update-water
+   minimap]
   [running last-frame-time last-frame-elapsed]
   (fn [component]
     (let

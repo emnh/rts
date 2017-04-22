@@ -15,6 +15,7 @@
 
 (enable-console-print!)
 
+;TODO: parameter
 (def page-class "game-content")
 
 (defcom
