@@ -192,15 +192,17 @@
            newmaterial (ground-fancy/get-ground-material ground (data renderer))
            newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)
            water-mesh (:mesh water)
-           new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))]
-           ;newmesh (new THREE.Mesh (.-geometry mesh) (.-material mesh))]
+           water-mesh2 (:mesh2 water)
+           new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))
+           new-water-mesh2 (new THREE.Mesh (.-geometry water-mesh2) (.-material water-mesh2))]
           (-> js/DEBUG .-ground (set! newmesh))
           (-> newmesh .-receiveShadow (set! true))
           ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
           ;(-> newmesh .-position .-y (set! -125.0))
           ;(-> newmesh .-castShadow (set! true))
           (add scene newmesh)
-          (add scene new-water-mesh))
+          (add scene new-water-mesh)
+          (add scene new-water-mesh2))
         (assoc component :done true))
       component))
   (fn [component]

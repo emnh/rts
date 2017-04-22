@@ -179,9 +179,11 @@ uniform vec2 uWaterSize;
 uniform vec2 uResolution;
 uniform sampler2D tGroundHeight;
 uniform sampler2D tWaterHeight;
+uniform float uOverWater;
 
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying float vHeight;
 
 void main() {
 
@@ -198,20 +200,30 @@ void main() {
 
   float height = water.x / heightDivisor;
 
+  /*
   if (ground < uWaterThreshold + (water.x - 0.5)) {
     // newPosition.y = groundHeight + height * uWaterElevation;
     // newPosition.y = uWaterThreshold * uGroundElevation + height * uWaterElevation;
-    newPosition.y = uWaterThreshold * uGroundElevation + water.x * uWaterElevation;
-    // newPosition.y = uWaterThreshold * uGroundElevation;
+    // newPosition.y = uWaterThreshold * uGroundElevation + water.x * uWaterElevation;
+    newPosition.y = uWaterThreshold * uGroundElevation;
   } else {
     newPosition.y = uWaterThreshold * uGroundElevation;
   }
-  newPosition.y = 0.3 * uGroundElevation + water.x * uWaterElevation;
+  */
+  if (uOverWater > 0.5) {
+    newPosition.y = 0.3 * uGroundElevation + water.x * uWaterElevation;
+  } else {
+    if (ground <= 0.3) {
+      newPosition.y = ground * uGroundElevation + 1.0;
+    }
+  }
 
   // TODO: compute separately, so we can reuse in caustics shader
-  float val = texture2D( tWaterHeight, puv ).x / heightDivisor;
+  float val = texture2D( tWaterHeight, puv ).x / heightDivisor - ground;
   float valU = texture2D( tWaterHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x / heightDivisor;
+  valU -= texture2D(tGroundHeight, puv + vec2( 1.0 / uResolution.x, 0.0 ) ).x;
   float valV = texture2D( tWaterHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x / heightDivisor;
+  valV -= texture2D(tGroundHeight, puv + vec2( 0.0, 1.0 / uResolution.y ) ).x;
   vNormal = 0.5 * normalize( vec3( val - valU, 0.05, val - valV ) ) + 0.5;
 
   /*
@@ -227,6 +239,8 @@ void main() {
     vec3(newPosition.x * 2.0 / uWaterSize.x,
          height,
          newPosition.z * 2.0 / uWaterSize.y);
+
+  vHeight = 0.5 + height - ground;
 
   gl_Position = projectionMatrix * modelViewMatrix * vec4(newPosition, 1.0);
 }
@@ -414,8 +428,11 @@ void main() {
 (def water-fragment-shader-part1
  "
 
+uniform float uOverWater;
+
 varying vec3 vNormal;
 varying vec3 vPosition;
+varying float vHeight;
 
 vec3 getSurfaceRayColor(vec3 origin, vec3 ray, vec3 waterColor) {
   vec3 color;
@@ -783,12 +800,31 @@ void main( void ) {
           ; fixed eye at this position experimentally found to look better
           :uEye #js { :value (new js/THREE.Vector3 -1526.0 800.0 973.0)}
           :uLight #js { :value uLight}}
+          ;:uOverWater #js { :value 1.0}}
       material
         (new
           js/THREE.ShaderMaterial
           #js
           {
             :uniforms uniforms
+            :vertexShader water-vertex-shader
+            :fragmentShader water-fragment-shader})
+      uniforms-clone
+        (-> js/THREE.UniformsUtils (.clone uniforms))
+      _ (-> uniforms .-uOverWater (set! #js { :value 1.0}))
+      _ (-> uniforms-clone .-uOverWater (set! #js { :value 0.0}))
+      _ (-> uniforms-clone .-uOverWater .-value (set! 0.0))
+      _ (-> uniforms-clone .-tWaterHeight .-value (set! (-> render-target1 .-texture)))
+      _ (-> uniforms-clone .-tGroundHeight .-value (set! (:data-texture ground)))
+      _ (-> uniforms-clone .-uOverWater .-needsUpdate (set! true))
+      _ (-> uniforms-clone .-needsUpdate (set! true))
+      geometry2 (-> geometry .clone)
+      material2
+        (new
+          js/THREE.ShaderMaterial
+          #js
+          {
+            :uniforms uniforms-clone
             :vertexShader water-vertex-shader
             :fragmentShader water-fragment-shader})
       caustics-scene (new js/THREE.Scene)
@@ -820,7 +856,9 @@ void main( void ) {
           (-> texture .-wrapT (set! wrapping))
           (-> texture .-repeat (.set 10.0 10.0))
           (-> material .-uniforms .-tWater .-value (set! texture))
-          (-> material .-needsUpdate (set! true)))
+          (-> material .-needsUpdate (set! true))
+          (-> material2 .-uniforms .-tWater .-value (set! texture))
+          (-> material2 .-needsUpdate (set! true)))
       _ (-> texture-loader (.load "models/images/water.jpg" on-load))
       on-load-tiles
         (fn [texture]
@@ -828,16 +866,20 @@ void main( void ) {
           (-> texture .-wrapT (set! wrapping))
           (-> texture .-repeat (.set 1.0 1.0))
           (-> material .-uniforms .-tTiles .-value (set! texture))
-          (-> material .-needsUpdate (set! true)))
+          (-> material .-needsUpdate (set! true))
+          (-> material2 .-uniforms .-tTiles .-value (set! texture))
+          (-> material2 .-needsUpdate (set! true)))
       ;_ (-> texture-loader (.load "models/images/tiles.jpg" on-load-tiles))
       _ (-> texture-loader (.load "models/images/grasslight-big.jpg" on-load-tiles))
-      mesh (new js/THREE.Mesh geometry material)]
+      mesh (new js/THREE.Mesh geometry material)
+      mesh2 (new js/THREE.Mesh geometry2 material2)]
     (-> component
       (assoc :render-target1 render-target1)
       (assoc :render-target2 render-target2)
       (assoc :compute-material compute-material)
       (assoc :init-material init-material)
       (assoc :mesh mesh)
+      (assoc :mesh2 mesh2)
       (assoc :caustics-scene caustics-scene)
       (assoc :caustics-render-target caustics-render-target)
       (assoc :caustics-material caustics-material))))
@@ -846,7 +888,7 @@ void main( void ) {
   new-init-water
   [config params compute-shader ground camera light1]
   ;[mesh height-field width height x-faces y-faces x-vertices y-vertices data-texture float-texture-divisor]
-  [mesh render-target1 render-target2
+  [mesh mesh2 render-target1 render-target2
    compute-material init-material
    caustics-scene caustics-render-target caustics-material]
   (fn [component]
