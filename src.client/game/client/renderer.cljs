@@ -9,6 +9,7 @@
     [game.client.explosion :as explosion]
     [game.client.water :as water]
     [game.client.minimap :as minimap]
+    [game.client.mathbox :as mathbox]
     [com.stuartsierra.component :as component])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
@@ -41,10 +42,12 @@
      (explosion/on-render component (:update-explosion component))
      (water/on-render component (:update-water component))
      ;(println ["wh" width height])
+     (mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
      (-> renderer (.setScissorTest false))
-     (-> renderer (.setClearColor (-> scene .-fog .-color)))
+     ;(-> renderer (.setClearColor (-> scene .-fog .-color)))
+     (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 1.0))
      (-> renderer (.render scene camera))
      (minimap/on-render component minimap)
      (overlay/on-xp-render component three-overlay)
@@ -54,7 +57,7 @@
   new-init-renderer
   [renderer three-overlay camera
    scene render-stats pixi-overlay
-   update-magic update-explosion update-water
+   update-magic update-explosion update-water update-mathbox
    minimap]
   [running last-frame-time last-frame-elapsed frame-counter]
   (fn [component]

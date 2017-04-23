@@ -1,13 +1,12 @@
 (ns ^:figwheel-always game.client.ground-local
-    (:require
-      [cljs.pprint :as pprint]
-      [com.stuartsierra.component :as component]
-      [promesa.core :as p]
-      [cats.core :as m]
-      [game.client.math :as math :refer [floor isNaN]]
-      [game.client.common :as common :refer [data]]
-      [game.client.config :as config])
-
+  (:require
+    [cljs.pprint :as pprint]
+    [com.stuartsierra.component :as component]
+    [promesa.core :as p]
+    [cats.core :as m]
+    [game.client.math :as math :refer [floor isNaN]]
+    [game.client.common :as common :refer [data]]
+    [game.client.config :as config])
   (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))

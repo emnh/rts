@@ -60,8 +60,9 @@
      renderer (data (:renderer component))
      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
      $game-content ($ (str "." page-class))
-     $game-canvases ($ (str ".autoresize." page-class))]
-
+     $game-canvases ($ (str ".autoresize." page-class))
+     mathbox (:mathbox component)
+     mathbox-context (:context mathbox)]
     (-> renderer (.setSize width height))
     (-> pixi-renderer (.resize width height))
     (if
@@ -80,13 +81,16 @@
     (-> camera .updateProjectionMatrix)
     (-> $game-canvases (.width width))
     (-> $game-canvases (.height height))
+    (-> mathbox-context (.resize #js { :viewWidth width :viewHeight height}))
     (reset! (get-in component [:scene-properties :width]) width)
     (reset! (get-in component [:scene-properties :height]) height)))
 
 
 (defcom
   new-on-resize
-  [config scene camera renderer params $overlay init-scene pixi-overlay scene-properties three-overlay]
+  [config scene camera renderer params
+   $overlay init-scene pixi-overlay scene-properties three-overlay
+   mathbox]
   []
   (fn [component]
     (on-resize component nil)
@@ -161,11 +165,11 @@
     (-> js/DEBUG .-camera (set! (data camera)))
     (if-not done
       (do
-        (-> (data scene) .-fog (set! (new js/THREE.Fog 0x050505 500 4000)))
-        (-> (data scene) .-fog .-color (.setHSL 0.1 0.5 0.8))
+        ;(-> (data scene) .-fog (set! (new js/THREE.Fog 0x050505 500 4000)))
+        ;(-> (data scene) .-fog .-color (.setHSL 0.1 0.5 0.8))
         (doto
           (data renderer)
-          (-> (.setClearColor (-> (data scene) .-fog .-color)))
+          ;(-> (.setClearColor (-> (data scene) .-fog .-color)))
           (-> .-shadowMap .-enabled (set! true))
           (-> .-shadowMap .-type (set! js/THREE.PCFSoftShadowMap))
           (-> .-shadowMap .-soft (set! true))
