@@ -269,6 +269,8 @@ void main() {
   uniform float uWaterDepthEffect;
   uniform vec3 uAboveWaterColor;
   uniform float uLightIntensity;
+  uniform float uAmbientOcclusion;
+  uniform float uAmbientOcclusionPower;
 
   const float IOR_AIR = 1.0;
   const float IOR_WATER = 1.333;
@@ -409,7 +411,8 @@ void main() {
     // sparkling/incandescent water
     // scale /= pow(distance(origin, point), 3.0) * 5000.0; /* pool ambient occlusion */
     // normal water
-    scale /= pow(distance(origin, point), 1.0) * 5.0; /* pool ambient occlusion */
+    // scale /= pow(distance(origin, point), 1.0) * 5.0; /* pool ambient occlusion */
+    scale /= pow(distance(origin, point), uAmbientOcclusionPower) * pow(uAmbientOcclusion, uAmbientOcclusionPower); /* pool ambient occlusion */
     // scale /= 0.2;
     // scale *= 1.0 - 0.9 / pow(length(point - sphereCenter) / sphereRadius, 4.0); /* sphere ambient occlusion */
 
@@ -860,7 +863,9 @@ void main() {
           :uLightIntensity #js { :value (-> light1 .-intensity)}
           ;:uOverWater #js { :value 1.0}}
           :uWaterDepthEffect #js { :value 0.25}
-          :uAboveWaterColor #js { :value (new js/THREE.Vector3 0.25 1.0 1.25)}}
+          :uAboveWaterColor #js { :value (new js/THREE.Vector3 0.25 1.0 1.25)}
+          :uAmbientOcclusion #js { :value 5.0}
+          :uAmbientOcclusionPower #js { :value 1.0}}
       material
         (new
           js/THREE.ShaderMaterial

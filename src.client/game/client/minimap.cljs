@@ -25,7 +25,6 @@
       bottom 0
       width (:width component)
       height (:height component)]
-
     (-> renderer (.setViewport left bottom width height))
     (-> renderer (.setScissor left bottom width height))
     (-> renderer (.setScissorTest true))

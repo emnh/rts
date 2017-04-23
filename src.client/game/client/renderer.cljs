@@ -56,13 +56,14 @@
    scene render-stats pixi-overlay
    update-magic update-explosion update-water
    minimap]
-  [running last-frame-time last-frame-elapsed]
+  [running last-frame-time last-frame-elapsed frame-counter]
   (fn [component]
     (let
       [component
        (-> component
          (assoc :last-frame-time (atom (common/game-time)))
          (assoc :last-frame-elapsed (atom 0))
+         (assoc :frame-counter (atom 0))
          (assoc :running (atom true)))]
       (render-loop component)
       component))

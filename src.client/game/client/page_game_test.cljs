@@ -132,6 +132,15 @@
      value (-> event .-target .-value)]
     (f uniforms value)))
 
+(defn reset-input
+  [input-id value]
+  (let
+    [
+      element (-> js/document (.getElementById input-id))
+      event (new js/Event "input" #js { :bubbles true})]
+    (-> element .-value (set! value))
+    (-> element (.dispatchEvent event))))
+
 (rum/defc
   adjust-settings < rum/static
   [component]
@@ -140,6 +149,7 @@
       [:li
         [:input
           {
+            :id "uWaterSpeed"
             :type "range"
             :value 0.001
             :min 0.001
@@ -156,6 +166,7 @@
       [:li
         [:input
           {
+            :id "uWaterThreshold"
             :type "range"
             :value 0.4
             :min 0.0
@@ -173,6 +184,7 @@
       [:li
         [:input
           {
+            :id "uWaterDepthEffect"
             :type "range"
             :value 0.25
             :min 0.0
@@ -184,6 +196,7 @@
       [:li
         [:input
           {
+            :id "uAboveWaterColorR"
             :type "range"
             :value 0.25
             :min 0.0
@@ -199,6 +212,7 @@
       [:li
         [:input
           {
+            :id "uAboveWaterColorG"
             :type "range"
             :value 1.0
             :min 0.0
@@ -214,6 +228,7 @@
       [:li
         [:input
           {
+            :id "uAboveWaterColorB"
             :type "range"
             :value 1.25
             :min 0.0
@@ -229,6 +244,41 @@
       [:li
         [:input
           {
+            :id "uAmbientOcclusion"
+            :type "range"
+            :value 5.0
+            :min 0.0
+            :max 15.0
+            :step 0.01
+            :on-change
+              (partial update-uniform-f
+                (fn [uniforms value]
+                  ;(let
+                  ;  [pow (-> uniforms .-uAmbientOcclusionPower .-value)]
+                  (set! (-> uniforms .-uAmbientOcclusion .-value) value))
+                component)}]
+        [:label "Ambient Occlusion"]]
+
+      [:li
+        [:input
+          {
+            :id "uAmbientOcclusionPower"
+            :type "range"
+            :value 1.0
+            :min 0.0
+            :max 5.0
+            :step 0.01
+            :on-change
+              (partial update-uniform-f
+                (fn [uniforms value]
+                  (set! (-> uniforms .-uAmbientOcclusionPower .-value) value))
+                component)}]
+        [:label "Ambient Occlusion (pow)"]]
+
+      [:li
+        [:input
+          {
+            :id "uLightIntensity"
             :type "range"
             :value
               (let
@@ -252,7 +302,43 @@
                     value (-> event .-target .-value)]
                   (-> light1 .-intensity (set! value))
                   (update-uniform "uLightIntensity" component event)))}]
-        [:label "DirLight Intensity"]]]])
+        [:label "DirLight Intensity"]]
+
+      [:li
+        [:input
+          {
+            :type "button"
+            :value "Reset"
+            :on-click
+              (fn [event]
+                (reset-input "uWaterSpeed" 0.001)
+                (reset-input "uWaterThreshold" 0.4)
+                (reset-input "uWaterDepthEffect" 0.25)
+                (reset-input "uAboveWaterColorR" 0.25)
+                (reset-input "uAboveWaterColorG" 1.0)
+                (reset-input "uAboveWaterColorB" 1.25)
+                (reset-input "uAmbientOcclusion" 5.0)
+                (reset-input "uAmbientOcclusionPower" 1.0)
+                (reset-input "uLightIntensity" 2.5))}]]
+
+      [:li
+        [:input
+          {
+            :type "button"
+            :value "Liquid Gold"
+            :on-click
+              (fn [event]
+                (reset-input "uWaterSpeed" 0.001)
+                (reset-input "uWaterThreshold" 0.4)
+                (reset-input "uWaterDepthEffect" 0.05)
+                (reset-input "uAboveWaterColorR" 2.0)
+                (reset-input "uAboveWaterColorG" 1.15)
+                (reset-input "uAboveWaterColorB" 0.0)
+                (reset-input "uAmbientOcclusion" 14.0)
+                (reset-input "uAmbientOcclusionPower" 4.5)
+                (reset-input "uLightIntensity" 0.6))}]]]])
+
+
 
 (rum/defc
   test-buttons < rum/static
