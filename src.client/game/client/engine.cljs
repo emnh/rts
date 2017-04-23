@@ -454,8 +454,8 @@
                   minimap-group
                   (.add minimap-marker)
                   (.add minimap-marker-border)
-                  (-> .-position (.set xpos ypos zpos))
-                  (-> .-scale (.set 10.0 10.0 10.0)))
+                  (-> .-position (.set xpos 300.0 zpos))
+                  (-> .-scale (.set 7.0 7.0 7.0)))
                 (-> units-minimap-container (.add minimap-group))
                 (-> group .-position (.set xpos ypos zpos))
                 ;(-> group .-scale (.set 5 5 5))
