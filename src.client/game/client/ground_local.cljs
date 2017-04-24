@@ -80,11 +80,14 @@
          where2 (-> ray (.intersectTriangle v3 v4 v2))
          yw1 (if where1 (.-y where1) 0.0)
          yw2 (if where2 (.-y where2) 0.0)
-         ywhere (math/max yw1 yw2)]
+         ywhere (math/max yw1 yw2)
+         water-threshold @(:water-threshold component)
+         water-level (* water-threshold (:max-elevation component))
+         ywhere-water (math/max ywhere water-level)]
          ;fxy1 (infix ((x2 - x) / (x2 - x1)) * fQ11 + ((x - x1) / (x2 - x1)) * fQ21)
          ;fxy2 (infix ((x2 - x) / (x2 - x1)) * fQ12 + ((x - x1) / (x2 - x1)) * fQ22)
          ;fyy (infix ((y2 - y) / (y2 - y1)) * fxy1 + ((y - y1) / (y2 - y1)) * fxy2)]
-        ywhere))))
+        ywhere-water))))
         ;fyy))))
 
 (defn
@@ -158,7 +161,8 @@
      height-field (new js/Float32Array length)
      data-texture-buffer (new js/Float32Array (* length rgba-size))
      ; make maximum value of 1.0
-     float-texture-divisor 256.0]
+     float-texture-divisor 256.0
+     water-threshold (get-in config [:terrain :water-threshold])]
     (-> material .-roughness (set! 0.5))
     (-> geometry (.applyMatrix rotation))
     (-> js/THREE.BufferGeometryUtils (.computeTangents geometry))
@@ -218,12 +222,18 @@
         (assoc :height-field height-field)
         (assoc :mesh mesh)
         (assoc :data-texture data-texture)
-        (assoc :float-texture-divisor float-texture-divisor)))))
+        (assoc :float-texture-divisor float-texture-divisor)
+        (assoc :water-threshold (atom water-threshold))
+        (assoc :max-elevation max-elevation)))))
 
 (defcom
   new-init-ground
   [config params]
-  [mesh height-field width height x-faces y-faces x-vertices y-vertices data-texture float-texture-divisor]
+  [mesh height-field width height
+   max-elevation
+   x-faces y-faces x-vertices y-vertices
+   data-texture float-texture-divisor
+   water-threshold]
   (fn [component]
     (if-not
       mesh

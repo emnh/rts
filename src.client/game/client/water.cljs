@@ -806,7 +806,7 @@ void main() {
       caustics-render-target (new js/THREE.WebGLRenderTarget caustics-rx caustics-ry pars)
       ground (:ground component)
       ; TODO: replace with lake map
-      water-threshold 0.4
+      water-threshold (get-in config [:terrain :water-threshold])
       compute-uniforms
         #js
         {
@@ -939,6 +939,7 @@ void main() {
       _ (-> texture-loader (.load "models/images/grasslight-big.jpg" on-load-tiles))
       mesh (new js/THREE.Mesh geometry material)
       mesh2 (new js/THREE.Mesh geometry2 material2)]
+    (reset! (:water-threshold (:ground component)) water-threshold)
     (-> component
       (assoc :render-target1 render-target1)
       (assoc :render-target2 render-target2)

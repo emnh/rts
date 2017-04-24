@@ -70,6 +70,7 @@
              :sea-level 0
              :min-elevation 0.0
              :max-elevation 256.0
+             :water-threshold 0.4
              :water-elevation 50.0
              ; must be power of two, because of DataTexture
              ; XXX: power of two doesn't seem to be necessary anymore
