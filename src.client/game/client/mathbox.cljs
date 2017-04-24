@@ -186,9 +186,9 @@ vec3 getFramesSample(vec4 index) {
                            dist (-> pos (.distanceTo pos2))
                            start (new js/THREE.Vector3 xpos ypos zpos)
                            end (new js/THREE.Vector3 xpos2 ypos2 zpos2)
-                           r (math/random)
-                           g (math/random)
-                           b (math/random)]
+                           r (+ (math/random) 0.5)
+                           g (+ (math/random) 0.5)
+                           b (+ (math/random) 0.5)]
                           (if
                             (< dist 200.0)
                             (do
