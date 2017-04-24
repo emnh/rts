@@ -13,6 +13,9 @@
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
+; TODO: config
+(def debugBoxHeight 3.0)
+
 (defn
   get-screenbox-for-mesh
   [component mesh]
@@ -61,6 +64,24 @@
   get-unit-position
   [unit]
   (-> (:group (:scene unit)) .-position))
+
+(defn
+  get-unit-bbox
+  [unit]
+  (->
+    (-> (get-unit-mesh unit))
+    .-geometry
+    .-boundingBox))
+
+(defn get-unit-top
+  [unit]
+  (let
+    [pos (get-unit-position unit)
+     bbox (get-unit-bbox unit)
+     ypos (-> pos .-y)
+     ypos (+ ypos (- (-> bbox .-max .-y) (-> bbox .-min .-y)))
+     ypos (+ ypos debugBoxHeight)]
+    ypos))
 
 (defn
   get-units
@@ -256,7 +277,8 @@
   new-test-units
   [ground scene init-scene resources magic explosion]
   [starting units mesh-to-screenbox-map mesh-to-unit-map
-   units-container units-minimap-container]
+   units-container units-minimap-container
+   all-units-promise]
   (fn [component]
     (let
       [starting (atom true)
@@ -264,7 +286,6 @@
        mesh-to-screenbox-map (atom {})
        mesh-to-unit-map (atom {})
        debugBoxSize 10.0
-       debugBoxHeight 3.0
        debugBox (new js/THREE.BoxGeometry debugBoxSize debugBoxHeight debugBoxSize)
        ;debugBox (new js/THREE.PlaneBufferGeometry debugBoxSize debugBoxSize 1.0 1.0)
        ;rotation (-> (new js/THREE.Matrix4) (.makeRotationX (/ (-> js/Math .-PI) -2)))
@@ -272,195 +293,200 @@
        _ (-> debugBox .center)
        maxr 10
        units-container (new js/THREE.Object3D)
-       units-minimap-container (new js/THREE.Object3D)]
+       units-minimap-container (new js/THREE.Object3D)
+       unit-promises
+        (into []
+          (for
+            [[index model] (map-indexed vector (:resource-list resources))]
+            (m/mlet
+              [geometry (:load-promise model)
+               texture (:texture-load-promise model)
+               voxel-dict (:voxels-load-promise model)]
+              (if @starting
+                (doseq
+                  [i (range maxr)
+                   j (range maxr)]
+                  (let
+                    [scale (:post-scale model)
+                     spread 1000.0
+                     xpos (- (* (math/random) 2.0 spread) spread)
+                     zpos (- (* (math/random) 2.0 spread) spread)
+                     rotation (* (* 2.0 math/pi) (math/random))
+                     ;xpos (* (- (/ i maxr) (/ 1.0 2.0)) spread)
+                     ;zpos (* (- (/ j maxr) (/ 1.0 2.0)) spread)
+                     yoff 1.0
+                     material (-> (:standard-material magic) .clone)
+                     _ (-> material .-uniforms .-map .-value (set! texture))
+                     rep (new js/THREE.Vector4
+                              (-> texture .-offset .-x)
+                              (-> texture .-offset .-y)
+                              (-> texture .-repeat .-x)
+                              (-> texture .-repeat .-y))
+                     _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
+                     ;bounding-box-min (-> geometry .-boundingBox .-min)
+                     ;bounding-box-max (-> geometry .-boundingBox .-max)
+                     voxel-geometry (:geometry voxel-dict)
+                     bbox (-> voxel-geometry .-boundingBox)
+                     bounding-box-min (-> voxel-geometry .-boundingBox .-min)
+                     bounding-box-max (-> voxel-geometry .-boundingBox .-max)
+                     debugMaterial (new js/THREE.MeshStandardMaterial #js { :color 0x0000FF :fog false})
+                     debugMesh1 (new js/THREE.Mesh debugBox debugMaterial)
+                     debugMesh2 (new js/THREE.Mesh debugBox debugMaterial)
+                     debugMesh3 (new js/THREE.Mesh debugBox debugMaterial)
+                     debugMesh4 (new js/THREE.Mesh debugBox debugMaterial)
+                     debugMesh5 (new js/THREE.Mesh debugBox debugMaterial)
+                     minimap-material
+                      (new js/THREE.MeshBasicMaterial #js { :color 0x0000FF :fog false})
+                     minimap-material2
+                      (new js/THREE.MeshBasicMaterial #js { :color 0x000000 :fog false :side js/THREE.BackSide})
+                     ; TODO: could be plane instead of box
+                     minimap-marker (new js/THREE.Mesh debugBox minimap-material)
+                     minimap-marker-border (new js/THREE.Mesh debugBox minimap-material2)
+                     minimap-border-scale 2.0
+                     minimap-group (new js/THREE.Object3D)
+                     ;_ (console.log bounding-box-min bounding-box-max)
+                     _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
+                     _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
+                     mesh (new js/THREE.Mesh geometry material)
+                     cloud-material (-> (:magic-material magic) .clone)
+                     _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
+                     _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
+                     _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
+                     cloud (new js/THREE.Mesh voxel-geometry cloud-material)
+                     _ (-> cloud .-renderOrder (set! 1))
+                     explosion-mesh
+                     (let
+                       [voxel-material (-> (:material explosion) .clone)
+                        _ (-> voxel-material .-uniforms .-map .-value (set! texture))
+                        _ (-> texture .-needsUpdate (set! true))
+                        _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
+                        _ (-> voxel-material .-uniforms .-time .-value (set! 0))
+                        _ (-> voxel-material .-uniforms .-uScale .-value (set! (:post-scale model)))
+                        ;_ (-> voxel-material .-uniforms .-duration .-value
+                        ;    (set! (+ 500.0 (* (math/random) 30000.0))))
+                        _ (-> voxel-material .-uniforms .-duration .-value
+                            (set! 5000.0))
+                        _ (->
+                            voxel-material .-uniforms .-boxSize .-value
+                            (set! (new js/THREE.Vector3 (:voxel-width voxel-dict) (:voxel-height voxel-dict) (:voxel-depth voxel-dict))))
+                        depth-shader (-> js/THREE.ShaderLib .-depth)
+                        uniforms (-> js/THREE.UniformsUtils (.clone (-> depth-shader .-uniforms)))
+                        depth-material
+                        (new
+                          js/THREE.ShaderMaterial
+                          #js
+                          {
+                            :uniforms (js/THREE.UniformsUtils.merge #js [uniforms (-> voxel-material .-uniforms)])
+                            :vertexShader (-> voxel-material .-vertexShader)
+                            :fragmentShader (-> depth-shader .-fragmentShader)})
+                        _ (-> depth-material .-isMeshDepthMaterial (set! true))
+                        _ (-> depth-material .-depthPacking (set! js/THREE.RGBADepthPacking))
+                        _ (-> js/DEBUG .-depthshader (set! (-> depth-shader .-fragmentShader)))
+                        explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)]
+                        ;_ (-> explosion-mesh .-renderOrder (set! index))
+                       (-> explosion-mesh .-customDepthMaterial (set! depth-material))
+                       (-> explosion-mesh .-position .-y (set! debugBoxHeight))
+                       explosion-mesh)
+                     ypos (+ yoff (ground/align-to-ground ground bbox xpos zpos))
+                     group (new js/THREE.Object3D)
+                     unit
+                     {
+                      :index index
+                      :model model
+                      :health (* (math/random) (:max-health model))
+                      :add-time (+ (common/game-time) (* 1000.0 (math/random)))
+                      :scene
+                      {
+                       :group group
+                       :display-mesh explosion-mesh
+                       ;:display-mesh mesh
+                       :regular-mesh mesh
+                       :build-mesh mesh
+                       :stars-mesh cloud
+                       :explosion-mesh explosion-mesh}}]
+                    (swap! units conj unit)
+                    (swap! mesh-to-unit-map assoc mesh unit)
+                    (swap! mesh-to-unit-map assoc explosion-mesh unit)
+                    (-> group (.add mesh))
+                    (-> mesh .-visible (set! false))
+                    (-> cloud .-visible (set! false))
+                    (-> group (.add cloud))
+                    (-> group (.add explosion-mesh))
+                    (-> group .-castShadow (set! true))
+                    (-> mesh .-castShadow (set! true))
+                    (-> explosion-mesh .-castShadow (set! true))
+                    (let
+                      [x (+ xpos (-> bbox .-min .-x))
+                       z (+ zpos (-> bbox .-min .-z))
+                       y (+ yoff (ground/get-height ground x z))]
+                      (doto (-> debugMesh1 .-position)
+                        (aset "x" (- x xpos))
+                        (aset "y" (- y ypos))
+                        (aset "z" (- z zpos))))
+                    (let
+                      [x (+ xpos (-> bbox .-max .-x))
+                       z (+ zpos (-> bbox .-min .-z))
+                       y (+ yoff (ground/get-height ground x z))]
+                      (doto (-> debugMesh2 .-position)
+                        (aset "x" (- x xpos))
+                        (aset "y" (- y ypos))
+                        (aset "z" (- z zpos))))
+                    (let
+                      [x (+ xpos (-> bbox .-min .-x))
+                       z (+ zpos (-> bbox .-max .-z))
+                       y (+ yoff (ground/get-height ground x z))]
+                      (doto (-> debugMesh3 .-position)
+                        (aset "x" (- x xpos))
+                        (aset "y" (- y ypos))
+                        (aset "z" (- z zpos))))
+                    (let
+                      [x (+ xpos (-> bbox .-max .-x))
+                       z (+ zpos (-> bbox .-max .-z))
+                       y (+ yoff (ground/get-height ground x z))]
+                      (doto (-> debugMesh4 .-position)
+                        (aset "x" (- x xpos))
+                        (aset "y" (- y ypos))
+                        (aset "z" (- z zpos))))
+                    (let
+                      [x xpos
+                       z zpos
+                       y (+ yoff (ground/get-height ground x z))
+                       ys (* 2.0 (ground/get-height ground x z))
+                       y (-> bbox .-min .-y)]
+                      ;(-> debugMesh5 .-scale .-y (set! ys))
+                      (-> debugMesh5 .-scale (.set scale scale scale))
+                      (doto (-> debugMesh5 .-position)
+                        ;(aset "x" (- x xpos))
+                        (aset "y" y)))
+                        ;(aset "z" (- z zpos))))
+                    ;(-> group (.add debugMesh1))
+                    ;(-> group (.add debugMesh2))
+                    ;(-> group (.add debugMesh3))
+                    ;(-> group (.add debugMesh4))
+                    (-> group (.add debugMesh5))
+                    ;(scene/add scene group)
+                    (-> units-container (.add group))
+                    (->
+                      minimap-marker-border .-scale
+                      (.set minimap-border-scale minimap-border-scale minimap-border-scale))
+                    ;(-> minimap-marker-border .-renderOrder (set! 1))
+                    ;(-> minimap-marker .-renderOrder (set! 0))
+                    (doto
+                      minimap-group
+                      (.add minimap-marker)
+                      (.add minimap-marker-border)
+                      (-> .-position (.set xpos 300.0 zpos))
+                      (-> .-scale (.set 7.0 7.0 7.0)))
+                    (-> units-minimap-container (.add minimap-group))
+                    (-> group .-position (.set xpos ypos zpos))
+                    ;(-> group .-scale (.set 5 5 5))
+                    (-> group (.rotateOnAxis (new js/THREE.Vector3 0.0 1.0 0.0) rotation))
+                    (m/return 0)))))))
+        all-units-promise (p/all unit-promises)]
       (scene/add scene units-container)
       (scene/add scene units-minimap-container)
-      (doseq
-        [[index model] (map-indexed vector (:resource-list resources))]
-        (m/mlet
-          [geometry (:load-promise model)
-           texture (:texture-load-promise model)
-           voxel-dict (:voxels-load-promise model)]
-          (if @starting
-            (doseq
-              [i (range maxr)
-               j (range maxr)]
-              (let
-                [scale (:post-scale model)
-                 spread 1000.0
-                 xpos (- (* (math/random) 2.0 spread) spread)
-                 zpos (- (* (math/random) 2.0 spread) spread)
-                 rotation (* (* 2.0 math/pi) (math/random))
-                 ;xpos (* (- i (/ maxr 2.0)) 5.0)
-                 ;zpos (* (- j (/ maxr 2.0)) 5.0)
-                 yoff 1.0
-                 material (-> (:standard-material magic) .clone)
-                 _ (-> material .-uniforms .-map .-value (set! texture))
-                 rep (new js/THREE.Vector4
-                          (-> texture .-offset .-x)
-                          (-> texture .-offset .-y)
-                          (-> texture .-repeat .-x)
-                          (-> texture .-repeat .-y))
-                 _ (-> material .-uniforms .-offsetRepeat .-value (set! rep))
-                 ;bounding-box-min (-> geometry .-boundingBox .-min)
-                 ;bounding-box-max (-> geometry .-boundingBox .-max)
-                 voxel-geometry (:geometry voxel-dict)
-                 bbox (-> voxel-geometry .-boundingBox)
-                 bounding-box-min (-> voxel-geometry .-boundingBox .-min)
-                 bounding-box-max (-> voxel-geometry .-boundingBox .-max)
-                 debugMaterial (new js/THREE.MeshStandardMaterial #js { :color 0x0000FF :fog false})
-                 debugMesh1 (new js/THREE.Mesh debugBox debugMaterial)
-                 debugMesh2 (new js/THREE.Mesh debugBox debugMaterial)
-                 debugMesh3 (new js/THREE.Mesh debugBox debugMaterial)
-                 debugMesh4 (new js/THREE.Mesh debugBox debugMaterial)
-                 debugMesh5 (new js/THREE.Mesh debugBox debugMaterial)
-                 minimap-material
-                  (new js/THREE.MeshBasicMaterial #js { :color 0x0000FF :fog false})
-                 minimap-material2
-                  (new js/THREE.MeshBasicMaterial #js { :color 0x000000 :fog false :side js/THREE.BackSide})
-                 ; TODO: could be plane instead of box
-                 minimap-marker (new js/THREE.Mesh debugBox minimap-material)
-                 minimap-marker-border (new js/THREE.Mesh debugBox minimap-material2)
-                 minimap-border-scale 2.0
-                 minimap-group (new js/THREE.Object3D)
-                 ;_ (console.log bounding-box-min bounding-box-max)
-                 _ (-> material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
-                 _ (-> material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-                 mesh (new js/THREE.Mesh geometry material)
-                 cloud-material (-> (:magic-material magic) .clone)
-                 _ (-> cloud-material .-uniforms .-isCloud .-value (set! 1.0))
-                 _ (-> cloud-material .-uniforms .-boundingBoxMin .-value (set! bounding-box-min))
-                 _ (-> cloud-material .-uniforms .-boundingBoxMax .-value (set! bounding-box-max))
-                 cloud (new js/THREE.Mesh voxel-geometry cloud-material)
-                 _ (-> cloud .-renderOrder (set! 1))
-                 explosion-mesh
-                 (let
-                   [voxel-material (-> (:material explosion) .clone)
-                    _ (-> voxel-material .-uniforms .-map .-value (set! texture))
-                    _ (-> texture .-needsUpdate (set! true))
-                    _ (-> voxel-material .-uniforms .-groundTexture .-value .-needsUpdate (set! true))
-                    _ (-> voxel-material .-uniforms .-time .-value (set! 0))
-                    _ (-> voxel-material .-uniforms .-uScale .-value (set! (:post-scale model)))
-                    ;_ (-> voxel-material .-uniforms .-duration .-value
-                    ;    (set! (+ 500.0 (* (math/random) 30000.0))))
-                    _ (-> voxel-material .-uniforms .-duration .-value
-                        (set! 5000.0))
-                    _ (->
-                        voxel-material .-uniforms .-boxSize .-value
-                        (set! (new js/THREE.Vector3 (:voxel-width voxel-dict) (:voxel-height voxel-dict) (:voxel-depth voxel-dict))))
-                    depth-shader (-> js/THREE.ShaderLib .-depth)
-                    uniforms (-> js/THREE.UniformsUtils (.clone (-> depth-shader .-uniforms)))
-                    depth-material
-                    (new
-                      js/THREE.ShaderMaterial
-                      #js
-                      {
-                        :uniforms (js/THREE.UniformsUtils.merge #js [uniforms (-> voxel-material .-uniforms)])
-                        :vertexShader (-> voxel-material .-vertexShader)
-                        :fragmentShader (-> depth-shader .-fragmentShader)})
-                    _ (-> depth-material .-isMeshDepthMaterial (set! true))
-                    _ (-> depth-material .-depthPacking (set! js/THREE.RGBADepthPacking))
-                    _ (-> js/DEBUG .-depthshader (set! (-> depth-shader .-fragmentShader)))
-                    explosion-mesh (new js/THREE.Mesh voxel-geometry voxel-material)]
-                    ;_ (-> explosion-mesh .-renderOrder (set! index))
-                   (-> explosion-mesh .-customDepthMaterial (set! depth-material))
-                   (-> explosion-mesh .-position .-y (set! debugBoxHeight))
-                   explosion-mesh)
-                 ypos (+ yoff (ground/align-to-ground ground bbox xpos zpos))
-                 group (new js/THREE.Object3D)
-                 unit
-                 {
-                  :index index
-                  :model model
-                  :health (* (math/random) (:max-health model))
-                  :add-time (+ (common/game-time) (* 1000.0 (math/random)))
-                  :scene
-                  {
-                   :group group
-                   :display-mesh explosion-mesh
-                   ;:display-mesh mesh
-                   :regular-mesh mesh
-                   :build-mesh mesh
-                   :stars-mesh cloud
-                   :explosion-mesh explosion-mesh}}]
-                (swap! units conj unit)
-                (swap! mesh-to-unit-map assoc mesh unit)
-                (swap! mesh-to-unit-map assoc explosion-mesh unit)
-                (-> group (.add mesh))
-                (-> mesh .-visible (set! false))
-                (-> cloud .-visible (set! false))
-                (-> group (.add cloud))
-                (-> group (.add explosion-mesh))
-                (-> group .-castShadow (set! true))
-                (-> mesh .-castShadow (set! true))
-                (-> explosion-mesh .-castShadow (set! true))
-                (let
-                  [x (+ xpos (-> bbox .-min .-x))
-                   z (+ zpos (-> bbox .-min .-z))
-                   y (+ yoff (ground/get-height ground x z))]
-                  (doto (-> debugMesh1 .-position)
-                    (aset "x" (- x xpos))
-                    (aset "y" (- y ypos))
-                    (aset "z" (- z zpos))))
-                (let
-                  [x (+ xpos (-> bbox .-max .-x))
-                   z (+ zpos (-> bbox .-min .-z))
-                   y (+ yoff (ground/get-height ground x z))]
-                  (doto (-> debugMesh2 .-position)
-                    (aset "x" (- x xpos))
-                    (aset "y" (- y ypos))
-                    (aset "z" (- z zpos))))
-                (let
-                  [x (+ xpos (-> bbox .-min .-x))
-                   z (+ zpos (-> bbox .-max .-z))
-                   y (+ yoff (ground/get-height ground x z))]
-                  (doto (-> debugMesh3 .-position)
-                    (aset "x" (- x xpos))
-                    (aset "y" (- y ypos))
-                    (aset "z" (- z zpos))))
-                (let
-                  [x (+ xpos (-> bbox .-max .-x))
-                   z (+ zpos (-> bbox .-max .-z))
-                   y (+ yoff (ground/get-height ground x z))]
-                  (doto (-> debugMesh4 .-position)
-                    (aset "x" (- x xpos))
-                    (aset "y" (- y ypos))
-                    (aset "z" (- z zpos))))
-                (let
-                  [x xpos
-                   z zpos
-                   y (+ yoff (ground/get-height ground x z))
-                   ys (* 2.0 (ground/get-height ground x z))
-                   y (-> bbox .-min .-y)]
-                  ;(-> debugMesh5 .-scale .-y (set! ys))
-                  (-> debugMesh5 .-scale (.set scale scale scale))
-                  (doto (-> debugMesh5 .-position)
-                    ;(aset "x" (- x xpos))
-                    (aset "y" y)))
-                    ;(aset "z" (- z zpos))))
-                ;(-> group (.add debugMesh1))
-                ;(-> group (.add debugMesh2))
-                ;(-> group (.add debugMesh3))
-                ;(-> group (.add debugMesh4))
-                (-> group (.add debugMesh5))
-                ;(scene/add scene group)
-                (-> units-container (.add group))
-                (->
-                  minimap-marker-border .-scale
-                  (.set minimap-border-scale minimap-border-scale minimap-border-scale))
-                ;(-> minimap-marker-border .-renderOrder (set! 1))
-                ;(-> minimap-marker .-renderOrder (set! 0))
-                (doto
-                  minimap-group
-                  (.add minimap-marker)
-                  (.add minimap-marker-border)
-                  (-> .-position (.set xpos 300.0 zpos))
-                  (-> .-scale (.set 7.0 7.0 7.0)))
-                (-> units-minimap-container (.add minimap-group))
-                (-> group .-position (.set xpos ypos zpos))
-                ;(-> group .-scale (.set 5 5 5))
-                (-> group (.rotateOnAxis (new js/THREE.Vector3 0.0 1.0 0.0) rotation)))))))
       (-> component
+        (assoc :all-units-promise all-units-promise)
         (assoc :mesh-to-unit-map mesh-to-unit-map)
         (assoc :mesh-to-screenbox-map mesh-to-screenbox-map)
         (assoc :units units)
