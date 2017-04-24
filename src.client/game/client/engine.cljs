@@ -388,7 +388,7 @@
                        (-> explosion-mesh .-position .-y (set! debugBoxHeight))
                        explosion-mesh)
                      ypos (+ yoff (ground/align-to-ground ground bbox xpos zpos))
-                     group (new js/THREE.Object3D)
+                     group (new js/THREE.Group)
                      unit
                      {
                       :index index

@@ -80,9 +80,11 @@
                 voxel-geometry (voxelize/voxelize-output voxel-dict)
                 scale (:post-scale model)
                 bbox (-> voxel-geometry .-boundingBox)
+                bsphere (-> voxel-geometry .-boundingSphere)
                 mat (new js/THREE.Matrix4)
                 _ (-> mat (.makeScale scale scale scale))
                 _ (-> bbox (.applyMatrix4 mat))
+                _ (-> bsphere (.applyMatrix4 mat))
                 ; TODO: post-transform-geometry is just a hack
                 ;voxel-geometry (post-transform-geometry model voxel-geometry)
                 voxel-dict (assoc voxel-dict :geometry voxel-geometry)]
