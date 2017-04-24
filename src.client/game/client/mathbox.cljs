@@ -10,6 +10,43 @@
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))
 
+(def attack-shader
+  "
+vec4 getSample(vec4 xyz);
+
+uniform float time;
+uniform vec3 dataResolution;
+uniform vec3 dataSize;
+
+// Simple random function
+float random(float co)
+{
+		return fract(sin(co*12.989) * 43758.545);
+}
+
+vec3 getFramesSample(vec4 index) {
+  vec4 newIndex = index;
+  newIndex.w = 0.0;
+  vec4 a = getSample(newIndex);
+  newIndex.w = 1.0;
+  vec4 b = getSample(newIndex);
+
+  float rnd = random(a.x + a.y + a.z);
+
+  float t = fract(rnd + time); //(sin(time) + 1.0) / 2.0;
+  float npos = clamp(index.w * 0.1 + t, 0.0, 1.0);
+  vec4 c = mix(a, b, npos);
+
+  float tn = (npos - 0.5) * 2.0;
+  float yt = tn * tn;
+  float height = 1.5 * distance(a, b);
+  float zpos = height + c.z - yt * height;
+  c.z = zpos;
+
+  return c.xyz;
+}
+")
+
 (defn on-render
   [init-renderer component]
   (let
@@ -38,9 +75,6 @@
         [renderer (data renderer)
          scene (data scene)
          camera (data camera)
-         ;_ (println ["renderer" renderer])
-         ;_ (println ["scene" scene])
-         ;_ (println ["camera" camera])
          context (-> (new js/MathBox.Context renderer scene camera) .init)
          width (-> renderer .-domElement .-width)
          height (-> renderer .-domElement .-height)
@@ -49,18 +83,15 @@
          sphere (new js/THREE.SphereBufferGeometry 0.3 32 32)
          material (new js/THREE.MeshLambertMaterial #js { :color 0x0000FF})
          mesh (new js/THREE.Mesh sphere material)
-         ;_ (-> camera .-position (.set 0 3 0))
-         ;_ (-> camera (.lookAt (new js/THREE.Vector3 0 0 0)))
          fov (-> camera .-fov)
          scaleX (/ (get-in config [:terrain :width]) 2.0)
          scaleY (* (get-in config [:terrain :max-elevation]) 2.0)
          scaleZ (/ (get-in config [:terrain :height]) 2.0)
-         ;units-units (engine/get-units units)
-         ;unit-count (count units-units)
          xyz-size 3
          item-size 2
-         ;data-size (* unit-count xyz-size item-size)
-         data #js []
+         curve-items 16
+         data1 #js []
+         data2 #js []
          view
           (-> mathbox
             (.set
@@ -79,72 +110,55 @@
                     #js [(- 1) 1]]
                 :position #js [0 0 0]
                 :rotation #js [(/ math/pi -2.0) 0 0]
-                ;:scale #js [ 256 256 256]}))]
-                :scale #js [ scaleX scaleZ scaleY]}))]
-        ;(-> scene (.add mesh))
+                :scale #js [ scaleX scaleZ scaleY]}))
+          num-arrows 10
+          attack-arrows
+            (fn
+              [offset]
+              (-> view
+                (.shader
+                  #js
+                  {
+                    :sources #js ["#sampler3"]
+                    :code attack-shader}
+                  #js
+                  {
+                    :time (fn [t] (+ (/ t 5.0) offset))})
+                (.resample
+                  #js
+                  {
+                    :items 2
+                    :indices 4
+                    :channels 3})
+                (.vector
+                  #js
+                  {
+                    ;:color 0x3090FF
+                    :colors "#vcolors"
+                    :width (/ scaleX 2.0)
+                    :end true})))]
         (-> js/DEBUG .-data (set! data))
-        (-> view
-          (.axis #js { :detail 30}))
-        (-> view
-          (.axis #js { :axis 2}))
-        (-> view
-          (.scale #js { :divide 10}))
-        (-> view
-          (.ticks
-            #js
-            { :classes #js [ "foo" "bar"]
-              :width 2}))
-        ; (-> view
-        ;   (.grid
-        ;     #js
-        ;     {
-        ;       :divideX 30
-        ;       :width scaleX
-        ;       :opacity 1.0
-        ;       :zBias -5
-        ;       :zOrder -5
-        ;       :zTest false}))
-        (-> view
-          (.interval
-            #js
-            {
-              :id "sampler"
-              :width 64
-              :channels 2
-              :expr
-                (fn
-                  [emit x i time delta]
-                  (let
-                    [z 1]
-                    (emit x (- z))
-                    (emit x z)))}))
-        (-> view
-          (.area
-            #js
-            {
-              :id "sampler2"
-              :height 16
-              :width 16
-              :channels 3
-              :items 3
-              :expr
-                (fn
-                  [emit x y i j time delta]
-                  (let
-                    [z 1]
-                    (emit x y 0)
-                    (emit x y z)
-                    (emit (+ x 0.05) y z)))}))
         (-> view
           (.array
             #js
             {
               :id "sampler3"
-              ;:width (/ (-> data .-length) 2.0)
               :width 0
-              :data data
+              :data data1
               :items 2
-              :channels 3}))
+              :channels 4}))
+        (-> view
+          (.array
+            #js
+            {
+              :id "vcolors"
+              :width 0
+              :data data2
+              :items 2
+              :channels 4}))
+        (doseq
+          [i (range num-arrows)]
+          (attack-arrows (/ i num-arrows)))
         (->
           (:all-units-promise units)
           (.then
@@ -154,30 +168,37 @@
               (engine/for-each-unit
                 units
                 (fn [i unit]
-                  (let
-                    [idx (* i item-size)
-                     group (engine/get-unit-group unit)
-                     pos (engine/get-unit-position unit)
-                     xpos (/ (-> pos .-x) (/ scaleX 1.0))
-                     ypos (/ (-> pos .-z) (/ scaleZ -1.0))
-                     ;zpos (/ (-> group .-position .-y) scaleY)
-                     zpos (/ (engine/get-unit-top unit) scaleY)
-                     zpos2 (+ zpos 0.1)]
-                    (-> data (.push #js [xpos ypos zpos]))
-                    (-> data (.push #js [xpos ypos zpos2])))))
+                  (engine/for-each-unit
+                    units
+                    (fn [i2 unit2]
+                      (if
+                        (> i i2)
+                        (let
+                          [
+                           pos (engine/get-unit-position unit)
+                           xpos (/ (-> pos .-x) (/ scaleX 1.0))
+                           ypos (/ (-> pos .-z) (/ scaleZ -1.0))
+                           zpos (/ (engine/get-unit-top unit) scaleY)
+                           pos2 (engine/get-unit-position unit2)
+                           xpos2 (/ (-> pos2 .-x) (/ scaleX 1.0))
+                           ypos2 (/ (-> pos2 .-z) (/ scaleZ -1.0))
+                           zpos2 (/ (engine/get-unit-top unit2) scaleY)
+                           dist (-> pos (.distanceTo pos2))
+                           start (new js/THREE.Vector3 xpos ypos zpos)
+                           end (new js/THREE.Vector3 xpos2 ypos2 zpos2)
+                           r (math/random)
+                           g (math/random)
+                           b (math/random)]
+                          (if
+                            (< dist 200.0)
+                            (do
+                              (-> data1 (.push #js [xpos ypos zpos 1]))
+                              (-> data1 (.push #js [xpos2 ypos2 zpos2 1]))
+                              (-> data2 (.push #js [r g b 1]))
+                              (-> data2 (.push #js [r g b 1]))))))))))
               (->
-                (-> mathbox (.select "#sampler3"))
-                (.set "data" data)))))
-        (-> view
-          (.vector
-            #js
-            {
-              :points "#sampler3"
-              :color 0x3090FF
-              ;:depth scaleX
-              :width (/ scaleX 2.0)
-              ;:width 1
-              :end true}))
+                (-> mathbox (.select "#vcolors"))
+                (.set "width" (-> data1 .-length))))))
         (-> js/DEBUG .-mathbox (set! mathbox))
         (-> js/DEBUG .-mathbox-view (set! view))
         (-> component
