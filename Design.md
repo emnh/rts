@@ -63,6 +63,7 @@ Combine the following:
  - [Charpie.fr: Terrain LOD in WebGL](http://charpie.fr/#home)
  - [Zephyros Anemos: Terrain LOD in WebGL](http://www.zephyrosanemos.com/windstorm/current/live-demo.html)
  - [Jeremy Bouny: Screenspace grid](http://jeremybouny.fr/experiments/screen_space_grid/)
+ - [3D Liquid Particles](http://david.li/fluid/)
 
 # Random thoughts about project structure and hot reloading
 
