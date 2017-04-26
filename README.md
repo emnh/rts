@@ -33,6 +33,8 @@ npm install
 ./scripts/compile.sh
 ```
 
+You will need a mongodb instance running on the default port (27017).
+
  - Then open 2 terminals and run the following:
 ```bash
 ./scripts/dev.sh
