@@ -90,7 +90,6 @@ Not everything is linked up yet, so overview is here:
  - Reuse main renderer for health bars.
  - Performance: Use quads for health bars instead of points.
 - Features:
- - Texture map voxelizations
  - Tri-planar texture mapping for terrain
  - Fix shadows
  - Fog of war
@@ -100,6 +99,14 @@ Not everything is linked up yet, so overview is here:
  - Construction
  - Attacking
  - Collisions
+ - Minimap controls (click to view area)
+ - Health bar occlusion / Z-order
+ - Cache minimap terrain and water
+ - Reduce MathBox shader compilations (20!)
+ - Fix magic stars size
+ - Weapons
+ - Hide MathBox from minimap
+ - Refactor unit spawning and synchronize unit UI elements
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
