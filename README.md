@@ -107,6 +107,7 @@ Not everything is linked up yet, so overview is here:
  - Weapons
  - Hide MathBox from minimap
  - Refactor unit spawning and synchronize unit UI elements
+ - Fix explosion scaling (voxels do not hit ground anymore)
 
 ## Component cleanup
  - Pure functions first! The point is to be composable and reusable.
