@@ -58,13 +58,13 @@
      scene (data (:scene component))
      camera (data (:camera component))
      renderer (data (:renderer component))
-     pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
+     ;pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
      $game-content ($ (str "." page-class))
-     $game-canvases ($ (str ".autoresize." page-class))
-     mathbox (:mathbox component)
-     mathbox-context (:context mathbox)]
+     $game-canvases ($ (str ".autoresize." page-class))]
+     ;mathbox (:mathbox component)
+     ;mathbox-context (:context mathbox)]
     (-> renderer (.setSize width height))
-    (-> pixi-renderer (.resize width height))
+    ;(-> pixi-renderer (.resize width height))
     (if
       fullscreen?
       (do
@@ -81,7 +81,7 @@
     (-> camera .updateProjectionMatrix)
     (-> $game-canvases (.width width))
     (-> $game-canvases (.height height))
-    (-> mathbox-context (.resize #js { :viewWidth width :viewHeight height}))
+    ;(-> mathbox-context (.resize #js { :viewWidth width :viewHeight height}))
     (reset! (get-in component [:scene-properties :width]) width)
     (reset! (get-in component [:scene-properties :height]) height)))
 
@@ -89,8 +89,9 @@
 (defcom
   new-on-resize
   [config scene camera renderer params
-   $overlay init-scene pixi-overlay scene-properties three-overlay
-   mathbox]
+   $overlay init-scene scene-properties]
+   ;pixi-overlay three-overlay
+   ;mathbox]
   []
   (fn [component]
     (on-resize component nil)
@@ -156,14 +157,14 @@
 (defcom
   new-init-scene
   ; depends on init-stats because stats elements must be appended first
-  [params renderer $overlay camera scene config ground init-stats water]
-  [done]
+  [params renderer $overlay camera scene config ground init-stats]
+  []
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
     (.append (:$page params) (data $overlay))
     (-> js/DEBUG .-renderer (set! (data renderer)))
     (-> js/DEBUG .-camera (set! (data camera)))
-    (if-not done
+    (if (= (:start-count component) 0)
       (do
         ;(-> (data scene) .-fog (set! (new js/THREE.Fog 0x050505 500 4000)))
         ;(-> (data scene) .-fog .-color (.setHSL 0.1 0.5 0.8))
@@ -195,24 +196,36 @@
         (let
           [mesh (:mesh ground)
            newmaterial (ground-fancy/get-ground-material ground (data renderer))
-           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)
-           water-mesh (:mesh water)
-           water-mesh2 (:mesh2 water)
-           new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))
-           new-water-mesh2 (new THREE.Mesh (.-geometry water-mesh2) (.-material water-mesh2))]
+           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
           (-> js/DEBUG .-ground (set! newmesh))
           (-> newmesh .-receiveShadow (set! true))
           ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
           ;(-> newmesh .-position .-y (set! -125.0))
           ;(-> newmesh .-castShadow (set! true))
-          (add scene newmesh)
-          (add scene new-water-mesh)
-          (add scene new-water-mesh2))
+          (add scene newmesh))
         (assoc component :done true))
       component))
   (fn [component]
     (-> ($ (str "." page-class)) .remove)
     (assoc component :done false)))
+
+(defcom new-scene-add-water
+  [scene init-scene water]
+  []
+  (fn [component]
+    (if (= (:start-count component) 0)
+      (let
+        [
+         water-mesh (:mesh water)
+         water-mesh2 (:mesh2 water)
+         new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))
+         new-water-mesh2 (new THREE.Mesh (.-geometry water-mesh2) (.-material water-mesh2))]
+        (add scene new-water-mesh)
+        (add scene new-water-mesh2)
+        component)
+      component))
+  (fn [component]
+    component))
 
 (defn get-camera
   []

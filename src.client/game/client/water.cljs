@@ -259,7 +259,6 @@ void main() {
   uniform vec2 uResolution;
   uniform vec2 uWaterSize;
   uniform float uWaterThreshold;
-  uniform sampler2D tWater;
   uniform sampler2D tTiles;
   uniform sampler2D tGroundHeight;
   uniform sampler2D tWaterHeight;
@@ -850,7 +849,6 @@ void main() {
           :uGroundElevation #js { :value max-elevation}
           :uWaterElevation #js { :value max-water-elevation}
           :uWaterSize #js { :value (new js/THREE.Vector2 width height)}
-          :tWater #js { :value nil}
           :tTiles #js { :value nil}
           :tCausticTex #js { :value (-> caustics-render-target .-texture)}
           :tWaterHeight #js { :value (-> render-target1 .-texture)}
@@ -916,16 +914,6 @@ void main() {
       _ (-> caustics-scene (.add caustics-mesh))
       wrapping (-> js/THREE .-RepeatWrapping)
       texture-loader (new THREE.TextureLoader)
-      on-load
-        (fn [texture]
-          (-> texture .-wrapS (set! wrapping))
-          (-> texture .-wrapT (set! wrapping))
-          (-> texture .-repeat (.set 10.0 10.0))
-          (-> material .-uniforms .-tWater .-value (set! texture))
-          (-> material .-needsUpdate (set! true))
-          (-> material2 .-uniforms .-tWater .-value (set! texture))
-          (-> material2 .-needsUpdate (set! true)))
-      _ (-> texture-loader (.load "models/images/water.jpg" on-load))
       on-load-tiles
         (fn [texture]
           (-> texture .-wrapS (set! wrapping))
@@ -935,7 +923,6 @@ void main() {
           (-> material .-needsUpdate (set! true))
           (-> material2 .-uniforms .-tTiles .-value (set! texture))
           (-> material2 .-needsUpdate (set! true)))
-      ;_ (-> texture-loader (.load "models/images/tiles.jpg" on-load-tiles))
       _ (-> texture-loader (.load "models/images/grasslight-big.jpg" on-load-tiles))
       mesh (new js/THREE.Mesh geometry material)
       mesh2 (new js/THREE.Mesh geometry2 material2)]
@@ -954,7 +941,7 @@ void main() {
 
 (defcom
   new-init-water
-  [config params compute-shader ground camera light1]
+  [config params compute-shader ground camera light1 init-light]
   ;[mesh height-field width height x-faces y-faces x-vertices y-vertices data-texture float-texture-divisor]
   [mesh mesh2 render-target1 render-target2
    compute-material init-material

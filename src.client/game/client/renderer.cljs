@@ -25,40 +25,39 @@
       camera (data (:camera component))
       scene (data (:scene component))
       renderer (data (:renderer component))
-      three-overlay (:three-overlay component)
-      overlay-renderer (:overlay-renderer three-overlay)
+      ;three-overlay (:three-overlay component)
+      ;overlay-renderer (:overlay-renderer three-overlay)
       render-stats (data (:render-stats component))
-      pixi-renderer (get-in component [:pixi-overlay :pixi-renderer])
-      pixi-stage (get-in component [:pixi-overlay :stage])
-      minimap (:minimap component)
-      minimap-camera (:minimap-camera minimap)
+      ;minimap (:minimap component)
+      ;minimap-camera (:minimap-camera minimap)
       width (-> renderer .-domElement .-width)
       height (-> renderer .-domElement .-height)]
      (reset! (:last-frame-elapsed component) elapsed-time)
      (reset! (:last-frame-time component) end-time)
       ; TODO: generic component render
      (-> render-stats .update)
-     (magic/on-render component (:update-magic component))
-     (explosion/on-render component (:update-explosion component))
+     ;(magic/on-render component (:update-magic component))
+     ;(explosion/on-render component (:update-explosion component))
      (water/on-render component (:update-water component))
-     ;(println ["wh" width height])
-     (mathbox/on-render component (:update-mathbox component))
+     ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
      (-> renderer (.setScissorTest false))
      ;(-> renderer (.setClearColor (-> scene .-fog .-color)))
      (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 1.0))
      (-> renderer (.render scene camera))
-     (minimap/on-render component minimap)
-     (overlay/on-xp-render component three-overlay)
+     ;(minimap/on-render component minimap)
+     ;(overlay/on-xp-render component three-overlay)
      (js/requestAnimationFrame (partial render-loop component)))))
 
 (defcom
   new-init-renderer
-  [renderer three-overlay camera
-   scene render-stats pixi-overlay
-   update-magic update-explosion update-water update-mathbox
-   minimap]
+  [renderer camera
+   scene render-stats
+   update-water]
+   ;three-overlay pixi-overlay
+   ;update-magic update-explosion update-mathbox
+   ;minimap]
   [running last-frame-time last-frame-elapsed frame-counter]
   (fn [component]
     (let
