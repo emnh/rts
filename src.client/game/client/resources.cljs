@@ -107,8 +107,8 @@
                 uint8array (-> js/pako (.inflate uint8array))
                 decoded (-> js/msgpack (.decode uint8array))
                 geo-loader (new js/THREE.BufferGeometryLoader)
-                geo (-> geo-loader (.parse decoded))]
-
+                geo (-> geo-loader (.parse decoded))
+                geo (post-transform-geometry model geo)]
                (-> geo (.computeBoundingBox))
                (-> geo (.computeBoundingSphere))
                (-> geo (.computeFaceNormals))

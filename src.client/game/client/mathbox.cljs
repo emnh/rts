@@ -69,8 +69,8 @@ vec3 getFramesSample(vec4 index) {
   [config params renderer scene init-scene camera units]
   [context view]
   (fn [component]
-    (if-not
-      (:started component)
+    (if
+      (= (:start-count component) 0)
       (let
         [renderer (data renderer)
          scene (data scene)

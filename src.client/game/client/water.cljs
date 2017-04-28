@@ -706,8 +706,8 @@ void main() {
   [config]
   [quad scene camera]
   (fn [component]
-    (if-not
-      (:started component)
+    (if
+      (= (:start-count component) 0)
       (get-compute-shader component config)
       component))
   (fn [component]

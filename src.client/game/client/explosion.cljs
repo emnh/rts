@@ -17,8 +17,8 @@
   [init-renderer component]
   (let
     [
-     ;alive-duration 1000.0
-     alive-duration 0.0
+     alive-duration 5000.0
+     ;alive-duration 0.0
      current-time (common/game-time)]
 
     (engine/for-each-unit
