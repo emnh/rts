@@ -7,6 +7,7 @@
     [game.client.overlay :as overlay]
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
+    [game.client.engine2 :as engine2]
     [game.client.water :as water]
     [game.client.minimap :as minimap]
     [game.client.mathbox :as mathbox]
@@ -39,6 +40,7 @@
      ;(magic/on-render component (:update-magic component))
      ;(explosion/on-render component (:update-explosion component))
      (water/on-render component (:update-water component))
+     (engine2/on-render component (:update-units component))
      ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
@@ -54,7 +56,8 @@
   new-init-renderer
   [renderer camera
    scene render-stats
-   update-water]
+   update-water
+   update-units]
    ;three-overlay pixi-overlay
    ;update-magic update-explosion update-mathbox
    ;minimap]

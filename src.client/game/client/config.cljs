@@ -57,7 +57,8 @@
          :controls-height 250}
 
    :units {
-           :max-units (* 40 40)
+           ; if max-units-base is 8, then max-units is 2^(8*2) = 64k
+           :max-units-base 8
            :count 40
            :m3count 20
            :speed 50

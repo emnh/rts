@@ -23,7 +23,7 @@ void main() {
  "
 precision highp float;
 
-#define PI 3.14
+#define PI 3.1415926
 uniform vec2 uResolution;
 
 // Simple random function

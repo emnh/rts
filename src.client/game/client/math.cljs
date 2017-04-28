@@ -15,3 +15,11 @@
 (def isNaN #(js/isNaN %))
 (def max #(-> js/Math (.max %1 %2)))
 (def min #(-> js/Math (.min %1 %2)))
+(def log2 #(-> js/Math (.log2 %)))
+(def pow2 #(-> js/Math (.pow 2.0 %)))
+(defn round-square [x]
+  (let
+    [xr (math/sqrt x)
+     xr (math/ceil xr)
+     xr (square xr)]
+    xr))
