@@ -16,7 +16,8 @@
                  [prismatic/schema "1.1.0"]
                  [rm-hull/infix "0.2.7"]
                  [rum "0.8.2"]
-                 [sablono "0.7.0"]]
+                 [sablono "0.7.0"]
+                 [kovasb/gamma "0.0-135"]]
 
 
   :plugins [[lein-cljsbuild "1.1.3"]
