@@ -30,6 +30,10 @@
 (def u-max-units-res (g/uniform "uMaxUnitsResolution" :vec2))
 (def t-units-position (g/uniform "tUnitsPosition" :sampler2D))
 
+(def u-ground-texture-divisor (g/uniform "uGroundTextureDivisor" :float))
+(def u-ground-resolution (g/uniform "tGroundResolution" :vec2))
+(def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
+
 (defn get-name [x] (:name x))
 
 ; TEST SHADER
@@ -52,12 +56,25 @@
 
 ; UNITS SHADER
 
+(defn get-ground-height
+  [x z]
+  (let
+    [tw (ge/x u-map-size)
+     th (ge/z u-map-size)
+     x (g/div (g/+ x (g/div tw 2)) tw)
+     z (g/div (g/+ z (g/div th 2)) th)
+     v (g/vec2 x z)
+     ground (ge/x (g/texture2D t-ground-height v))
+     ground (g/* ground u-ground-texture-divisor)]
+    ground))
+
 (defn get-unit-position
   [index]
   (let
     [x (g/mod index (ge/x u-max-units-res))
+     ;y (g/div (g/- index x) (ge/x u-max-units-res))
      x (g/div x (ge/x u-max-units-res))
-     y (g/div index (ge/x u-max-units-res))
+     y (g/floor (g/div index (ge/x u-max-units-res)))
      y (g/div y (ge/y u-max-units-res))]
     (g/swizzle
       (g/texture2D t-units-position (g/vec2 x y))
@@ -70,7 +87,12 @@
     (g/variable "nuff" :float) a-unit-index
     (g/gl-position)
     (let
-      [unit-pos (get-unit-position a-unit-index)]
+      [unit-pos (get-unit-position a-unit-index)
+       x (ge/x unit-pos)
+       z (ge/z unit-pos)
+       y (ge/y unit-pos)
+       ;y (get-ground-height x z)
+       unit-pos (g/vec3 x y z)]
       (->
         (g/* projection-matrix model-view-matrix)
         (g/* (g/vec4 (g/+ unit-pos vertex-position) 1))))})
@@ -110,12 +132,15 @@
         (g/*
           (g/*
             (ge/y uv)
-            (ge/y u-max-units-res))
+            (g/* 13 (ge/y u-max-units-res)))
           (ge/x uv))
       rnd-f #(g/- (random %) 0.5)
       x (g/* (rnd-f ir1) (ge/x u-map-size))
-      y (ge/y u-map-size)
-      z (g/* (rnd-f ir2) (ge/z u-map-size))]
+      ;y (ge/y u-map-size)
+      z (g/* (rnd-f ir2) (ge/z u-map-size))
+      ;x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
+      ;z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
+      y (get-ground-height x z)]
     {
       (g/gl-frag-color) (g/vec4 x y z 1)}))
 
@@ -125,15 +150,15 @@
       :vertex-shader unit-positions-init-vertex-shader
       :fragment-shader unit-positions-init-fragment-shader}))
 
-(println
-  ["unit-vertex-shader"
-   (:glsl (:vertex-shader units-shader))])
-(println
- ["unit-fragment-shader"
-  (:glsl (:fragment-shader units-shader))])
-
-(println (:glsl (:vertex-shader unit-positions-init-shader)))
-(println (:glsl (:fragment-shader unit-positions-init-shader)))
+; (println
+;   ["unit-vertex-shader"
+;    (:glsl (:vertex-shader units-shader))])
+; (println
+;  ["unit-fragment-shader"
+;   (:glsl (:fragment-shader units-shader))])
+;
+;(println (:glsl (:vertex-shader unit-positions-init-shader)))
+;(println (:glsl (:fragment-shader unit-positions-init-shader)))
 
 ; END OF SHADERS. BEGIN ENGINE.
 
@@ -174,8 +199,8 @@
        {
          :wrapS js/THREE.ClampToEdgeWrapping
          :wrapT js/THREE.ClampToEdgeWrapping
-         :minFilter js/THREE.LinearFilter
-         :magFilter js/THREE.LinearFilter
+         :minFilter js/THREE.NearestFilter
+         :magFilter js/THREE.NearestFilter
          :format js/THREE.RGBAFormat
          ; TODO: check for support
          :type js/THREE.FloatType
@@ -188,13 +213,24 @@
      units-rt2 (new js/THREE.WebGLRenderTarget rx ry pars)
      proto-geo (new js/THREE.PlaneBufferGeometry 1000 1000 1 1)
      ;proto-geo (new js/THREE.SphereBufferGeometry 500 32 32)
-     proto-geo (new js/THREE.BoxBufferGeometry 30 30 30)
+     proto-geo (new js/THREE.BoxBufferGeometry 5 5 5)
      geo (new js/THREE.InstancedBufferGeometry)
      index-array (new js/Float32Array max-units)
+     ground (:ground component)
+     ground-resolution
+      (new js/THREE.Vector2
+        (:x-faces ground)
+        (:y-faces ground))
      uniforms #js {}
-     _ (aset uniforms (get-name u-map-size) #js { :value map-size})
-     _ (aset uniforms (get-name u-max-units) #js { :value max-units})
-     _ (aset uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
+     set-uniforms
+      (fn [base-uniforms]
+         (aset base-uniforms (get-name u-map-size) #js { :value map-size})
+         (aset base-uniforms (get-name u-max-units) #js { :value max-units})
+         (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
+         (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
+         (aset base-uniforms (get-name u-ground-resolution) #js { :value ground-resolution})
+         (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true}))
+     _ (set-uniforms uniforms)
      _ (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
      material
       (new js/THREE.RawShaderMaterial
@@ -204,10 +240,7 @@
           :vertexShader (+ preamble (:glsl (:vertex-shader units-shader)))
           :fragmentShader (+ preamble (:glsl (:fragment-shader units-shader)))})
      init-uniforms #js {}
-     ; TODO: keep base uniforms and clone them
-     _ (aset init-uniforms (get-name u-map-size) #js { :value map-size})
-     _ (aset init-uniforms (get-name u-max-units) #js { :value max-units})
-     _ (aset init-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
+     _ (set-uniforms init-uniforms)
      init-material
       (new js/THREE.RawShaderMaterial
         #js
@@ -233,7 +266,7 @@
 
 (defcom
   new-engine
-  [config]
+  [config ground]
   [units-rt1 units-rt2 mesh
    init-material]
   (fn [component]

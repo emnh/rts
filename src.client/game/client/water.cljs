@@ -786,6 +786,7 @@ void main() {
         {
           :wrapS js/THREE.ClampToEdgeWrapping
           :wrapT js/THREE.ClampToEdgeWrapping
+          ; XXX: should it be LinearFilter or NearestFilter?
           :minFilter js/THREE.LinearFilter
           :magFilter js/THREE.LinearFilter
           :format js/THREE.RGBAFormat
