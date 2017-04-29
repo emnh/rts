@@ -17,7 +17,8 @@
                  [rm-hull/infix "0.2.7"]
                  [rum "0.8.2"]
                  [sablono "0.7.0"]
-                 [kovasb/gamma "0.0-135"]]
+                ;  [kovasb/gamma "0.0-135"]]
+                 [hendekagon/gamma "0.1.3"]]
 
 
   :plugins [[lein-cljsbuild "1.1.3"]
