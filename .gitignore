@@ -20,3 +20,7 @@ pom.xml
 *.swp
 /target/
 /download/
+/resources/public/js/client.js
+/resources/public/js/cljs-runtime/
+/resources/public/js/manifest.json
+/node/
