@@ -32,6 +32,7 @@ git submodule update --init
 npm install
 ./scripts/compile.sh
 cp -a home.rts ~/.rts
+sed 's/(def standalone false)/(def standalone true)/' -i src.client/game/client/core.cljs
 ```
 
 The folder home.rts contains the session-secret for the server and API keys to
