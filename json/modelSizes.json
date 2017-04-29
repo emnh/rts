@@ -1,6 +1,7 @@
 {
   "images": {
     "models/images/ant.jpg": 70942,
+    "models/images/backgrounddetailed6.jpg": 79044,
     "models/images/biplane.jpg": 40375,
     "models/images/blue.jpg": 160434,
     "models/images/bricks.jpg": 67039,
@@ -13,6 +14,8 @@
     "models/images/farm.jpg": 262472,
     "models/images/fighter.jpg": 111875,
     "models/images/grass.jpg": 159996,
+    "models/images/grasslight-big-nm.jpg": 2833920,
+    "models/images/grasslight-big.jpg": 2595150,
     "models/images/grayscale.png": 34618,
     "models/images/horse.jpg": 1081321,
     "models/images/house.jpg": 841353,
@@ -21,6 +24,7 @@
     "models/images/sky.jpg": 886392,
     "models/images/starsky.jpg": 53413,
     "models/images/thor.jpg": 1658337,
+    "models/images/tree.png": 48996,
     "models/images/uv.png": 291397,
     "models/images/uv2.jpg": 4100
   },
