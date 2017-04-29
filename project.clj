@@ -1,30 +1,38 @@
 (defproject game "0.1.0-SNAPSHOT"
   :description "A real time strategy game"
-  :url "http://emh.lart.no/rts-prod"
+  :url "http://github.com/emnh/rts"
 
-  :dependencies [[org.clojure/clojure "1.8.0"]
-                 [org.clojure/clojurescript "1.8.40"]
-                 [org.clojure/core.async "0.2.374"]
-                 [bidi "2.0.7"]
-                 [com.stuartsierra/component "0.3.1"]
-                 [com.taoensso/encore "2.50.0"]
-                 [com.taoensso/sente "1.8.1"]
+  :dependencies [[org.clojure/clojure "1.9.0-alpha15"]
+                 [org.clojure/clojurescript "1.9.521"]
+                 [org.clojure/core.async "0.3.442"]
+                 [bidi "2.0.17"]
+                 [com.stuartsierra/component "0.3.2"]
+                 [com.taoensso/encore "2.91.0"]
+                 [com.taoensso/sente "1.11.0"]
                  [funcool/cats "1.2.1"]
                  [funcool/promesa "1.1.1"]
                  [hiccups "0.3.0"]
                  [jayq/jayq "2.5.4"]
-                 [prismatic/schema "1.1.0"]
-                 [rm-hull/infix "0.2.7"]
+                 [prismatic/schema "1.1.5"]
+                 [rm-hull/infix "0.2.11"]
                  [rum "0.8.2"]
                  [sablono "0.7.0"]
-                ;  [kovasb/gamma "0.0-135"]]
-                 [hendekagon/gamma "0.1.3"]]
+                 [hendekagon/gamma "0.1.3"]
+                 [thheller/shadow-devtools "1.0.20170429"]]
 
+  :plugins
+    [
+      [lein-cljsbuild "1.1.6"]
+      [lein-figwheel "0.5.10"]]
 
-  :plugins [[lein-cljsbuild "1.1.3"]
-            [lein-figwheel "0.5.2"]]
-
-  :source-paths ["src"]
+  :source-paths
+    ["src"
+     "src.client"
+     "src.dev"
+     "src.dev.client"
+     "src.scripts"
+     "src.shared"
+     "src.worker"]
 
   :clean-targets ["out.dev"
                   "out.dev.client"
@@ -40,6 +48,7 @@
                                    :output-to "out.dev/game.js"
                                    :output-dir "out.dev"
                                    :target :nodejs
+                                   :main game.server.dev
                                    :optimizations :none
                                    :source-map true}}
                        {:id "dev-client"
