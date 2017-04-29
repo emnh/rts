@@ -567,7 +567,7 @@ void main() {
 }
 ")
 
-(def water-fragment-shader (+ helper-functions water-fragment-shader-part1))
+(def water-fragment-shader (str helper-functions water-fragment-shader-part1))
 
 (def caustics-shader-vertex-part1
   "
@@ -635,7 +635,7 @@ void main() {
   }
 ")
 
-(def caustics-vertex-shader (+ helper-functions caustics-shader-vertex-part1))
+(def caustics-vertex-shader (str helper-functions caustics-shader-vertex-part1))
 
 (def caustics-shader-fragment-part1
   "
@@ -678,7 +678,7 @@ void main() {
 ")
 
 (def caustics-fragment-shader
-  (+ caustics-shader-fragment-part1 helper-functions caustics-shader-fragment-part2))
+  (str caustics-shader-fragment-part1 helper-functions caustics-shader-fragment-part2))
 
 (defn get-compute-shader
   [component config]

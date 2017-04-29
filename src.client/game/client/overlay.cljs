@@ -44,24 +44,24 @@
         (-> (aget (aget new-sprite-cache 0) texture-id) (.push not-cached))
         not-cached))))
 
-(defn get-pixi-filter
-  []
-  (let
-    [shader nil
-     TestFilter
-     (fn []
-       (this-as
-         this
-         (-> js/PIXI.Filter
-           (.call this nil shader #js { :gray #js { :type "1f" :value 1}}))))]
-
-    (set!
-      (-> TestFilter .-prototype)
-      (-> js/Object (.create (-> js/PIXI.Filter .-prototype))))
-    (set!
-      (-> TestFilter .-prototype .-constructor)
-      TestFilter)
-    (new js/TestFilter)))
+; (defn get-pixi-filter
+;   []
+;   (let
+;     [shader nil
+;      TestFilter
+;      (fn []
+;        (this-as
+;          this
+;          (-> js/PIXI.Filter
+;            (.call this nil shader #js { :gray #js { :type "1f" :value 1}}))))]
+;
+;     (set!
+;       (-> TestFilter .-prototype)
+;       (-> js/Object (.create (-> js/PIXI.Filter .-prototype))))
+;     (set!
+;       (-> TestFilter .-prototype .-constructor)
+;       TestFilter)
+;     (new TestFilter)))
 
 (def bar-block-width 12)
 (def bar-height 8)
@@ -192,7 +192,7 @@
      screen-boxes (selection/get-screen-boxes component)
      mesh-to-screenbox-map (get-in component [:units :mesh-to-screenbox-map])
      new-mts-map (reduce (fn [dict box] (assoc dict (aget box "mesh") box)) {} screen-boxes)
-     pixi-filter (get-pixi-filter)
+     ;pixi-filter (get-pixi-filter)
      stage (:stage component)
      health-bars (new js/PIXI.Graphics)
      scene-width @(get-in component [:scene-properties :width])

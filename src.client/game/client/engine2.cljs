@@ -289,8 +289,8 @@
         #js
         {
           :uniforms uniforms
-          :vertexShader (+ preamble (:glsl (:vertex-shader units-shader)))
-          :fragmentShader (+ preamble (units-shader-hack (:glsl (:fragment-shader units-shader))))
+          :vertexShader (str preamble (:glsl (:vertex-shader units-shader)))
+          :fragmentShader (str preamble (units-shader-hack (:glsl (:fragment-shader units-shader))))
           :transparent true})
           ;:depthTest false
           ;depthWrite false})
@@ -313,8 +313,8 @@
         #js
         {
           :uniforms init-uniforms
-          :vertexShader (+ preamble (:glsl (:vertex-shader unit-positions-init-shader)))
-          :fragmentShader (+ preamble (:glsl (:fragment-shader unit-positions-init-shader)))})]
+          :vertexShader (str preamble (:glsl (:vertex-shader unit-positions-init-shader)))
+          :fragmentShader (str preamble (:glsl (:fragment-shader unit-positions-init-shader)))})]
      ;material
      ;(new js/THREE.MeshLambertMaterial #js {:color 0xFF0000})]
    (doseq

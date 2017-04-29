@@ -19,7 +19,7 @@
 (def pow2 #(-> js/Math (.pow 2.0 %)))
 (defn round-square [x]
   (let
-    [xr (math/sqrt x)
-     xr (math/ceil xr)
+    [xr (sqrt x)
+     xr (ceil xr)
      xr (square xr)]
     xr))
