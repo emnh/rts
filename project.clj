@@ -18,7 +18,7 @@
                  [rum "0.8.2"]
                  [sablono "0.7.0"]
                  [hendekagon/gamma "0.1.3"]
-                 [thheller/shadow-devtools "1.0.20170429"]]
+                 [thheller/shadow-devtools "1.0.20170429-17"]]
 
   :plugins
     [
