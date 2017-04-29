@@ -22,5 +22,5 @@
   :output-to "node/voxelize.js"}
  {:id :pack3d
   :target :node-script
-  :main game.scripts.pack-3d/main
+  :main game.scripts.pack_3d/main
   :output-to "node/pack_3d.js"}]
