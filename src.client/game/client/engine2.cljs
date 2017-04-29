@@ -34,6 +34,10 @@
 (def u-ground-resolution (g/uniform "tGroundResolution" :vec2))
 (def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
 
+(def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
+
+(def v-uv (g/varying "vUV" :vec2 :mediump))
+
 (defn get-name [x] (:name x))
 
 ; TEST SHADER
@@ -85,6 +89,7 @@
     (g/variable "blah" :vec3) vertex-normal
     (g/variable "test" :vec2) vertex-uv
     (g/variable "nuff" :float) a-unit-index
+    v-uv vertex-uv
     (g/gl-position)
     (let
       [unit-pos (get-unit-position a-unit-index)
@@ -92,14 +97,48 @@
        z (ge/z unit-pos)
        y (ge/y unit-pos)
        ;y (get-ground-height x z)
-       unit-pos (g/vec3 x y z)]
-      (->
-        (g/* projection-matrix model-view-matrix)
-        (g/* (g/vec4 (g/+ unit-pos vertex-position) 1))))})
+       unit-pos (g/vec3 x y z)
+       size 50.0
+       v (g/mat4 model-view-matrix)
+       camera-right-worldspace
+        (g/vec3
+          (ge/aget (ge/aget v 0) 0)
+          (ge/aget (ge/aget v 1) 0)
+          (ge/aget (ge/aget v 2) 0))
+       camera-up-worldspace
+         (g/vec3
+           (ge/aget (ge/aget v 0) 1)
+           (ge/aget (ge/aget v 1) 1)
+           (ge/aget (ge/aget v 2) 1))
+       v-pos unit-pos
+       plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
+       v-pos
+        (g/+
+          v-pos
+          (g/*
+            (g/* camera-right-worldspace (ge/x plane-position))
+            size))
+       v-pos
+         (g/+
+           v-pos
+           (g/*
+             (g/* camera-up-worldspace (ge/y plane-position))
+             size))
+       glpos
+        (->
+        ;  (g/* projection-matrix model-view-matrix)
+         (g/* projection-matrix model-view-matrix)
+         (g/* (g/vec4 v-pos 1)))]
+       ;glpos (g/div glpos (g/vec4 (ge/w glpos)))]
+
+       ;xy (g/swizzle glpos :xy)
+       ;xy (g/+ xy (g/* (g/swizzle vertex-position :xy) (g/vec2 0.01 0.01)))
+       ;glpos (g/vec4 xy (ge/z glpos) (ge/w glpos))]
+      glpos)})
 
 (def units-fragment-shader
   {
-    (g/gl-frag-color) (g/vec4 1 0 0 1)})
+    (g/gl-frag-color) (g/texture2D t-model-sprite v-uv)})
 
 (def units-shader
   (gprogram/program
@@ -211,9 +250,9 @@
      map-size (new js/THREE.Vector3 width elevation height)
      units-rt1 (new js/THREE.WebGLRenderTarget rx ry pars)
      units-rt2 (new js/THREE.WebGLRenderTarget rx ry pars)
-     proto-geo (new js/THREE.PlaneBufferGeometry 1000 1000 1 1)
+     proto-geo (new js/THREE.PlaneBufferGeometry 1 1 1 1)
      ;proto-geo (new js/THREE.SphereBufferGeometry 500 32 32)
-     proto-geo (new js/THREE.BoxBufferGeometry 5 5 5)
+     ;proto-geo (new js/THREE.BoxBufferGeometry 5 5 5)
      geo (new js/THREE.InstancedBufferGeometry)
      index-array (new js/Float32Array max-units)
      ground (:ground component)
@@ -232,13 +271,29 @@
          (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true}))
      _ (set-uniforms uniforms)
      _ (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
+     _ (aset uniforms (get-name t-model-sprite) #js { :value nil})
      material
       (new js/THREE.RawShaderMaterial
         #js
         {
           :uniforms uniforms
           :vertexShader (+ preamble (:glsl (:vertex-shader units-shader)))
-          :fragmentShader (+ preamble (:glsl (:fragment-shader units-shader)))})
+          :fragmentShader (+ preamble (:glsl (:fragment-shader units-shader)))
+          :transparent true})
+          ;:depthTest false
+          ;:depthWrite false})
+     wrapping (-> js/THREE .-ClampToEdgeWrapping)
+     texture-loader (new THREE.TextureLoader)
+     on-load
+      (fn [texture]
+        (-> texture .-wrapS (set! wrapping))
+        (-> texture .-wrapT (set! wrapping))
+        (-> material
+          .-uniforms
+          (aget (get-name t-model-sprite))
+          .-value (set! texture))
+        (-> material .-needsUpdate (set! true)))
+     _ (-> texture-loader (.load "models/images/knight.png" on-load))
      init-uniforms #js {}
      _ (set-uniforms init-uniforms)
      init-material

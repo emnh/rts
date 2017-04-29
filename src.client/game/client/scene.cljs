@@ -237,6 +237,7 @@
          units-mesh (:mesh engine2)
          new-units-mesh (new THREE.Mesh (.-geometry units-mesh) (.-material units-mesh))]
         (-> new-units-mesh .-frustumCulled (set! false))
+        (-> new-units-mesh .-renderOrder (set! -5))
         (add scene new-units-mesh)
         component)
       component))

@@ -1,4 +1,6 @@
 (ns ^:figwheel-always game.client.gamma_ext
+  (:refer-clojure
+    :exclude [aget])
   (:require
     [gamma.api :as g]
     [gamma.ast :as ast]))
@@ -23,3 +25,17 @@
 
 (defn w [v]
   (g/swizzle v :w))
+
+; (defn collection-element-type [x]
+;   ({:vec4 :float :vec3 :float :vec2 :float
+;     :ivec4 :int :ivec3 :int :ivec2 :int
+;     :bvec4 :bool :bvec3 :bool :bvec2 :bool} x))
+;
+; (defn aget [x i]
+;   (let [t (ast/term :aget x i)]
+;     (assoc
+;      t
+;      :type (collection-element-type (:type (first (:body t)))))))
+
+(defn aget [x i]
+  (g/aget x (g/int i)))
