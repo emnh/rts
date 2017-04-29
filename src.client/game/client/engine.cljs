@@ -248,7 +248,7 @@
   (fn [component]
     (let
       [unit-count (count (get-units units))
-       worker (new js/Worker "js/worker.js")
+       worker (new js/Worker "js/worker-manual.js")
        state (atom
                (worker-state/init-state
                  {
