@@ -144,7 +144,7 @@
       (g/gl-frag-color)
       (g/if
         (g/> (ge/w tex) 0.1)
-        tex
+        (g/* tex (g/vec4 1.2))
         ; magic number, will be replaced by discard
         (g/vec4 0 1 2 3))}))
 
@@ -305,7 +305,6 @@
           (aget (get-name t-model-sprite))
           .-value (set! texture))
         (-> material .-needsUpdate (set! true)))
-     ;_ (-> texture-loader (.load "models/images/knight.png" on-load))
      _ (-> texture-loader (.load "models/images/tree.png" on-load))
      init-uniforms #js {}
      _ (set-uniforms init-uniforms)
