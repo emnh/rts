@@ -31,7 +31,12 @@ cd rts
 git submodule update --init
 npm install
 ./scripts/compile.sh
+cp -a home.rts ~/.rts
 ```
+
+The folder home.rts contains the session-secret for the server and API keys to
+use social logins. They are all set to "HIDDEN" in home.rts. You will want to
+customize these for testing social logins or running a production server.
 
 You will need a mongodb instance running on the default port (27017).
 
