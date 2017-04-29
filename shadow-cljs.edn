@@ -1,0 +1,26 @@
+[{:id :client
+  :target :browser
+  :public-dir "resources/public/js"
+  :public-path "/js"
+
+  :modules
+  {:client
+   {:entries [game.client.core]}
+   :worker
+   {:entries [game.worker.core]
+    :depends-on #{:client}
+    :web-worker true}}}
+
+
+ {:id :server
+  :target :node-script
+  :main game.server.core/main
+  :output-to "node/server.js"}
+ {:id :voxelize
+  :target :node-script
+  :main game.scripts.voxelize/main
+  :output-to "node/voxelize.js"}
+ {:id :pack3d
+  :target :node-script
+  :main game.scripts.pack-3d/main
+  :output-to "node/pack_3d.js"}]
