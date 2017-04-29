@@ -90,6 +90,7 @@
                                    :externs [
                                              "externs/three.ext.js"
                                              "externs/jquery.ext.js"
+                                             "externs/key-event.ext.js"
                                              "externs/msgpack-js-browser.ext.js"
                                              "externs/pako.ext.js"
                                              "externs/stats.ext.js"
