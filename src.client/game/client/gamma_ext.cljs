@@ -2,8 +2,16 @@
   (:refer-clojure
     :exclude [aget])
   (:require
-    [gamma.api :as g]
-    [gamma.ast :as ast]))
+    [gamma.ast :as ast]
+    gamma.compiler.core
+    fipp.engine
+    [gamma.emit.emit :as emit]
+    gamma.emit.fun
+    gamma.emit.operator
+    gamma.emit.statement
+    gamma.emit.tag
+    gamma.emit.construct
+    [gamma.api :as g]))
 
 (defn part [v i]
   (g/aget v i))
@@ -39,3 +47,10 @@
 
 (defn aget [x i]
   (g/aget x (g/int i)))
+
+(defn if-statement [c a b]
+  (assoc
+    (ast/term :if c
+             (ast/term :block a)
+             (ast/term :block b))
+    :type nil))

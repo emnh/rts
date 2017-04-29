@@ -9,7 +9,8 @@
     [game.client.gamma_ext :as ge]
     [game.client.scene :as scene]
     [gamma.api :as g]
-    [gamma.program :as gprogram])
+    [gamma.program :as gprogram]
+    [clojure.string :as string])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
@@ -137,14 +138,25 @@
       glpos)})
 
 (def units-fragment-shader
-  {
-    (g/gl-frag-color) (g/texture2D t-model-sprite v-uv)})
+  (let
+    [tex (g/texture2D t-model-sprite v-uv)]
+    {
+      (g/gl-frag-color)
+      (g/if
+        (g/> (ge/w tex) 0.1)
+        tex
+        ; magic number, will be replaced by discard
+        (g/vec4 0 1 2 3))}))
 
 (def units-shader
   (gprogram/program
     {
       :vertex-shader units-vertex-shader
       :fragment-shader units-fragment-shader}))
+
+(defn units-shader-hack
+  [glsl]
+  (string/replace glsl #"\n.*vec4\(0.0, 1.0, 2.0, 3.0\)\);" "\ndiscard;"))
 
 ; POSITION INITIALIZE SHADER
 
@@ -194,7 +206,7 @@
 ;    (:glsl (:vertex-shader units-shader))])
 ; (println
 ;  ["unit-fragment-shader"
-;   (:glsl (:fragment-shader units-shader))])
+;   (units-shader-hack (:glsl (:fragment-shader units-shader)))])
 ;
 ;(println (:glsl (:vertex-shader unit-positions-init-shader)))
 ;(println (:glsl (:fragment-shader unit-positions-init-shader)))
@@ -278,10 +290,10 @@
         {
           :uniforms uniforms
           :vertexShader (+ preamble (:glsl (:vertex-shader units-shader)))
-          :fragmentShader (+ preamble (:glsl (:fragment-shader units-shader)))
+          :fragmentShader (+ preamble (units-shader-hack (:glsl (:fragment-shader units-shader))))
           :transparent true})
           ;:depthTest false
-          ;:depthWrite false})
+          ;depthWrite false})
      wrapping (-> js/THREE .-ClampToEdgeWrapping)
      texture-loader (new THREE.TextureLoader)
      on-load
@@ -293,7 +305,8 @@
           (aget (get-name t-model-sprite))
           .-value (set! texture))
         (-> material .-needsUpdate (set! true)))
-     _ (-> texture-loader (.load "models/images/knight.png" on-load))
+     ;_ (-> texture-loader (.load "models/images/knight.png" on-load))
+     _ (-> texture-loader (.load "models/images/tree.png" on-load))
      init-uniforms #js {}
      _ (set-uniforms init-uniforms)
      init-material
