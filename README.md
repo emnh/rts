@@ -49,7 +49,7 @@ node js/figwheel.js
 ```
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
- - Now you can open [the dev page](http://localhost:3451)
+ - Now you can open [the dev page](http://localhost:3451/index.html#game-test)
 
 # Building for production
 
