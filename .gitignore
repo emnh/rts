@@ -25,3 +25,7 @@ pom.xml
 /resources/public/js/cljs-runtime/
 /resources/public/js/manifest.json
 /node/
+.idea
+.DS_Store
+*.iml
+*.lock
