@@ -100,7 +100,7 @@
 ; TODO: find out and document why simplex is not in the game system
 (s-add-component system :simplex (new-jsobj #(new js/SimplexNoise)))
 
-(def standalone false)
+(def standalone true)
 
 (s-add-component system :routing-callback (new-lc reload-page))
 (s-add-component system :routing (routing/new-router))
