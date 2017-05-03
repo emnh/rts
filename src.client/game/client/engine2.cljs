@@ -139,14 +139,20 @@
 
 (def units-fragment-shader
   (let
-    [tex (g/texture2D t-model-sprite v-uv)]
+    [tex (g/texture2D t-model-sprite v-uv)
+     d (g/length (g/* 2.0 (g/- v-uv (g/vec2 0.5))))]
     {
       (g/gl-frag-color)
       (g/if
-        (g/> (ge/w tex) 0.1)
-        (g/* tex (g/vec4 1.2))
-        ; magic number, will be replaced by discard
-        (g/vec4 0 1 2 3))}))
+        (g/and
+          (g/>= d 0.9)
+          (g/<= d 1.0))
+        (g/vec4 1 0 0 1)
+        (g/if
+          (g/> (ge/w tex) 0.1)
+          (g/* tex (g/vec4 1.2))
+          ; magic number, will be replaced by discard
+          (g/vec4 0 1 2 3)))}))
 
 (def units-shader
   (gprogram/program
@@ -204,9 +210,14 @@
 ; (println
 ;   ["unit-vertex-shader"
 ;    (:glsl (:vertex-shader units-shader))])
-; (println
-;  ["unit-fragment-shader"
-;   (units-shader-hack (:glsl (:fragment-shader units-shader)))])
+
+(println
+  ["unit-fragment-shader"
+   (:glsl (:fragment-shader units-shader))])
+
+(println
+  ["unit-fragment-shader"
+   (units-shader-hack (:glsl (:fragment-shader units-shader)))])
 ;
 ;(println (:glsl (:vertex-shader unit-positions-init-shader)))
 ;(println (:glsl (:fragment-shader unit-positions-init-shader)))
