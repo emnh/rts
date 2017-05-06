@@ -8,6 +8,7 @@
     [game.client.magic :as magic]
     [game.client.explosion :as explosion]
     [game.client.engine2 :as engine2]
+    [game.client.engine2_physics :as engine2_physics]
     [game.client.water :as water]
     [game.client.minimap :as minimap]
     [game.client.mathbox :as mathbox]
@@ -41,13 +42,14 @@
      ;(explosion/on-render component (:update-explosion component))
      (water/on-render component (:update-water component))
      (engine2/on-render component (:update-units component))
+     (engine2_physics/on-render component (:update-physics component))
      ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
      (-> renderer (.setScissorTest false))
      ;(-> renderer (.setClearColor (-> scene .-fog .-color)))
      (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 1.0))
-     (-> renderer (.render scene camera))
+     ;(-> renderer (.render scene camera))
      ;(minimap/on-render component minimap)
      ;(overlay/on-xp-render component three-overlay)
      (js/requestAnimationFrame (partial render-loop component)))))
@@ -57,7 +59,8 @@
   [renderer camera
    scene render-stats
    update-water
-   update-units]
+   update-units
+   update-physics]
    ;three-overlay pixi-overlay
    ;update-magic update-explosion update-mathbox
    ;minimap]

@@ -15,6 +15,7 @@
     [game.client.overlay :as overlay]
     [game.client.engine :as engine]
     [game.client.engine2 :as engine2]
+    [game.client.engine2_physics :as engine2_physics]
     [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
     [game.client.magic :as magic]
@@ -72,7 +73,9 @@
       :scene-add-water (scene/new-scene-add-water)
       :engine2 (engine2/new-engine)
       :scene-add-units (scene/new-scene-add-units)
-      :update-units (engine2/new-update-units)}]
+      :update-units (engine2/new-update-units)
+      :physics (engine2_physics/new-physics)
+      :update-physics (engine2_physics/new-update-physics)}]
       ;:minimap (minimap/new-minimap)}]
       ;:mathbox (mathbox/new-mathbox)
       ;:update-mathbox (mathbox/new-update-mathbox)}]

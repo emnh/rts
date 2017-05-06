@@ -180,17 +180,17 @@
     [
       uv (g/div (g/swizzle (g/gl-frag-coord) :xy) u-max-units-res)
       ir1
-        (g/*
+        (g/+
           (g/*
             (ge/x uv)
             (ge/x u-max-units-res))
           (ge/y uv))
-      ir2
-        (g/*
-          (g/*
-            (ge/y uv)
-            (g/* 13 (ge/y u-max-units-res)))
-          (ge/x uv))
+      ir2 (g/* 137 ir1)
+        ; (g/*
+        ;   (g/*
+        ;     (ge/y uv)
+        ;     (ge/y u-max-units-res))
+        ;   (ge/x uv))
       rnd-f #(g/- (random %) 0.5)
       x (g/* (rnd-f ir1) (ge/x u-map-size))
       ;y (ge/y u-map-size)
@@ -211,13 +211,13 @@
 ;   ["unit-vertex-shader"
 ;    (:glsl (:vertex-shader units-shader))])
 
-(println
-  ["unit-fragment-shader"
-   (:glsl (:fragment-shader units-shader))])
-
-(println
-  ["unit-fragment-shader"
-   (units-shader-hack (:glsl (:fragment-shader units-shader)))])
+; (println
+;   ["unit-fragment-shader"
+;    (:glsl (:fragment-shader units-shader))])
+;
+; (println
+;   ["unit-fragment-shader"
+;    (units-shader-hack (:glsl (:fragment-shader units-shader)))])
 ;
 ;(println (:glsl (:vertex-shader unit-positions-init-shader)))
 ;(println (:glsl (:fragment-shader unit-positions-init-shader)))
@@ -292,9 +292,12 @@
          (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
          (aset base-uniforms (get-name u-ground-resolution) #js { :value ground-resolution})
          (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true}))
+     set-uniforms2
+      (fn [uniforms]
+        (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
+        (aset uniforms (get-name t-model-sprite) #js { :value nil}))
      _ (set-uniforms uniforms)
-     _ (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
-     _ (aset uniforms (get-name t-model-sprite) #js { :value nil})
+     _ (set-uniforms2 uniforms)
      material
       (new js/THREE.RawShaderMaterial
         #js
@@ -340,13 +343,17 @@
     (assoc :units-rt1 units-rt1)
     (assoc :units-rt2 units-rt2)
     (assoc :mesh (new js/THREE.Mesh geo material))
-    (assoc :init-material init-material))))
+    (assoc :init-material init-material)
+    (assoc :set-uniforms set-uniforms)
+    (assoc :set-uniforms2 set-uniforms2))))
 
 (defcom
   new-engine
   [config ground]
   [units-rt1 units-rt2 mesh
-   init-material]
+   init-material
+   set-uniforms
+   set-uniforms2]
   (fn [component]
     (get-engine component))
   (fn [component]
