@@ -68,20 +68,15 @@
     [old-run-count @run-count]
     (swap! run-count inc)
     (println "main" old-run-count)
-    ; main is loading twice in figwheel for some reason
-    ; TODO: figure out why instead of skipping run number 1
-    (if-not
-      ; XXX: my edit procedure triggers 2 writes per update, so skip odd runs
-      (= (rem old-run-count 2) 1)
-      (do
-        (if
-          (> old-run-count 0)
-          (do
-            ;(println "stopping system")
-            (with-simple-cause #(swap! system component/stop-system))))
-        ;(println "starting system")
-        (-> js/DEBUG (set! #js {}))
-        (with-simple-cause #(swap! system component/start-system))))))
+    (do
+      (if
+        (> old-run-count 0)
+        (do
+          ;(println "stopping system")
+          (with-simple-cause #(swap! system component/stop-system))))
+      ;(println "starting system")
+      (-> js/DEBUG (set! #js {}))
+      (with-simple-cause #(swap! system component/start-system)))))
 
 (defonce reloading (atom false))
 
@@ -128,14 +123,17 @@
 (s-add-component system :page-not-found
                  (new-page :not-found (page-not-found/new-page-not-found)))
 
-(if (> @run-count 0) (main) (js/$ (main)))
-
-(println "core")
-
 (defn shadow-before
   []
   (println "shadow-before"))
 
 (defn shadow-after
   []
-  (println "shadow-after"))
+  (println "shadow-after")
+  (if (> @run-count 0) (main) (js/$ (main))))
+
+(if
+  (= @run-count 0)
+  (do
+    (println "first run")
+    (js/$ (main))))
