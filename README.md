@@ -52,7 +52,8 @@ node node/server.js
 
  - Now you can open [the dev page](http://localhost:3451/index.html#game-test)
 
-I switched to shadow-devtools because the author, Thomas Heller, approached me personally if I wanted to use it.
+I switched to [shadow-devtools](https://github.com/thheller/shadow-devtools)
+because the author, Thomas Heller, approached me personally if I wanted to use it.
 The advantage is that it compiles in parallel and thus is faster than figwheel if you have a system with enough RAM.
 The setup also needs a lot less configuration than figwheel, having good defaults.
 
@@ -72,6 +73,8 @@ You will need to change index.html to comment in the figwheel stuff.
  - Now you can open [the dev page](http://localhost:3451/index.html#game-test)
 
 # Building for production
+
+TODO: This section is not up to date for shadow-devtools.
 
 ```bash
 lein cljsbuild once prod
