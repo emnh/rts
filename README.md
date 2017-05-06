@@ -1,5 +1,7 @@
 # Introduction (Legacy version)
 
+My blog about the project [is here](https://emnh.github.io/rts-blog/).
+
 Unfinished project.
 You can see a [demo displaying only free 3D models, not from SC2](http://emh.lart.no/publish/rts-free.git/).
 The SC2 demo is not working because SC2 file host is not hosting them anymore,
@@ -10,9 +12,6 @@ The legacy version is written in JavaScript, while the new version is primarily 
 SC2 files were retrieved from
 [viewer.hiveworkshop.com](http://viewer.hiveworkshop.com/?q=Assets/units/zerg/baneling/baneling.m3)
 (not mine) through a [heroku CORS proxy](http://crossorigin.herokuapp.com/).
-
-Works best in Firefox, also in Chrome, not in IE and not tested with Safari.
-Only tested on Windows.
 
 If the demo doesn't work for you, you can watch videos of it at YouTube:
  - [StarCraft 2 on WebGL](https://www.youtube.com/watch?v=PoPNrz2LUG0)
@@ -41,13 +40,33 @@ customize these for testing social logins or running a production server.
 
 You will need a mongodb instance running on the default port (27017).
 
- - Then open 2 terminals and run the following:
+## Alternative 1: Using shadow-devtools build system
+
+ - Open 2 terminals and run the following:
+```bash
+./scripts/shadow-dev.sh
+```
+```bash
+node node/server.js
+```
+
+ - Now you can open [the dev page](http://localhost:3451/index.html#game-test)
+
+I switched to shadow-devtools because the author, Thomas Heller, approached me personally if I wanted to use it.
+The advantage is that it compiles in parallel and thus is faster than figwheel if you have a system with enough RAM.
+The setup also needs a lot less configuration than figwheel, having good defaults.
+
+## Alternative 2 (deprecated): Using figwheel build system
+ - Open 2 terminals and run the following:
 ```bash
 ./scripts/dev.sh
 ```
 ```bash
 node js/figwheel.js
 ```
+
+You will need to change index.html to comment in the figwheel stuff.
+
  - Server figwheel runs on port 3450
  - Node (with ClojureScript connected to figwheel on 3450) runs on port 3451
  - Now you can open [the dev page](http://localhost:3451/index.html#game-test)

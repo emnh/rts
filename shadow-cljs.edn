@@ -3,6 +3,10 @@
   :public-dir "resources/public/js"
   :public-path "/js"
 
+  :devtools
+  {:before-load game.client.core/shadow-before
+   :after-load game.client.core/shadow-after}
+
   :modules
   {:client
    {:entries [game.client.core]}

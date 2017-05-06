@@ -36,7 +36,10 @@ ga('send', 'pageview');
   </head>
   <body>
     <div id="pages" />
-    <script type="text/javascript" src="game.js"></script>
+    <!-- For figwheel -->
+    <!--<script type="text/javascript" src="game.js"></script>-->
+    <!-- For shadow-devtools -->
+    <script type="text/javascript" src="js/client.js"></script>
     <script>
     if (!window.location.hash || window.location.hash && window.location.hash == "#") {
         window.location.hash = '#lobby';
@@ -44,13 +47,14 @@ ga('send', 'pageview');
     if (window.location.hash && window.location.hash == '#_=_') {
         window.location.hash = '#lobby';
     }
-    if (document.location.hostname == 'localhost') {
-      console.log("dev mode");
-      goog.require('game.client.dev');
-    } else {
-      console.log("prod mode");
-      goog.require('game.client.core');
-    }
+    // For figwheel
+    // if (document.location.hostname == 'localhost') {
+    //   console.log("dev mode");
+    //   goog.require('game.client.dev');
+    // } else {
+    //   console.log("prod mode");
+    //   goog.require('game.client.core');
+    // }
     </script>
   </body>
 </html>

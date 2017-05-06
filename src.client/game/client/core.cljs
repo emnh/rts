@@ -129,3 +129,13 @@
                  (new-page :not-found (page-not-found/new-page-not-found)))
 
 (if (> @run-count 0) (main) (js/$ (main)))
+
+(println "core")
+
+(defn shadow-before
+  []
+  (println "shadow-before"))
+
+(defn shadow-after
+  []
+  (println "shadow-after"))

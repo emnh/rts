@@ -13,9 +13,12 @@
     (-> process .-env .-HOME))
 
 (def jsconfig
-  (let
-    [config-data (-> js/global .-rtsconfig)]
-    (-> config-data (js->clj :keywordize-keys true))))
+  (or
+    (let
+      [config-data (-> js/global .-rtsconfig)]
+      (-> config-data (js->clj :keywordize-keys true)))
+    {
+      :production false}))
 
 (println "config2" jsconfig)
 

@@ -4,4 +4,6 @@
 (cljs/start-worker :client)
 (cljs/start-worker :server)
 
+(cljs/sync :client)
+
 (clojure.main/repl)
