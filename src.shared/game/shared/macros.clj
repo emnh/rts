@@ -55,3 +55,12 @@
          (component/using
            (~new-record {:start-count 0 :stop-count 0 :started false})
            ~(vec (map keyword dep-values)))))))
+
+; http://blog.jenkster.com/2015/09/timing-code-in-clojurescript.html
+(defmacro console-time
+ [label & body]
+ `(do
+    (.time js/console ~label)
+    (let [result# (do ~@body)]
+      (.timeEnd js/console ~label)
+      result#)))
