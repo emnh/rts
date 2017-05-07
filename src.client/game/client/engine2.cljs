@@ -10,7 +10,8 @@
     [game.client.scene :as scene]
     [gamma.api :as g]
     [gamma.program :as gprogram]
-    [clojure.string :as string])
+    [clojure.string :as string]
+    [gamma.compiler.core :as gamma_compiler_core :refer [transform]])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
@@ -73,20 +74,24 @@
      ground (g/* ground u-ground-texture-divisor)]
     ground))
 
-(defn get-unit-position
+(defn get-unit-position-index
   [index]
   (let
     [x (g/mod index (ge/x u-max-units-res))
-     ;y (g/div (g/- index x) (ge/x u-max-units-res))
      x (g/div x (ge/x u-max-units-res))
      y (g/floor (g/div index (ge/x u-max-units-res)))
      y (g/div y (ge/y u-max-units-res))]
-    (g/swizzle
-      (g/texture2D t-units-position (g/vec2 x y))
-      :xyz)))
+    (g/vec2 x y)))
+
+(defn get-unit-position
+  [index]
+  (g/swizzle
+    (g/texture2D t-units-position (get-unit-position-index index))
+    :xyz))
 
 (def units-vertex-shader
   {
+    ; decoy variables to declare attributes
     (g/variable "blah" :vec3) vertex-normal
     (g/variable "test" :vec2) vertex-uv
     (g/variable "nuff" :float) a-unit-index
@@ -345,7 +350,9 @@
     (assoc :mesh (new js/THREE.Mesh geo material))
     (assoc :init-material init-material)
     (assoc :set-uniforms set-uniforms)
-    (assoc :set-uniforms2 set-uniforms2))))
+    (assoc :set-uniforms2 set-uniforms2)
+    (assoc :rx rx)
+    (assoc :ry ry))))
 
 (defcom
   new-engine
@@ -353,7 +360,8 @@
   [units-rt1 units-rt2 mesh
    init-material
    set-uniforms
-   set-uniforms2]
+   set-uniforms2
+   rx ry]
   (fn [component]
     (get-engine component))
   (fn [component]

@@ -789,6 +789,8 @@ void main() {
           ; XXX: should it be LinearFilter or NearestFilter?
           :minFilter js/THREE.LinearFilter
           :magFilter js/THREE.LinearFilter
+          ;:minFilter js/THREE.NearestFilter
+          ;:magFilter js/THREE.NearestFilter
           :format js/THREE.RGBAFormat
           ; TODO: check for support
           :type js/THREE.FloatType
