@@ -50,7 +50,7 @@
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
-(def bounding-sphere-radius 20.0)
+(def bounding-sphere-radius 5.0)
 
 ; UNIT COLLISIONS SHADER
 
@@ -156,11 +156,15 @@
            unit-b-pos (get-unit-position unit-b-index)
            dv (g/- unit-a-pos unit-b-pos)
           ;  dv (g/vec3 unit-a unit-b 0.0)
-           rx (random (g/+ unit-a-index unit-b-index))
-           ry (random rx)
-           rz (random ry)
-           ;rv (g/normalize (g/vec3 rx ry rz))
-           rv (g/vec3 0)
+          ;  random-f #(g/- (g/* 2.0 (random %)) 1.0)
+           random-f random
+           theta (g/* 2.0 (g/* math/pi (random-f (g/- unit-b-index unit-a-index))))
+          ;  rx (random-f (g/- unit-a-index unit-b-index))
+           rx (g/cos theta)
+           ry 0
+          ;  rz (random-f (g/+ 17.23 (g/- unit-a-index unit-b-index)))
+           rz (g/sin theta)
+           rv (g/vec3 rx ry rz)
            dv
            (ge/fake_if
              (g/== unit-a-pos unit-b-pos)
@@ -169,14 +173,15 @@
              dv)
            pos-delta
             (ge/fake_if
-              (g/== unit-per-fragment-index unit-per-fragment-index2)
+              (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
               (g/vec3 0.0)
               (ge/fake_if
                 (g/and
                   (g/> unit-a 0)
                   (g/> unit-b 0))
                 dv
-                (g/vec3 0.0)))]
+                (g/vec3 0.0)))
+           pos-delta (g/vec3 (ge/x pos-delta) 0.0 (ge/z pos-delta))]
           pos-delta))
       value (reduce g/+ collisions)
       absvalue (g/abs value)
@@ -210,6 +215,7 @@
   {
     ;(g/gl-frag-color) (g/vec4 v-uv 0 1)})
     (g/gl-frag-color) (g/vec4 v-collision-value 1)})
+    ;(g/gl-frag-color) (g/vec4 1)})
 
 (console-time
   "Unit Collisions Shader"
@@ -229,7 +235,6 @@
     ; unit-collisions-summation-shader-vs))
 
   ;  (:glsl (:vertex-shader unit-collisions-summation-shader))])
-
 
 ; COLLISION APPLICATION SHADER
 
@@ -252,17 +257,30 @@
         (g/swizzle update :xyz)
         (g/vec3 0.0))
       weight 10.0
-      delta (g/* weight (g/normalize delta))
+      absdelta (g/abs delta)
+      delta
+      (ge/fake_if
+        (g/or
+          (g/> (ge/x absdelta) 0)
+          (g/or
+            (g/> (ge/y absdelta) 0)
+            (g/> (ge/z absdelta) 0)))
+        (g/* weight (g/normalize delta))
+        delta)
       new-position (g/+ position delta)
-      new-position
+      result-position
       (ge/fake_if
         (g/or
           (g/> (g/abs (ge/x new-position)) (g/div (ge/x u-map-size) 2.0))
-          (g/> (g/abs (ge/z new-position)) (g/div (ge/z u-map-size) 2.0)))
+          (g/or
+            (g/or
+              (g/< (g/abs (ge/y new-position)) 0)
+              (g/> (g/abs (ge/y new-position)) (g/* 2.0 (ge/y u-map-size))))
+            (g/> (g/abs (ge/z new-position)) (g/div (ge/z u-map-size) 2.0))))
         position
         new-position)]
     {
-      (g/gl-frag-color) (g/vec4 new-position 1)}))
+      (g/gl-frag-color) (g/vec4 result-position 1)}))
 
 (def collision-application-shader
   (gprogram/program
@@ -275,6 +293,25 @@
 
 (def collision-application-shader-fs
   (str preamble (:glsl (:fragment-shader collision-application-shader))))
+
+; COLLISION APPLICATION INITIALIZATION
+
+(def collision-application-fragment-shader-init
+  {
+    (g/gl-frag-color) (g/vec4 0.0)})
+
+(def collision-application-shader-init
+  (gprogram/program
+    {
+      :vertex-shader collision-application-vertex-shader
+      :fragment-shader collision-application-fragment-shader-init}))
+
+(def collision-application-shader-init-vs
+  (str preamble (:glsl (:vertex-shader collision-application-shader-init))))
+
+(def collision-application-shader-init-fs
+  (str preamble (:glsl (:fragment-shader collision-application-shader-init))))
+
 
 ; END SHADERS
 
@@ -304,6 +341,7 @@
      summation-target (:summation-target physics)
      copy-material (:copy-material physics)
      collision-application-material (:collision-application-material physics)
+     collision-application-init-material (:collision-application-init-material physics)
      canvas-width (-> renderer .-domElement .-width)
      canvas-height (-> renderer .-domElement .-height)
      units-mesh (get-in component [:scene-add-units :units-mesh])]
@@ -361,8 +399,10 @@
     (-> renderer .-autoClearDepth (set! true))
 
     ; Sum up collision forces
-    (-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
-    (-> renderer (.render summation-scene camera summation-target true))
+    ;(-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
+    (-> quad .-material (set! collision-application-init-material))
+    (-> renderer (.render compute-scene compute-camera summation-target true))
+    (-> renderer (.render summation-scene camera summation-target false))
 
     ; Apply collision forces
     (-> quad .-material (set! collision-application-material))
@@ -567,7 +607,14 @@
          {
            :uniforms collision-application-uniforms
            :vertexShader collision-application-shader-vs
-           :fragmentShader collision-application-shader-fs})]
+           :fragmentShader collision-application-shader-fs})
+     collision-application-init-material
+       (new js/THREE.RawShaderMaterial
+         #js
+         {
+           :uniforms collision-application-uniforms
+           :vertexShader collision-application-shader-init-vs
+           :fragmentShader collision-application-shader-init-fs})]
 
     (-> collisions-scene
       (.add mesh))
@@ -583,7 +630,8 @@
       (assoc :summation-mesh summation-mesh)
       (assoc :summation-scene summation-scene)
       (assoc :copy-material copy-material)
-      (assoc :collision-application-material collision-application-material))))
+      (assoc :collision-application-material collision-application-material)
+      (assoc :collision-application-init-material collision-application-init-material))))
 
 (defcom
   new-physics
@@ -596,7 +644,8 @@
    summation-scene
    summation-mesh
    copy-material
-   collision-application-material]
+   collision-application-material
+   collision-application-init-material]
   (fn [component]
     (get-physics component))
   (fn [component]
