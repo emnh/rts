@@ -6,7 +6,7 @@
     [game.client.ground-local :as ground]
     [game.client.config :as config]
     [game.client.math :as math]
-    [game.client.gamma_ext :as ge :refer [get-name]]
+    [game.client.gamma_ext :as ge :refer [get-name random]]
     [game.client.scene :as scene]
     [game.client.engine2 :as engine2
       :refer
@@ -24,7 +24,12 @@
          u-max-units
          u-max-units-res
          units-shader-hack
-         discard-magic]]
+         discard-magic
+         copy-shader-vs
+         copy-shader-fs
+         t-units-position
+         t-copy-rt
+         u-copy-rt-scale]]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string])
@@ -42,7 +47,7 @@
 
 (def t-units-collisions (g/uniform "tUnitsCollisions" :sampler2D))
 
-(def t-copy-rt (g/uniform "tCopyRT" :sampler2D))
+(def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
 (def bounding-sphere-radius 20.0)
@@ -116,29 +121,13 @@
   [index]
   (g/texture2D t-units-collisions (get-collision-fragment-2d-index index)))
 
-(def unit-collision-pairs
-  (into
-    []
-    (for
-      [a [:x :y :z :w]
-       b [:x :y :z :w]
-       :when (not= a b)]
-      [a b])))
-
-; 12
-(def collisions-per-fragment
-  (count unit-collision-pairs))
-
 (def units-per-fragment 4)
-
-;(println ["unit-collisions-potentials" unit-collision-potentials])
 
 (def unit-collisions-summation-vertex-shader
   (let
     [
      ; We are going to read the same fragment units-per-fragment times,
      ; and output units-per-fragment quads per fragment.
-     ;collision-per-fragment-index (g/mod a-fragment-index collisions-per-fragment)
      unit-per-fragment-index (g/mod a-fragment-index units-per-fragment)
      fragment-index (g/div (g/- a-fragment-index unit-per-fragment-index) units-per-fragment)
      fragment (get-collision-fragment fragment-index)
@@ -152,13 +141,12 @@
      uv-o uv
      ;uv (g/vec2 (g/+ (ge/x uv) unit-per-fragment-index) (ge/y uv))
 
-     ; uv 0 to 1 to normalized device coordinates -1 to 1 with flipped y
-     ; and added quad
-     vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 0.5 -0.5)) u-max-units-res)
-     uv (g/vec2 (ge/x uv) (g/- 0.0 (ge/y uv)))
+     ; uv 0 to 1 to normalized device coordinates -1 to 1 and added quad
+     vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 0.5 0.5)) u-max-units-res)
+     ;uv (g/vec2 (ge/x uv) (g/- 0.0 (ge/y uv)))
      uv (g/+ uv vpos)
      uv (g/* uv 2.0)
-     uv (g/+ (g/vec2 -1 1) uv)
+     uv (g/+ (g/vec2 -1 -1) uv)
      collisions
        (for
         [unit-per-fragment-index2 [0 1 2 3]]
@@ -167,6 +155,18 @@
            unit-b-index (decode-unit-index unit-b)
            unit-b-pos (get-unit-position unit-b-index)
            dv (g/- unit-a-pos unit-b-pos)
+          ;  dv (g/vec3 unit-a unit-b 0.0)
+           rx (random (g/+ unit-a-index unit-b-index))
+           ry (random rx)
+           rz (random ry)
+           ;rv (g/normalize (g/vec3 rx ry rz))
+           rv (g/vec3 0)
+           dv
+           (ge/fake_if
+             (g/== unit-a-pos unit-b-pos)
+             ; jiggle randomly if position is equal
+             rv
+             dv)
            pos-delta
             (ge/fake_if
               (g/== unit-per-fragment-index unit-per-fragment-index2)
@@ -179,37 +179,37 @@
                 (g/vec3 0.0)))]
           pos-delta))
       value (reduce g/+ collisions)
+      absvalue (g/abs value)
       non-zero-value
         (g/or
-          (g/> (ge/x value) 0)
+          (g/> (ge/x absvalue) 0)
           (g/or
-            (g/> (ge/y value) 0)
-            (g/> (ge/z value) 0)))
-      value
-        (ge/fake_if
-          non-zero-value
-          (g/normalize value)
-          value)]
-    (merge
-      {
-        v-collision-value value
-        v-uv uv-o
-        (g/variable "pos" :vec3) vertex-position
-        (g/variable "blah" :vec3) vertex-normal
-        (g/variable "test" :vec2) vertex-uv
-        (g/gl-position) ;(g/vec4 uv 1.0 1.0)})))
-        (ge/fake_if
-          non-zero-value
-          (g/vec4 uv 1.0 1.0)
-          (g/vec4 10.0 10.0 10.0 1.0))})))
+            (g/> (ge/y absvalue) 0)
+            (g/> (ge/z absvalue) 0)))]
+      ; value
+      ;   (ge/fake_if
+      ;     non-zero-value
+      ;     (g/normalize value)
+      ;     value)]
+    {
+      v-collision-value value
+      v-uv uv-o
+      (g/variable "pos" :vec3) vertex-position
+      (g/variable "blah" :vec3) vertex-normal
+      (g/variable "test" :vec2) vertex-uv
+      (g/gl-position) ;(g/vec4 uv 1.0 1.0)})))
+      (ge/fake_if
+        non-zero-value
+        (g/vec4 uv 1.0 1.0)
+        (g/vec4 10.0 10.0 10.0 1.0))}))
 
 ; (println ["ast" unit-collisions-summation-vertex-shader])
 ; (ge/test-shader unit-collisions-summation-vertex-shader)
 
 (def unit-collisions-summation-fragment-shader
   {
-    (g/gl-frag-color) (g/vec4 v-uv 0 1)})
-    ; (g/gl-frag-color) (g/vec4 v-collision-value 1)})
+    ;(g/gl-frag-color) (g/vec4 v-uv 0 1)})
+    (g/gl-frag-color) (g/vec4 v-collision-value 1)})
 
 (console-time
   "Unit Collisions Shader"
@@ -230,31 +230,51 @@
 
   ;  (:glsl (:vertex-shader unit-collisions-summation-shader))])
 
-; COPY SHADER
 
-(def copy-vertex-shader
+; COLLISION APPLICATION SHADER
+
+(def collision-application-vertex-shader
   {
-    v-uv vertex-uv
     (g/gl-position)
     (->
       (g/* projection-matrix model-view-matrix)
       (g/* (g/vec4 vertex-position 1)))})
 
-(def copy-fragment-shader
-  {
-    (g/gl-frag-color) (g/texture2D t-copy-rt v-uv)})
+(def collision-application-fragment-shader
+  (let
+    [
+      uv (g/div (g/swizzle (g/gl-frag-coord) :xy) u-max-units-res)
+      position (g/swizzle (g/texture2D t-units-position uv) :xyz)
+      update (g/texture2D t-collision-application uv)
+      delta
+      (ge/fake_if
+        (g/== (ge/w update) 1)
+        (g/swizzle update :xyz)
+        (g/vec3 0.0))
+      weight 10.0
+      delta (g/* weight (g/normalize delta))
+      new-position (g/+ position delta)
+      new-position
+      (ge/fake_if
+        (g/or
+          (g/> (g/abs (ge/x new-position)) (g/div (ge/x u-map-size) 2.0))
+          (g/> (g/abs (ge/z new-position)) (g/div (ge/z u-map-size) 2.0)))
+        position
+        new-position)]
+    {
+      (g/gl-frag-color) (g/vec4 new-position 1)}))
 
-(def copy-shader
+(def collision-application-shader
   (gprogram/program
     {
-      :vertex-shader copy-vertex-shader
-      :fragment-shader copy-fragment-shader}))
+      :vertex-shader collision-application-vertex-shader
+      :fragment-shader collision-application-fragment-shader}))
 
-(def copy-shader-vs
-  (str preamble (:glsl (:vertex-shader copy-shader))))
+(def collision-application-shader-vs
+  (str preamble (:glsl (:vertex-shader collision-application-shader))))
 
-(def copy-shader-fs
-  (str preamble (:glsl (:fragment-shader copy-shader))))
+(def collision-application-shader-fs
+  (str preamble (:glsl (:fragment-shader collision-application-shader))))
 
 ; END SHADERS
 
@@ -269,6 +289,8 @@
      compute-camera (:camera compute-shader)
      renderer (data (:renderer init-renderer))
      engine (:engine2 component)
+     units-positions-target1 (:units-rt1 engine)
+     units-positions-target2 (:units-rt2 engine)
      physics (:physics component)
      scene (:collisions-scene physics)
      camera (:collisions-camera physics)
@@ -281,8 +303,10 @@
      summation-scene (:summation-scene physics)
      summation-target (:summation-target physics)
      copy-material (:copy-material physics)
+     collision-application-material (:collision-application-material physics)
      canvas-width (-> renderer .-domElement .-width)
-     canvas-height (-> renderer .-domElement .-height)]
+     canvas-height (-> renderer .-domElement .-height)
+     units-mesh (get-in component [:scene-add-units :units-mesh])]
 
     ; Prepare
     (-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
@@ -336,22 +360,55 @@
     (-> renderer .-autoClearStencil (set! true))
     (-> renderer .-autoClearDepth (set! true))
 
+    ; Sum up collision forces
+    (-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
     (-> renderer (.render summation-scene camera summation-target true))
 
-    ; for debug
+    ; Apply collision forces
+    (-> quad .-material (set! collision-application-material))
+    (-> renderer (.render compute-scene compute-camera units-positions-target2 true))
+
+    ; Copy positions from target 2 to target 1
     (aset
       (-> copy-material .-uniforms)
       (get-name t-copy-rt)
-      ;#js { :value (-> collisions-rt .-texture)}
-      #js { :value (-> summation-target .-texture)})
+      ; #js { :value (-> collisions-rt .-texture)}
+      #js { :value (-> units-positions-target2 .-texture)})
+    (aset
+      (-> copy-material .-uniforms)
+      (get-name u-copy-rt-scale)
+      #js { :value (new js/THREE.Vector4 1 1 1 1)})
     (-> quad .-material (set! copy-material))
-    (-> quad .-material .-needsUpdate (set! true))
-    (-> renderer (.render compute-scene compute-camera))))
+    (-> renderer (.render compute-scene compute-camera units-positions-target1 true))
+
+    ; Show render target on screen for debug
+    (aset
+      (-> copy-material .-uniforms)
+      (get-name t-copy-rt)
+      #js { :value (-> collisions-rt .-texture)})
+      ; #js { :value (-> summation-target .-texture)})
+      ; #js { :value (-> units-positions-target1 .-texture)})
+    (aset
+      (-> copy-material .-uniforms)
+      (get-name u-copy-rt-scale)
+      ; #js { :value (new js/THREE.Vector4 2048 256 2048 1)}
+      #js { :value (new js/THREE.Vector4 1 1 1 1)})
+    (-> quad .-material (set! copy-material))
+    ;(-> quad .-material .-needsUpdate (set! true))
+    (-> renderer (.render compute-scene compute-camera))
+
+    ; Update units mesh positions texture
+    (aset
+      (-> units-mesh .-material .-uniforms)
+      (get-name t-units-position)
+      #js { :value (-> units-positions-target1 .-texture)})))
+
+
 
 
 (defcom
   new-update-physics
-  [compute-shader engine2 physics]
+  [compute-shader engine2 physics scene-add-units]
   []
   (fn [component]
     component)
@@ -474,10 +531,16 @@
           :blending js/THREE.AdditiveBlending})
      summation-scene (new js/THREE.Scene)
      summation-mesh (new js/THREE.Mesh summation-geo summation-material)
+     width (get-in config [:terrain :width])
+     elevation (get-in config [:terrain :max-elevation])
+     height (get-in config [:terrain :width])
      copy-uniforms #js {}
      _
-      (do
-        (aset copy-uniforms
+      (doto copy-uniforms
+        (aset
+          (get-name u-copy-rt-scale)
+          #js { :value (new js/THREE.Vector4 width elevation height 1)})
+        (aset
           (get-name t-copy-rt)
           #js { :value nil}))
      copy-material
@@ -486,7 +549,26 @@
          {
            :uniforms copy-uniforms
            :vertexShader copy-shader-vs
-           :fragmentShader copy-shader-fs})]
+           :fragmentShader copy-shader-fs})
+     collision-application-uniforms #js {}
+     units-rt1 (:units-rt1 engine)
+     units-rt2 (:units-rt2 engine)
+     _
+      (doto
+        collision-application-uniforms
+        (set-uniforms)
+        (set-uniforms2)
+        (aset
+          (get-name t-collision-application)
+          #js { :value (-> summation-target .-texture)}))
+     collision-application-material
+       (new js/THREE.RawShaderMaterial
+         #js
+         {
+           :uniforms collision-application-uniforms
+           :vertexShader collision-application-shader-vs
+           :fragmentShader collision-application-shader-fs})]
+
     (-> collisions-scene
       (.add mesh))
     (-> summation-scene
@@ -500,7 +582,8 @@
       (assoc :summation-target summation-target)
       (assoc :summation-mesh summation-mesh)
       (assoc :summation-scene summation-scene)
-      (assoc :copy-material copy-material))))
+      (assoc :copy-material copy-material)
+      (assoc :collision-application-material collision-application-material))))
 
 (defcom
   new-physics
@@ -512,7 +595,8 @@
    summation-target
    summation-scene
    summation-mesh
-   copy-material]
+   copy-material
+   collision-application-material]
   (fn [component]
     (get-physics component))
   (fn [component]

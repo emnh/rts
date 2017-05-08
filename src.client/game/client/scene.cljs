@@ -229,19 +229,23 @@
 
 (defcom new-scene-add-units
   [scene init-scene engine2]
-  []
+  [units-mesh]
   (fn [component]
-    (if (= (:start-count component) 0)
-      (let
-        [
-         units-mesh (:mesh engine2)
-         new-units-mesh (new THREE.Mesh (.-geometry units-mesh) (.-material units-mesh))]
-        (-> new-units-mesh .-frustumCulled (set! false))
-        (-> new-units-mesh .-renderOrder (set! -5))
-        (add scene new-units-mesh)
-        component)
-      component))
+    ; (if (= (:start-count component) 0)
+    (let
+      [
+       units-mesh (:mesh engine2)
+       new-units-mesh (new THREE.Mesh (.-geometry units-mesh) (.-material units-mesh))]
+      (-> new-units-mesh .-frustumCulled (set! false))
+      (-> new-units-mesh .-renderOrder (set! -5))
+      (add scene new-units-mesh)
+      (->
+        component
+        (assoc :units-mesh new-units-mesh))))
   (fn [component]
+    (if
+      units-mesh
+      (remove scene units-mesh))
     component))
 
 (defn get-camera

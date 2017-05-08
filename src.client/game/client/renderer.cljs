@@ -49,7 +49,7 @@
      (-> renderer (.setScissorTest false))
      ;(-> renderer (.setClearColor (-> scene .-fog .-color)))
      (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 1.0))
-     ;(-> renderer (.render scene camera))
+     (-> renderer (.render scene camera))
      ;(minimap/on-render component minimap)
      ;(overlay/on-xp-render component three-overlay)
      (js/requestAnimationFrame (partial render-loop component)))))

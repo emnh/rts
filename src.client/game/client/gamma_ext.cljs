@@ -198,6 +198,13 @@
       glsl
       vars)))
 
+(defn random
+  [co]
+  (g/fract
+    (g/*
+      (g/sin (g/* co 12.989))
+      43758.545)));
+
 (defn gfunc
   [name type & body]
   ; { :tag term :head :customfunction :function name :body body :type type}

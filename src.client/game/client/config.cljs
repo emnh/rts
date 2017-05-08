@@ -9,16 +9,17 @@
    :dom
     {
       :controls-height 250}
-   :units {
-           ; if max-units-base is 8, then max-units is 2^(8*2) = 64k
-           :max-units-base 2
-           :count 40
-           :m3count 20
-           :speed 50
-           :random-location true
-           :air-altitude 40
-           :animated true
-           :collision-bounce 0.2}
+   :units
+    {
+      ; if max-units-base is 8, then max-units is 2^(8*2) = 64k
+      :max-units-base 6
+      :count 40
+      :m3count 20
+      :speed 50
+      :random-location true
+      :air-altitude 40
+      :animated true
+      :collision-bounce 0.2}
    :physics
     {
       :collision-res-x 256

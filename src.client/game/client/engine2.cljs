@@ -25,19 +25,19 @@ return test ? arg1 : arg2;
 
 (def swizzle-by-index "
 float swizzle_by_index(vec4 arg, float index) {
-if (index == 0.0) {
-  return arg.x;
-} else {
-  if (index == 1.0) {
-    return arg.y;
+  if (index == 0.0) {
+    return arg.x;
   } else {
-    if (index == 2.0) {
-      return arg.z;
+    if (index == 1.0) {
+      return arg.y;
     } else {
-      return arg.w;
+      if (index == 2.0) {
+        return arg.z;
+      } else {
+        return arg.w;
+      }
     }
   }
-}
 }
 ")
 
@@ -69,6 +69,9 @@ if (index == 0.0) {
 (def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
 
 (def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
+
+(def u-copy-rt-scale (g/uniform "uCopyRTScale" :vec4))
+(def t-copy-rt (g/uniform "tCopyRT" :sampler2D))
 
 (def v-uv (g/varying "vUV" :vec2 :mediump))
 
@@ -206,13 +209,6 @@ if (index == 0.0) {
 
 (def unit-positions-init-vertex-shader simple-vertex-shader)
 
-(defn random
-  [co]
-  (g/fract
-    (g/*
-      (g/sin (g/* co 12.989))
-      43758.545)));
-
 (def unit-positions-init-fragment-shader
   (let
     [
@@ -229,21 +225,15 @@ if (index == 0.0) {
         ;     (ge/y uv)
         ;     (ge/y u-max-units-res))
         ;   (ge/x uv))
-      rnd-f #(g/- (random %) 0.5)
+      rnd-f #(g/- (ge/random %) 0.5)
       x (g/* (rnd-f ir1) (ge/x u-map-size))
       ;y (ge/y u-map-size)
       z (g/* (rnd-f ir2) (ge/z u-map-size))
       ;x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ;z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
-      ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
-      ;z (g/* (g/- (ge/y uv) 0.5) (ge/z u-map-size))
-      x
-      (ge/fake_if
-        (g/> (ge/x uv) 0.5)
-        (g/float 0.0)
-        (g/float 40.0))
-      z x
-      y (get-ground-height x z)]
+      x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
+      z (g/* (g/- (ge/y uv) 0.5) (ge/z u-map-size))
+      y 300.0]; (get-ground-height x z)]
     {
       (g/gl-frag-color) (g/vec4 x y z 1)}))
 
@@ -252,6 +242,37 @@ if (index == 0.0) {
     {
       :vertex-shader unit-positions-init-vertex-shader
       :fragment-shader unit-positions-init-fragment-shader}))
+
+; COPY SHADER
+; copy render target for debugging to screen
+
+(def copy-vertex-shader
+  {
+    v-uv vertex-uv
+    (g/gl-position)
+    (->
+      (g/* projection-matrix model-view-matrix)
+      (g/* (g/vec4 vertex-position 1)))})
+
+(def copy-fragment-shader
+  {
+    (g/gl-frag-color)
+    (g/div
+      (g/texture2D t-copy-rt v-uv)
+      u-copy-rt-scale)})
+    ; (g/gl-frag-color) (g/abs (g/texture2D t-copy-rt v-uv))})
+
+(def copy-shader
+  (gprogram/program
+    {
+      :vertex-shader copy-vertex-shader
+      :fragment-shader copy-fragment-shader}))
+
+(def copy-shader-vs
+  (str preamble (:glsl (:vertex-shader copy-shader))))
+
+(def copy-shader-fs
+  (str preamble (:glsl (:fragment-shader copy-shader))))
 
 ; (println
 ;   ["unit-vertex-shader"
@@ -275,6 +296,7 @@ if (index == 0.0) {
   (let
     [
      compute-shader (:compute-shader component)
+     render-count (:render-count component)
      scene (:scene compute-shader)
      camera (:camera compute-shader)
      quad (:quad compute-shader)
@@ -282,15 +304,21 @@ if (index == 0.0) {
      engine (:engine2 component)
      render-target1 (:units-rt1 engine)
      init-material (:init-material engine)]
-    (-> quad .-material (set! init-material))
-    (-> renderer (.render scene camera render-target1 true))))
+    (if
+      (= @render-count 0)
+      (do
+        (-> quad .-material (set! init-material))
+        (-> renderer (.render scene camera render-target1 true))))
+    (swap! render-count inc)))
 
 (defcom
   new-update-units
   [compute-shader engine2]
-  []
+  [render-count]
   (fn [component]
-    component)
+    (->
+      component
+      (assoc :render-count (atom 0))))
   (fn [component]
     component))
 
