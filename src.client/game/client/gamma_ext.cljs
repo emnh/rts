@@ -16,6 +16,7 @@
     gamma.emit.construct
     [gamma.api :as g]
     [gamma.program :as program]
+    [clojure.string :as string]
     ; TODO: remove after debug
     [gamma.compiler.core :as gamma_compiler_core :refer [transform]]
     [gamma.compiler.common :refer [get-element map-path location-conj]]
@@ -29,6 +30,7 @@
     [gamma.compiler.move-assignments :refer [move-assignments]])
   (:require-macros [game.shared.macros :as macros :refer [console-time]]))
 
+(defn get-name [x] (:name x))
 
 (defn part [v i]
   (g/aget v i))
@@ -79,11 +81,13 @@
 (def vertex-position (g/attribute "position" :vec3))
 
 (def test-vertex-shader
-  {
-    (g/gl-position)
-    (->
-      (g/* projection-matrix model-view-matrix)
-      (g/* (g/vec4 vertex-position 1)))})
+  (let
+    [a (g/variable "test" :float)]
+    {
+      (g/gl-position)
+      (->
+        (g/* projection-matrix model-view-matrix)
+        (g/* (g/vec4 vertex-position (g/if (g/== 1 1) 1 0))))}))
 
 (defn out
   [title x]
@@ -96,16 +100,64 @@
   (-> js/console (.log title))
   (-> js/console (.log (-> js/JSON (.stringify (clj->js x))))))
 
-(set! *print-fn*
-  (fn [& args]
-    (try
-      (throw (new js/Error "err"))
-      (catch js/Error e
-          (.log js/console e)))
-    (-> js/console (.log "hello"))
-    (.apply (.-log js/console) js/console (into-array args))))
+; GREAT *print-fn* for debugging where the prints are coming from
+; (set! *print-fn*
+;   (fn [& args]
+;     (try
+;       (throw (new js/Error "err"))
+;       (catch js/Error e
+;           (.log js/console e)))
+;     (-> js/console (.log "hello"))
+;     (.apply (.-log js/console) js/console (into-array args))))
+;
+; (println "test")
 
-(println "test")
+(defn compile-shader
+  [shader]
+  (let
+    [cshader
+      (program/shader shader {:float :mediump})]
+    (println (:ir cshader))))
+
+;(compile-shader test-vertex-shader)
+
+(defn glsl
+  [db shader]
+  (with-out-str
+     (fipp.engine/pprint-document
+       (emit/emit db shader)
+       {:width 80})))
+
+(defn print-shader-steps
+  [input]
+  (let
+    [
+      ast
+        (console-time "To AST"
+          (program/ast input))
+      db
+        (console-time "Flatten AST"
+          (flatten-ast ast))
+      bt
+        (console-time "Bubble Terms"
+          (bubble-terms db))
+      ; map-db-last
+      ;   (console-time "Map DB Last"
+      ;     (map last db))]
+      su
+        (console-time "Separate Usages"
+          (transform
+            {:root {:source-id :root :id :root}}
+            (separate-usages bt {} #{})))
+      out2
+        (fn [title x]
+          (out title (glsl x ast)))]
+    (out "AST" ast)
+    (out "Flatten AST" db)
+    (out "Bubble Terms" bt)
+    (out "Separate usages" su)))
+
+; (print-shader-steps test-vertex-shader)
 
 (defn test-shader
   [shader]
@@ -123,3 +175,50 @@
     shader))
     ;(out "ast" ast)
     ;(out "flatten-ast" db)))
+
+(defn reverse-subst-vars
+  [glsl vars]
+  (let
+    [new-mappings
+      (reduce-kv
+        (fn [d k v]
+          (assoc d k
+            (nth
+              (re-find (re-pattern (str (get-name k) " = (v[0-9]+)")) glsl)
+              1)))
+        {}
+        vars)]
+    ;(println ["new-mappings" new-mappings])
+    (reduce-kv
+      (fn [glsl k v]
+        (string/replace
+          glsl
+          (str (get new-mappings k) " = ")
+          (str (get-name k) " = ")))
+      glsl
+      vars)))
+
+(defn gfunc
+  [name type & body]
+  ; { :tag term :head :customfunction :function name :body body :type type}
+  (->
+    (apply ast/term :customfunction body)
+    (assoc :function name)
+    (assoc :type type)))
+
+(defn swizzle-by-index
+  [vector4 index]
+  (gfunc
+    :swizzle_by_index
+    :float
+    vector4
+    index))
+
+(defn fake_if
+  [test arg1 arg2]
+  (gfunc
+    :fake_if
+    (:type arg1)
+    test
+    arg1
+    arg2))

@@ -6,7 +6,7 @@
     [game.client.ground-local :as ground]
     [game.client.config :as config]
     [game.client.math :as math]
-    [game.client.gamma_ext :as ge]
+    [game.client.gamma_ext :as ge :refer [get-name]]
     [game.client.scene :as scene]
     [gamma.api :as g]
     [gamma.program :as gprogram]
@@ -17,7 +17,39 @@
 
 (def precision "precision mediump float;\n")
 
-(def preamble precision)
+(def fake-if-template "
+TYPE fake_if(bool test, TYPE arg1, TYPE arg2) {
+return test ? arg1 : arg2;
+}
+")
+
+(def swizzle-by-index "
+float swizzle_by_index(vec4 arg, float index) {
+if (index == 0.0) {
+  return arg.x;
+} else {
+  if (index == 1.0) {
+    return arg.y;
+  } else {
+    if (index == 2.0) {
+      return arg.z;
+    } else {
+      return arg.w;
+    }
+  }
+}
+}
+")
+
+(def fake-if
+  (apply str
+    (map #(string/replace fake-if-template "TYPE" (name %)) [:float :vec2 :vec3 :vec4])))
+
+(def preamble
+  (str
+    precision
+    swizzle-by-index
+    fake-if))
 
 (def vertex-position (g/attribute "position" :vec3))
 (def vertex-normal (g/attribute "normal" :vec3))
@@ -39,8 +71,6 @@
 (def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
 
 (def v-uv (g/varying "vUV" :vec2 :mediump))
-
-(defn get-name [x] (:name x))
 
 ; TEST SHADER
 (def simple-vertex-shader
@@ -142,6 +172,14 @@
        ;glpos (g/vec4 xy (ge/z glpos) (ge/w glpos))]
       glpos)})
 
+(def discard-magic
+  ; magic number, will be replaced by discard
+  (g/vec4 0 1 2 3))
+
+(defn units-shader-hack
+  [glsl]
+  (string/replace glsl #"\n.*vec4\(0.0, 1.0, 2.0, 3.0\)\);" "\ndiscard;"))
+
 (def units-fragment-shader
   (let
     [tex (g/texture2D t-model-sprite v-uv)]
@@ -156,18 +194,13 @@
       (g/if
         (g/> (ge/w tex) 0.1)
         (g/* tex (g/vec4 1.3))
-        ; magic number, will be replaced by discard
-        (g/vec4 0 1 2 3))}))
+        discard-magic)}))
 
 (def units-shader
   (gprogram/program
     {
       :vertex-shader units-vertex-shader
       :fragment-shader units-fragment-shader}))
-
-(defn units-shader-hack
-  [glsl]
-  (string/replace glsl #"\n.*vec4\(0.0, 1.0, 2.0, 3.0\)\);" "\ndiscard;"))
 
 ; POSITION INITIALIZE SHADER
 
@@ -202,6 +235,14 @@
       z (g/* (rnd-f ir2) (ge/z u-map-size))
       ;x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ;z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
+      ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
+      ;z (g/* (g/- (ge/y uv) 0.5) (ge/z u-map-size))
+      x
+      (ge/fake_if
+        (g/> (ge/x uv) 0.5)
+        (g/float 0.0)
+        (g/float 40.0))
+      z x
       y (get-ground-height x z)]
     {
       (g/gl-frag-color) (g/vec4 x y z 1)}))
