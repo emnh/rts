@@ -39,6 +39,7 @@
 
 ;(def u-canvas-res (g/uniform "uCanvasResolution" :vec2))
 (def u-collision-res (g/uniform "uCollisionResolution" :vec2))
+(def u-time (g/uniform "uTime" :float))
 
 (def v-unit-index (g/varying "vUnitIndex" :float :highp))
 (def v-collision-value (g/varying "vCollisionValue" :vec3 :highp))
@@ -50,7 +51,7 @@
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
-(def bounding-sphere-radius 5.0)
+(def bounding-sphere-radius (* 16.0 2))
 
 ; UNIT COLLISIONS SHADER
 
@@ -73,10 +74,19 @@
        yn (g/* 2.0 (g/div z (ge/z u-map-size)))
        zn (g/div a-unit-index u-max-units)
        unit-center (g/vec3 xn yn zn)
+       factor
+       (g/div
+         (g/vec2 bounding-sphere-radius)
+         (g/div
+           (g/swizzle u-map-size :xz)
+           (g/swizzle u-collision-res :xy)))
        vertex-pos-scaled
-         (g/* bounding-sphere-radius
-          (g/div vertex-position
-            (g/vec3 (ge/x u-collision-res) (ge/y u-collision-res) 1.0)))
+       (g/*
+         (g/vec3 factor 0)
+         (g/*
+           2.0
+           (g/div vertex-position
+             (g/vec3 (ge/x u-collision-res) (ge/y u-collision-res) 1.0))))
        unit-pos (g/+ unit-center vertex-pos-scaled)]
       (g/vec4 (g/swizzle unit-pos :xy) zn 1.0))})
 
@@ -96,7 +106,8 @@
       [d (g/length (g/* 2.0 (g/- v-uv (g/vec2 0.5))))
        r (encode-unit-index v-unit-index)]
       (g/if
-        (g/<= d 1.0)
+        ; XXX: testing 2.0 = bounding box instead of 1.0 = bounding sphere
+        (g/<= d 2.0)
         (g/vec4 r r r r)
         discard-magic))})
 
@@ -155,14 +166,13 @@
            unit-b-index (decode-unit-index unit-b)
            unit-b-pos (get-unit-position unit-b-index)
            dv (g/- unit-a-pos unit-b-pos)
-          ;  dv (g/vec3 unit-a unit-b 0.0)
-          ;  random-f #(g/- (g/* 2.0 (random %)) 1.0)
-           random-f random
-           theta (g/* 2.0 (g/* math/pi (random-f (g/- unit-b-index unit-a-index))))
-          ;  rx (random-f (g/- unit-a-index unit-b-index))
+           seed
+            (g/+
+              u-time
+              (g/- unit-b-index unit-a-index))
+           theta (g/* 2.0 (g/* math/pi (random seed)))
            rx (g/cos theta)
            ry 0
-          ;  rz (random-f (g/+ 17.23 (g/- unit-a-index unit-b-index)))
            rz (g/sin theta)
            rv (g/vec3 rx ry rz)
            dv
@@ -173,7 +183,9 @@
              dv)
            pos-delta
             (ge/fake_if
-              (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
+              (g/or
+                (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
+                (g/> (g/length dv) bounding-sphere-radius))
               (g/vec3 0.0)
               (ge/fake_if
                 (g/and
@@ -181,16 +193,24 @@
                   (g/> unit-b 0))
                 dv
                 (g/vec3 0.0)))
-           pos-delta (g/vec3 (ge/x pos-delta) 0.0 (ge/z pos-delta))]
+           pos-delta (g/vec3 (ge/x pos-delta) 0.0 (ge/z pos-delta))
+           pos-delta
+            (ge/fake_if
+              (ge/non-zero? pos-delta)
+              (g/normalize pos-delta)
+              pos-delta)]
           pos-delta))
       value (reduce g/+ collisions)
-      absvalue (g/abs value)
-      non-zero-value
-        (g/or
-          (g/> (ge/x absvalue) 0)
-          (g/or
-            (g/> (ge/y absvalue) 0)
-            (g/> (ge/z absvalue) 0)))]
+      non-zero-value (ge/non-zero? value)
+      value
+      (ge/fake_if
+        non-zero-value
+        ; Values experimentally found to reduce bias.
+        ; They depend on bounding sphere size though, so pretty useless.
+        ; (g/+ (g/normalize value) (g/vec3 0.25 0.0 0.75))
+        ;(g/+ (g/normalize value) (g/vec3 0.25 0.0 0.25))
+        (g/normalize value)
+        value)]
       ; value
       ;   (ge/fake_if
       ;     non-zero-value
@@ -253,8 +273,10 @@
       update (g/texture2D t-collision-application uv)
       delta
       (ge/fake_if
-        (g/== (ge/w update) 1)
-        (g/swizzle update :xyz)
+        (g/>= (ge/w update) 1)
+        (g/div
+          (g/swizzle update :xyz)
+          (g/vec3 (ge/w update)))
         (g/vec3 0.0))
       weight 10.0
       absdelta (g/abs delta)
@@ -346,7 +368,7 @@
      canvas-height (-> renderer .-domElement .-height)
      units-mesh (get-in component [:scene-add-units :units-mesh])]
 
-    ; Prepare
+    ; Prepare Collision
     (-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
     (-> renderer (.clearTarget collisions-rt true true true))
     (-> renderer .-autoClear (set! false))
@@ -356,7 +378,7 @@
 
     (-> state .-buffers .-stencil (.setTest false))
 
-    ; Pass 1: Red
+    ; Collision Pass 1: Red
     (-> gl (.colorMask true false false false))
     (-> material .-depthFunc (set! js/THREE.LessDepth))
     (-> renderer (.render scene camera collisions-rt false))
@@ -375,17 +397,17 @@
         (-> gl .-KEEP)
         (-> gl .-INCR)))
 
-    ; Pass 2: Green
+    ; Collision Pass 2: Green
     (-> renderer (.clearTarget collisions-rt false false true))
     (-> gl (.colorMask false true false false))
     (-> renderer (.render scene camera collisions-rt false))
 
-    ; Pass 3: Blue
+    ; Collision Pass 3: Blue
     (-> renderer (.clearTarget collisions-rt false false true))
     (-> gl (.colorMask false false true false))
     (-> renderer (.render scene camera collisions-rt false))
 
-    ; Pass 4: Alpha
+    ; Collision Pass 4: Alpha
     (-> renderer (.clearTarget collisions-rt false false true))
     (-> gl (.colorMask false false false true))
     (-> renderer (.render scene camera collisions-rt false))
@@ -399,7 +421,10 @@
     (-> renderer .-autoClearDepth (set! true))
 
     ; Sum up collision forces
-    ;(-> renderer (.setClearColor (new js/THREE.Color 0x000000) 0.0))
+    (aset
+      (-> collision-application-init-material .-uniforms)
+      (get-name u-time)
+      #js { :value (common/game-time)})
     (-> quad .-material (set! collision-application-init-material))
     (-> renderer (.render compute-scene compute-camera summation-target true))
     (-> renderer (.render summation-scene camera summation-target false))
@@ -490,6 +515,11 @@
         (aset uniforms
           (get-name t-units-collisions)
           #js { :value (-> collisions-rt .-texture)}))
+     set-time-uniform
+       (fn [uniforms]
+         (aset uniforms
+           (get-name u-time)
+           #js { :value (common/game-time)}))
      _ (set-uniforms uniforms)
      _ (set-uniforms2 uniforms)
      _ (set-uniforms3 uniforms)

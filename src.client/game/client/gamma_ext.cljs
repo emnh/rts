@@ -229,3 +229,13 @@
     test
     arg1
     arg2))
+
+(defn non-zero?
+  [value]
+  (let
+    [absvalue (g/abs value)]
+    (g/or
+      (g/> (x absvalue) 0)
+      (g/or
+        (g/> (y absvalue) 0)
+        (g/> (z absvalue) 0)))))
