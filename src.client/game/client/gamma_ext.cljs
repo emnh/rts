@@ -232,10 +232,11 @@
 
 (defn non-zero?
   [value]
-  (let
-    [absvalue (g/abs value)]
-    (g/or
-      (g/> (x absvalue) 0)
-      (g/or
-        (g/> (y absvalue) 0)
-        (g/> (z absvalue) 0)))))
+  (g/> (g/length value) 0))
+  ; (let
+  ;   [absvalue (g/abs value)]
+  ;   (g/or
+  ;     (g/> (x absvalue) 0)
+  ;     (g/or
+  ;       (g/> (y absvalue) 0)
+  ;       (g/> (z absvalue) 0)))))

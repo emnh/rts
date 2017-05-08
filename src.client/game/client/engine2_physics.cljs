@@ -29,7 +29,8 @@
          copy-shader-fs
          t-units-position
          t-copy-rt
-         u-copy-rt-scale]]
+         u-copy-rt-scale
+         get-ground-height]]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string])
@@ -51,7 +52,7 @@
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
-(def bounding-sphere-radius (* 16.0 2))
+(def bounding-sphere-radius (* 16.0 1))
 
 ; UNIT COLLISIONS SHADER
 
@@ -279,28 +280,24 @@
           (g/vec3 (ge/w update)))
         (g/vec3 0.0))
       weight 10.0
-      absdelta (g/abs delta)
       delta
       (ge/fake_if
-        (g/or
-          (g/> (ge/x absdelta) 0)
-          (g/or
-            (g/> (ge/y absdelta) 0)
-            (g/> (ge/z absdelta) 0)))
+        (ge/non-zero? delta)
         (g/* weight (g/normalize delta))
         delta)
       new-position (g/+ position delta)
-      result-position
-      (ge/fake_if
-        (g/or
-          (g/> (g/abs (ge/x new-position)) (g/div (ge/x u-map-size) 2.0))
-          (g/or
-            (g/or
-              (g/< (g/abs (ge/y new-position)) 0)
-              (g/> (g/abs (ge/y new-position)) (g/* 2.0 (ge/y u-map-size))))
-            (g/> (g/abs (ge/z new-position)) (g/div (ge/z u-map-size) 2.0))))
-        position
-        new-position)]
+      x
+      (g/clamp
+        (g/div (ge/x u-map-size) -2.0)
+        (g/div (ge/x u-map-size) 2.0)
+        (ge/x new-position))
+      z
+      (g/clamp
+        (g/div (ge/z u-map-size) -2.0)
+        (g/div (ge/z u-map-size) 2.0)
+        (ge/z new-position))
+      y (get-ground-height x z)
+      result-position (g/vec3 x y z)]
     {
       (g/gl-frag-color) (g/vec4 result-position 1)}))
 
