@@ -61,9 +61,9 @@
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
-(def bounding-sphere-radius (* 16.0 8))
+(def bounding-sphere-radius (* 16.0 1.5))
 
-(def collision-resolution-speed 10.0)
+(def collision-resolution-speed 16.0)
 
 ; UNIT COLLISIONS SHADER
 
@@ -119,7 +119,7 @@
        r (encode-unit-index v-unit-index)]
       (g/if
         ; XXX: testing 2.0 = bounding box instead of 1.0 = bounding sphere
-        (g/<= d 2.0)
+        (g/<= d 1.0)
         (g/vec4 r r r r)
         discard-magic))})
 
@@ -195,9 +195,11 @@
              dv)
            pos-delta
             (ge/fake_if
-              (g/or
-                (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
-                (g/> (g/length dv) bounding-sphere-radius))
+              ; (g/or
+              ;   (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
+              ;   ; can't do this, because new collisions depends on separating them
+              ;   (g/> (g/length dv) bounding-sphere-radius))
+              (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
               (g/vec3 0.0)
               (ge/fake_if
                 (g/and
@@ -265,15 +267,15 @@
           (->
             (:glsl (:fragment-shader unit-collisions-summation-shader))))))))
 
-; (if-not
-;   use-cache
-;   (do
-;     (println
-;       ["unit-collisions-summation-vertex-shader"
-;         unit-collisions-summation-shader-vs])
-;     (println
-;       ["unit-collisions-summation-fragment-shader"
-;         unit-collisions-summation-shader-fs])))
+(if-not
+  use-cache
+  (do
+    (println
+      ["unit-collisions-summation-vertex-shader"
+        unit-collisions-summation-shader-vs])
+    (println
+      ["unit-collisions-summation-fragment-shader"
+        unit-collisions-summation-shader-fs])))
 
 ; COLLISION APPLICATION SHADER
 

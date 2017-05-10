@@ -3,312 +3,320 @@
 (def unit-collisions-summation-shader-vs
   "
   attribute vec2 uv;
-  attribute vec3 normal;
-  uniform vec2 uCollisionResolution;
-  uniform float uTime;
-  uniform sampler2D tUnitsPosition;
-  uniform vec2 uMaxUnitsResolution;
-  uniform sampler2D tUnitsCollisions;
-  attribute vec3 position;
-  attribute float aFragmentIndex;
-  uniform float uMaxUnits;
-  varying highp vec3 vCollisionValue;
-  varying mediump vec2 vUV;
-  vec3 pos;
-  vec3 blah;
-  vec2 test;
-  void main(void){
-  vec3 v4538;
-  vec3 v3897;
-  float v3885;
-  vec3 v3896;
-  vec3 v3887;
-  vec3 v3893;
-  vec3 v4321;
-  float v4214;
-  vec4 v3873;
-  float v4263;
-  vec3 v3894;
-  vec3 v4325;
-  float v4213;
-  vec3 v4535;
-  vec3 v4393;
-  vec3 v4396;
-  vec3 v4466;
-  float v3871;
-  vec3 v3899;
-  vec3 v3888;
-  float v4262;
-  float v3880;
-  float v3872;
-  vec3 pos;
-  vec3 v3886;
-  vec3 v4324;
-  float v4319;
-  vec4 v4264;
-  float v4265;
-  vec3 v4464;
-  vec3 v4394;
-  vec2 test;
-  float v4216;
-  float v4391;
-  float v4390;
-  float v4392;
-  float v4462;
-  float v3879;
-  vec3 v3895;
-  vec3 v4537;
-  vec3 v3901;
-  vec3 v3898;
-  float v4266;
-  float v4461;
-  float v3878;
-  float v4320;
-  float v4217;
-  float v3877;
-  float v3881;
-  vec3 blah;
-  float v3883;
-  float v4322;
-  vec3 v3903;
-  float v3882;
-  float v4534;
-  vec3 v4296;
-  float v4533;
-  vec4 v4215;
-  float v4532;
-  vec3 v3904;
-  float v3874;
-  float v3889;
-  float v3876;
-  vec3 v3900;
-  float v3891;
-  vec3 v3905;
-  vec3 v4465;
-  vec3 v4323;
-  vec3 v4536;
-  vec3 v3902;
-  float v3875;
-  float v3890;
-  vec3 v3884;
-  vec3 v4395;
-  float v4463;
-  vec3 v3892;
-  vec3 v4467;
-  (v3871 = mod(aFragmentIndex, 4.0));
-  (v3872 = ((aFragmentIndex - v3871) / 4.0));
-  (v3873 = texture2D(
-    tUnitsCollisions,
-    vec2(
-      (mod(v3872, uCollisionResolution.x) / uCollisionResolution.x),
-      (floor((v3872 / uCollisionResolution.x)) / uCollisionResolution.y))));
-  (v3874 = swizzle_by_index(v3873, 1.0));
-  (v3875 = swizzle_by_index(v3873, v3871));
-  (v3876 = ((v3874 * uMaxUnits) - 1.0));
-  (v3877 = ((v3875 * uMaxUnits) - 1.0));
-  (v3878 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v3876 - v3877)) * 12.989)) * 43758.545)))));
-  (v3879 = swizzle_by_index(v3873, 3.0));
-  (v3880 = ((v3879 * uMaxUnits) - 1.0));
-  (v3881 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v3880 - v3877)) * 12.989)) * 43758.545)))));
-  (v3882 = swizzle_by_index(v3873, 0.0));
-  (v3883 = ((v3882 * uMaxUnits) - 1.0));
-  (v3884 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v3883, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v3883 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v3885 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v3883 - v3877)) * 12.989)) * 43758.545)))));
-  (v3886 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v3877, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v3877 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v3887 = fake_if(
-    (v3886 == v3884),
-    vec3(cos(v3885), 0.0, sin(v3885)),
-    (v3886 - v3884)));
-  (v3888 = fake_if(
-    ((abs((v3871 - 0.0)) < 0.1) || (length(v3887) > 16.0)),
-    vec3(0.0),
-    fake_if(((v3875 > 0.0) && (v3882 > 0.0)), v3887, vec3(0.0))));
-  (v3889 = swizzle_by_index(v3873, 2.0));
-  (v3890 = ((v3889 * uMaxUnits) - 1.0));
-  (v3891 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v3890 - v3877)) * 12.989)) * 43758.545)))));
-  (v3892 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v3890, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v3890 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v3893 = fake_if(
-    (v3886 == v3892),
-    vec3(cos(v3891), 0.0, sin(v3891)),
-    (v3886 - v3892)));
-  (v3894 = fake_if(
-    ((abs((v3871 - 2.0)) < 0.1) || (length(v3893) > 16.0)),
-    vec3(0.0),
-    fake_if(((v3875 > 0.0) && (v3889 > 0.0)), v3893, vec3(0.0))));
-  (v3895 = vec3(v3888.x, 0.0, v3888.z));
-  (v3896 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v3880, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v3880 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v3897 = fake_if(
-    (v3886 == v3896),
-    vec3(cos(v3881), 0.0, sin(v3881)),
-    (v3886 - v3896)));
-  (v3898 = fake_if(
-    ((abs((v3871 - 3.0)) < 0.1) || (length(v3897) > 16.0)),
-    vec3(0.0),
-    fake_if(((v3875 > 0.0) && (v3879 > 0.0)), v3897, vec3(0.0))));
-  (v3899 = vec3(v3898.x, 0.0, v3898.z));
-  (v3900 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v3876, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v3876 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v3901 = fake_if(
-    (v3886 == v3900),
-    vec3(cos(v3878), 0.0, sin(v3878)),
-    (v3886 - v3900)));
-  (v3902 = fake_if(
-    ((abs((v3871 - 1.0)) < 0.1) || (length(v3901) > 16.0)),
-    vec3(0.0),
-    fake_if(((v3875 > 0.0) && (v3874 > 0.0)), v3901, vec3(0.0))));
-  (v3903 = vec3(v3902.x, 0.0, v3902.z));
-  (v3904 = vec3(v3894.x, 0.0, v3894.z));
-  (v3905 = (((fake_if((length(v3895) > 0.0), normalize(v3895), v3895) + fake_if(
-    (length(v3903) > 0.0),
-    normalize(v3903),
-    v3903)) + fake_if((length(v3904) > 0.0), normalize(v3904), v3904)) + fake_if(
-    (length(v3899) > 0.0),
-    normalize(v3899),
-    v3899)));
-  (v4213 = mod(aFragmentIndex, 4.0));
-  (v4214 = ((aFragmentIndex - v4213) / 4.0));
-  (v4215 = texture2D(
-    tUnitsCollisions,
-    vec2(
-      (mod(v4214, uCollisionResolution.x) / uCollisionResolution.x),
-      (floor((v4214 / uCollisionResolution.x)) / uCollisionResolution.y))));
-  (v4216 = swizzle_by_index(v4215, v4213));
-  (v4217 = ((v4216 * uMaxUnits) - 1.0));
-  (v4262 = mod(aFragmentIndex, 4.0));
-  (v4263 = ((aFragmentIndex - v4262) / 4.0));
-  (v4264 = texture2D(
-    tUnitsCollisions,
-    vec2(
-      (mod(v4263, uCollisionResolution.x) / uCollisionResolution.x),
-      (floor((v4263 / uCollisionResolution.x)) / uCollisionResolution.y))));
-  (v4265 = swizzle_by_index(v4264, v4262));
-  (v4266 = ((v4265 * uMaxUnits) - 1.0));
-  (v4296 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v4266, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v4266 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v4319 = swizzle_by_index(v4264, 0.0));
-  (v4320 = ((v4319 * uMaxUnits) - 1.0));
-  (v4321 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v4320, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v4320 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v4322 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v4320 - v4266)) * 12.989)) * 43758.545)))));
-  (v4323 = fake_if(
-    (v4296 == v4321),
-    vec3(cos(v4322), 0.0, sin(v4322)),
-    (v4296 - v4321)));
-  (v4324 = fake_if(
-    ((abs((v4262 - 0.0)) < 0.1) || (length(v4323) > 16.0)),
-    vec3(0.0),
-    fake_if(((v4265 > 0.0) && (v4319 > 0.0)), v4323, vec3(0.0))));
-  (v4325 = vec3(v4324.x, 0.0, v4324.z));
-  (v4390 = swizzle_by_index(v4264, 1.0));
-  (v4391 = ((v4390 * uMaxUnits) - 1.0));
-  (v4392 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v4391 - v4266)) * 12.989)) * 43758.545)))));
-  (v4393 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v4391, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v4391 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v4394 = fake_if(
-    (v4296 == v4393),
-    vec3(cos(v4392), 0.0, sin(v4392)),
-    (v4296 - v4393)));
-  (v4395 = fake_if(
-    ((abs((v4262 - 1.0)) < 0.1) || (length(v4394) > 16.0)),
-    vec3(0.0),
-    fake_if(((v4265 > 0.0) && (v4390 > 0.0)), v4394, vec3(0.0))));
-  (v4396 = vec3(v4395.x, 0.0, v4395.z));
-  (v4461 = swizzle_by_index(v4264, 2.0));
-  (v4462 = ((v4461 * uMaxUnits) - 1.0));
-  (v4463 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v4462 - v4266)) * 12.989)) * 43758.545)))));
-  (v4464 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v4462, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v4462 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v4465 = fake_if(
-    (v4296 == v4464),
-    vec3(cos(v4463), 0.0, sin(v4463)),
-    (v4296 - v4464)));
-  (v4466 = fake_if(
-    ((abs((v4262 - 2.0)) < 0.1) || (length(v4465) > 16.0)),
-    vec3(0.0),
-    fake_if(((v4265 > 0.0) && (v4461 > 0.0)), v4465, vec3(0.0))));
-  (v4467 = vec3(v4466.x, 0.0, v4466.z));
-  (v4532 = swizzle_by_index(v4264, 3.0));
-  (v4533 = ((v4532 * uMaxUnits) - 1.0));
-  (v4534 = (2.0 * (3.141592653589793 * fract(
-    (sin(((uTime + (v4533 - v4266)) * 12.989)) * 43758.545)))));
-  (v4535 = texture2D(
-    tUnitsPosition,
-    vec2(
-      (mod(v4533, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-      (floor((v4533 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
-  (v4536 = fake_if(
-    (v4296 == v4535),
-    vec3(cos(v4534), 0.0, sin(v4534)),
-    (v4296 - v4535)));
-  (v4537 = fake_if(
-    ((abs((v4262 - 3.0)) < 0.1) || (length(v4536) > 16.0)),
-    vec3(0.0),
-    fake_if(((v4265 > 0.0) && (v4532 > 0.0)), v4536, vec3(0.0))));
-  (v4538 = vec3(v4537.x, 0.0, v4537.z));
-  (vCollisionValue = fake_if((length(v3905) > 0.0), normalize(v3905), v3905));
-  (vUV = vec2(
-    (mod(v4217, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-    (floor((v4217 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y)));
-  (pos = position);
-  (blah = normal);
-  (test = uv);
-  (gl_Position = fake_if(
-    (length(
-      (((fake_if((length(v4325) > 0.0), normalize(v4325), v4325) + fake_if(
-        (length(v4396) > 0.0),
-        normalize(v4396),
-        v4396)) + fake_if((length(v4467) > 0.0), normalize(v4467), v4467)) + fake_if(
-        (length(v4538) > 0.0),
-        normalize(v4538),
-        v4538))) > 0.0),
-    vec4(
-      (vec2(-1.0, -1.0) + ((vec2(
-        (mod(v4266, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
-        (floor((v4266 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y)) + ((position.xy + vec2(
-        0.5,
-        0.5)) / uMaxUnitsResolution)) * 2.0)),
-      1.0,
-      1.0),
-    vec4(10.0, 10.0, 10.0, 1.0)));
-  }
+attribute vec3 normal;
+uniform vec2 uCollisionResolution;
+uniform float uTime;
+uniform sampler2D tUnitsPosition;
+uniform vec2 uMaxUnitsResolution;
+uniform sampler2D tUnitsCollisions;
+attribute vec3 position;
+attribute float aFragmentIndex;
+uniform float uMaxUnits;
+varying highp vec3 vCollisionValue;
+varying mediump vec2 vUV;
+vec3 pos;
+vec3 blah;
+vec2 test;
+void main(void){
+vec3 v3816;
+vec3 v3800;
+float v4288;
+float v4421;
+float v3804;
+float v3797;
+float v4118;
+float v3807;
+float v3805;
+float v4223;
+float v4424;
+vec3 v3809;
+float v3789;
+vec3 v3801;
+vec3 v3808;
+float v3788;
+float v4354;
+vec3 pos;
+vec3 v3815;
+vec3 v4423;
+vec3 v4197;
+float v4355;
+vec4 v4165;
+vec3 v4224;
+vec3 v4292;
+vec2 test;
+float v4287;
+vec3 v3802;
+vec3 v3814;
+vec3 v4225;
+vec3 v3818;
+float v4117;
+float v3799;
+vec4 v3790;
+float v3811;
+vec3 v4357;
+float v4221;
+vec3 v4426;
+float v3793;
+vec3 v4289;
+vec3 v4222;
+float v4290;
+float v4164;
+float v4114;
+vec3 v3798;
+vec3 blah;
+float v3792;
+float v4356;
+float v4166;
+vec4 v4116;
+float v3791;
+vec3 v3812;
+float v4115;
+vec3 v3817;
+vec3 v4359;
+float v3810;
+vec3 v4291;
+float v4163;
+vec3 v4358;
+float v3796;
+float v3813;
+float v3795;
+vec3 v3803;
+float v4220;
+float v4422;
+vec3 v3806;
+float v3794;
+vec3 v4425;
+float v4167;
+(v3788 = mod(aFragmentIndex, 4.0));
+(v3789 = ((aFragmentIndex - v3788) / 4.0));
+(v3790 = texture2D(
+  tUnitsCollisions,
+  vec2(
+    (mod(v3789, uCollisionResolution.x) / uCollisionResolution.x),
+    (floor((v3789 / uCollisionResolution.x)) / uCollisionResolution.y))));
+(v3791 = swizzle_by_index(v3790, v3788));
+(v3792 = swizzle_by_index(v3790, 2.0));
+(v3793 = ((v3791 * uMaxUnits) - 1.0));
+(v3794 = ((v3792 * uMaxUnits) - 1.0));
+(v3795 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v3794 - v3793)) * 12.989)) * 43758.545)))));
+(v3796 = swizzle_by_index(v3790, 1.0));
+(v3797 = ((v3796 * uMaxUnits) - 1.0));
+(v3798 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v3797, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v3797 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v3799 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v3797 - v3793)) * 12.989)) * 43758.545)))));
+(v3800 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v3793, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v3793 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v3801 = fake_if(
+  (abs((v3788 - 1.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v3791 > 0.0) && (v3796 > 0.0)),
+    fake_if(
+      (v3800 == v3798),
+      vec3(cos(v3799), 0.0, sin(v3799)),
+      (v3800 - v3798)),
+    vec3(0.0))));
+(v3802 = vec3(v3801.x, 0.0, v3801.z));
+(v3803 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v3794, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v3794 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v3804 = swizzle_by_index(v3790, 0.0));
+(v3805 = ((v3804 * uMaxUnits) - 1.0));
+(v3806 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v3805, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v3805 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v3807 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v3805 - v3793)) * 12.989)) * 43758.545)))));
+(v3808 = fake_if(
+  (abs((v3788 - 0.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v3791 > 0.0) && (v3804 > 0.0)),
+    fake_if(
+      (v3800 == v3806),
+      vec3(cos(v3807), 0.0, sin(v3807)),
+      (v3800 - v3806)),
+    vec3(0.0))));
+(v3809 = vec3(v3808.x, 0.0, v3808.z));
+(v3810 = swizzle_by_index(v3790, 3.0));
+(v3811 = ((v3810 * uMaxUnits) - 1.0));
+(v3812 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v3811, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v3811 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v3813 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v3811 - v3793)) * 12.989)) * 43758.545)))));
+(v3814 = fake_if(
+  (abs((v3788 - 3.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v3791 > 0.0) && (v3810 > 0.0)),
+    fake_if(
+      (v3800 == v3812),
+      vec3(cos(v3813), 0.0, sin(v3813)),
+      (v3800 - v3812)),
+    vec3(0.0))));
+(v3815 = fake_if(
+  (abs((v3788 - 2.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v3791 > 0.0) && (v3792 > 0.0)),
+    fake_if(
+      (v3800 == v3803),
+      vec3(cos(v3795), 0.0, sin(v3795)),
+      (v3800 - v3803)),
+    vec3(0.0))));
+(v3816 = vec3(v3815.x, 0.0, v3815.z));
+(v3817 = vec3(v3814.x, 0.0, v3814.z));
+(v3818 = (((fake_if((length(v3809) > 0.0), normalize(v3809), v3809) + fake_if(
+  (length(v3802) > 0.0),
+  normalize(v3802),
+  v3802)) + fake_if((length(v3816) > 0.0), normalize(v3816), v3816)) + fake_if(
+  (length(v3817) > 0.0),
+  normalize(v3817),
+  v3817)));
+(v4114 = mod(aFragmentIndex, 4.0));
+(v4115 = ((aFragmentIndex - v4114) / 4.0));
+(v4116 = texture2D(
+  tUnitsCollisions,
+  vec2(
+    (mod(v4115, uCollisionResolution.x) / uCollisionResolution.x),
+    (floor((v4115 / uCollisionResolution.x)) / uCollisionResolution.y))));
+(v4117 = swizzle_by_index(v4116, v4114));
+(v4118 = ((v4117 * uMaxUnits) - 1.0));
+(v4163 = mod(aFragmentIndex, 4.0));
+(v4164 = ((aFragmentIndex - v4163) / 4.0));
+(v4165 = texture2D(
+  tUnitsCollisions,
+  vec2(
+    (mod(v4164, uCollisionResolution.x) / uCollisionResolution.x),
+    (floor((v4164 / uCollisionResolution.x)) / uCollisionResolution.y))));
+(v4166 = swizzle_by_index(v4165, v4163));
+(v4167 = ((v4166 * uMaxUnits) - 1.0));
+(v4197 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v4167, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v4167 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v4220 = swizzle_by_index(v4165, 0.0));
+(v4221 = ((v4220 * uMaxUnits) - 1.0));
+(v4222 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v4221, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v4221 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v4223 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v4221 - v4167)) * 12.989)) * 43758.545)))));
+(v4224 = fake_if(
+  (abs((v4163 - 0.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v4166 > 0.0) && (v4220 > 0.0)),
+    fake_if(
+      (v4197 == v4222),
+      vec3(cos(v4223), 0.0, sin(v4223)),
+      (v4197 - v4222)),
+    vec3(0.0))));
+(v4225 = vec3(v4224.x, 0.0, v4224.z));
+(v4287 = swizzle_by_index(v4165, 1.0));
+(v4288 = ((v4287 * uMaxUnits) - 1.0));
+(v4289 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v4288, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v4288 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v4290 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v4288 - v4167)) * 12.989)) * 43758.545)))));
+(v4291 = fake_if(
+  (abs((v4163 - 1.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v4166 > 0.0) && (v4287 > 0.0)),
+    fake_if(
+      (v4197 == v4289),
+      vec3(cos(v4290), 0.0, sin(v4290)),
+      (v4197 - v4289)),
+    vec3(0.0))));
+(v4292 = vec3(v4291.x, 0.0, v4291.z));
+(v4354 = swizzle_by_index(v4165, 2.0));
+(v4355 = ((v4354 * uMaxUnits) - 1.0));
+(v4356 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v4355 - v4167)) * 12.989)) * 43758.545)))));
+(v4357 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v4355, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v4355 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v4358 = fake_if(
+  (abs((v4163 - 2.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v4166 > 0.0) && (v4354 > 0.0)),
+    fake_if(
+      (v4197 == v4357),
+      vec3(cos(v4356), 0.0, sin(v4356)),
+      (v4197 - v4357)),
+    vec3(0.0))));
+(v4359 = vec3(v4358.x, 0.0, v4358.z));
+(v4421 = swizzle_by_index(v4165, 3.0));
+(v4422 = ((v4421 * uMaxUnits) - 1.0));
+(v4423 = texture2D(
+  tUnitsPosition,
+  vec2(
+    (mod(v4422, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+    (floor((v4422 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y))).xyz);
+(v4424 = (2.0 * (3.141592653589793 * fract(
+  (sin(((uTime + (v4422 - v4167)) * 12.989)) * 43758.545)))));
+(v4425 = fake_if(
+  (abs((v4163 - 3.0)) < 0.1),
+  vec3(0.0),
+  fake_if(
+    ((v4166 > 0.0) && (v4421 > 0.0)),
+    fake_if(
+      (v4197 == v4423),
+      vec3(cos(v4424), 0.0, sin(v4424)),
+      (v4197 - v4423)),
+    vec3(0.0))));
+(v4426 = vec3(v4425.x, 0.0, v4425.z));
+(vCollisionValue = fake_if((length(v3818) > 0.0), normalize(v3818), v3818));
+(vUV = vec2(
+  (mod(v4118, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+  (floor((v4118 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y)));
+(pos = position);
+(blah = normal);
+(test = uv);
+(gl_Position = fake_if(
+  (length(
+    (((fake_if((length(v4225) > 0.0), normalize(v4225), v4225) + fake_if(
+      (length(v4292) > 0.0),
+      normalize(v4292),
+      v4292)) + fake_if((length(v4359) > 0.0), normalize(v4359), v4359)) + fake_if(
+      (length(v4426) > 0.0),
+      normalize(v4426),
+      v4426))) > 0.0),
+  vec4(
+    (vec2(-1.0, -1.0) + ((vec2(
+      (mod(v4167, uMaxUnitsResolution.x) / uMaxUnitsResolution.x),
+      (floor((v4167 / uMaxUnitsResolution.x)) / uMaxUnitsResolution.y)) + ((position.xy + vec2(
+      0.5,
+      0.5)) / uMaxUnitsResolution)) * 2.0)),
+    1.0,
+    1.0),
+  vec4(10.0, 10.0, 10.0, 1.0)));
+}
 ")
 
 (def unit-collisions-summation-shader-fs
