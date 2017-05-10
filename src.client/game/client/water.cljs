@@ -10,6 +10,8 @@
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))
 
+(def debug-caustics false)
+
 (def simple-vertex-shader
  "
 precision highp float;
@@ -753,7 +755,9 @@ void main() {
       caustics-material .-uniforms .-uTime .-value
       (set! time))
     (-> renderer (.render caustics-scene caustics-camera caustics-render-target true))
-    (-> renderer (.render caustics-scene caustics-camera))
+    (if
+      debug-caustics
+      (-> renderer (.render caustics-scene caustics-camera)))
     ;(-> renderer (.render caustics-scene camera))
     ;(->
     ;  compute-material .-uniforms .-tWaterHeight .-value

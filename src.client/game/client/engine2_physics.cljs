@@ -43,6 +43,7 @@
 ; so we cache the compiled output and use it instead
 ; when not working on the shaders.
 (def use-cache true)
+(def debug-shaders false)
 
 ;(def u-canvas-res (g/uniform "uCanvasResolution" :vec2))
 (def u-collision-res (g/uniform "uCollisionResolution" :vec2))
@@ -475,8 +476,9 @@
       ; #js { :value (new js/THREE.Vector4 2048 256 2048 1)}
       #js { :value (new js/THREE.Vector4 1 1 1 1)})
     (-> quad .-material (set! copy-material))
-    ;(-> quad .-material .-needsUpdate (set! true))
-    (-> renderer (.render compute-scene compute-camera))
+    (if
+      debug-shaders
+      (-> renderer (.render compute-scene compute-camera)))
 
     ; Update units mesh positions texture
     (aset

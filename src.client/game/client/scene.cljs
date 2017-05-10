@@ -352,9 +352,9 @@
   [renderer]
   (-> (data renderer) .-domElement))
 
-
 (defn get-camera-focus
   [camera x y]
+  ; http://stackoverflow.com/questions/13055214/mouse-canvas-x-y-to-three-js-world-x-y-z
   (let
     [v (new js/THREE.Vector3 x y (-> camera .-near))
      _ (-> v (.unproject camera))
