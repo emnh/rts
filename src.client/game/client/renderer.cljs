@@ -9,6 +9,7 @@
     [game.client.explosion :as explosion]
     [game.client.engine2 :as engine2]
     [game.client.engine2_physics :as engine2_physics]
+    [game.client.engine2_graphics :as engine2_graphics]
     [game.client.water :as water]
     [game.client.minimap :as minimap]
     [game.client.mathbox :as mathbox]
@@ -43,6 +44,7 @@
      (water/on-render component (:update-water component))
      (engine2/on-render component (:update-units component))
      (engine2_physics/on-render component (:update-physics component))
+     (engine2_graphics/on-render component (:update-textures component))
      ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
@@ -60,7 +62,8 @@
    scene render-stats
    update-water
    update-units
-   update-physics]
+   update-physics
+   update-textures]
    ;three-overlay pixi-overlay
    ;update-magic update-explosion update-mathbox
    ;minimap]

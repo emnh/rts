@@ -31,12 +31,18 @@
          t-copy-rt
          u-copy-rt-scale
          get-ground-height]]
+    [game.client.engine2_physics_cache :as cache]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string])
 
   (:require-macros
     [game.shared.macros :as macros :refer [defcom console-time]]))
+
+; Compiling shaders with gamma is slow (8 seconds),
+; so we cache the compiled output and use it instead
+; when not working on the shaders.
+(def use-cache true)
 
 ;(def u-canvas-res (g/uniform "uCanvasResolution" :vec2))
 (def u-collision-res (g/uniform "uCollisionResolution" :vec2))
@@ -53,6 +59,8 @@
 
 ; TODO: get bounding sphere radius
 (def bounding-sphere-radius (* 16.0 1))
+
+(def collision-resolution-speed 16.0)
 
 ; UNIT COLLISIONS SHADER
 
@@ -229,33 +237,40 @@
         (g/vec4 uv 1.0 1.0)
         (g/vec4 10.0 10.0 10.0 1.0))}))
 
-; (println ["ast" unit-collisions-summation-vertex-shader])
-; (ge/test-shader unit-collisions-summation-vertex-shader)
-
 (def unit-collisions-summation-fragment-shader
   {
-    ;(g/gl-frag-color) (g/vec4 v-uv 0 1)})
     (g/gl-frag-color) (g/vec4 v-collision-value 1)})
-    ;(g/gl-frag-color) (g/vec4 1)})
 
 (console-time
   "Unit Collisions Shader"
-  (def unit-collisions-summation-shader
-    (gprogram/program
-      {
-        :vertex-shader unit-collisions-summation-vertex-shader
-        :fragment-shader unit-collisions-summation-fragment-shader})))
+  (if
+    use-cache
+    (do
+      (def unit-collisions-summation-shader-vs cache/unit-collisions-summation-shader-vs)
+      (def unit-collisions-summation-shader-fs cache/unit-collisions-summation-shader-fs))
+    (do
+      (let
+        [unit-collisions-summation-shader
+          (gprogram/program
+            {
+              :vertex-shader unit-collisions-summation-vertex-shader
+              :fragment-shader unit-collisions-summation-fragment-shader})]
+        (def unit-collisions-summation-shader-vs
+          (->
+            (:glsl (:vertex-shader unit-collisions-summation-shader))))
+        (def unit-collisions-summation-shader-fs
+          (->
+            (:glsl (:fragment-shader unit-collisions-summation-shader))))))))
 
-(def unit-collisions-summation-shader-vs
-  (->
-    (:glsl (:vertex-shader unit-collisions-summation-shader))))
-    ; (reverse-subst-vars @coll-vs-extra-vars)))
-
-; (println
-;   ["unit-collisions-summation-vertex-shader"
-    ; unit-collisions-summation-shader-vs))
-
-  ;  (:glsl (:vertex-shader unit-collisions-summation-shader))])
+; (if-not
+;   use-cache
+;   (do
+;     (println
+;       ["unit-collisions-summation-vertex-shader"
+;         unit-collisions-summation-shader-vs])
+;     (println
+;       ["unit-collisions-summation-fragment-shader"
+;         unit-collisions-summation-shader-fs])))
 
 ; COLLISION APPLICATION SHADER
 
@@ -279,7 +294,7 @@
           (g/swizzle update :xyz)
           (g/vec3 (ge/w update)))
         (g/vec3 0.0))
-      weight 10.0
+      weight collision-resolution-speed
       delta
       (ge/fake_if
         (ge/non-zero? delta)
@@ -301,17 +316,21 @@
     {
       (g/gl-frag-color) (g/vec4 result-position 1)}))
 
-(def collision-application-shader
-  (gprogram/program
-    {
-      :vertex-shader collision-application-vertex-shader
-      :fragment-shader collision-application-fragment-shader}))
+(console-time
+  "Unit Collisions Application Shader"
+  (let
+    [
+     collision-application-shader
+     (gprogram/program
+       {
+         :vertex-shader collision-application-vertex-shader
+         :fragment-shader collision-application-fragment-shader})]
 
-(def collision-application-shader-vs
-  (str preamble (:glsl (:vertex-shader collision-application-shader))))
+    (def collision-application-shader-vs
+      (str preamble (:glsl (:vertex-shader collision-application-shader))))
 
-(def collision-application-shader-fs
-  (str preamble (:glsl (:fragment-shader collision-application-shader))))
+    (def collision-application-shader-fs
+      (str preamble (:glsl (:fragment-shader collision-application-shader))))))
 
 ; COLLISION APPLICATION INITIALIZATION
 
@@ -594,7 +613,7 @@
               ;(:glsl (:vertex-shader unit-collisions-summation-shader)))
           :fragmentShader
             (str preamble
-              (:glsl (:fragment-shader unit-collisions-summation-shader)))
+              unit-collisions-summation-shader-fs)
           :blending js/THREE.AdditiveBlending})
      summation-scene (new js/THREE.Scene)
      summation-mesh (new js/THREE.Mesh summation-geo summation-material)

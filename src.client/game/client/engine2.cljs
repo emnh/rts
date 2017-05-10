@@ -229,8 +229,8 @@ float swizzle_by_index(vec4 arg, float index) {
       x (g/* (rnd-f ir1) (ge/x u-map-size))
       ;y (ge/y u-map-size)
       z (g/* (rnd-f ir2) (ge/z u-map-size))
-      ;x 0
-      ;z 0
+      ; x 0
+      ; z 0
       ; x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ; z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
       ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
