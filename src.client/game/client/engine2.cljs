@@ -67,7 +67,9 @@ float swizzle_by_index(vec4 arg, float index) {
 
 ; x is model-count, y model-count-pow2
 (def u-model-count (g/uniform "uModelCount" :vec2))
+; TODO: rename to t-unit-positions
 (def t-units-position (g/uniform "tUnitsPosition" :sampler2D))
+(def t-unit-attributes (g/uniform "tUnitAttributes" :sampler2D))
 
 (def u-ground-texture-divisor (g/uniform "uGroundTextureDivisor" :float))
 (def u-ground-resolution (g/uniform "tGroundResolution" :vec2))
@@ -79,7 +81,12 @@ float swizzle_by_index(vec4 arg, float index) {
 (def u-copy-rt-scale (g/uniform "uCopyRTScale" :vec4))
 (def t-copy-rt (g/uniform "tCopyRT" :sampler2D))
 
+; v-uv.x subrange of 0 to 1 according to texture index
 (def v-uv (g/varying "vUV" :vec2 :mediump))
+; v-uv-normalized from 0 to 1
+(def v-uv-normalized (g/varying "vUVNormalized" :vec2 :mediump))
+; boolean
+(def v-selected (g/varying "vSelected" :float :lowp))
 
 ; TEST SHADER
 (def simple-vertex-shader
@@ -152,11 +159,17 @@ float swizzle_by_index(vec4 arg, float index) {
   [index]
   (g/texture2D t-units-position (get-unit-position-index index)))
 
+(defn get-unit-selected
+  [index]
+  (ge/w
+    (g/texture2D t-unit-attributes (get-unit-position-index index))))
+
 (def units-vertex-shader
   (let
     [unit-pos-and-model (get-unit-position-and-model a-unit-index)
      unit-pos (g/swizzle unit-pos-and-model :xyz)
      model (decode-model (ge/w unit-pos-and-model))
+     selected (get-unit-selected a-unit-index)
      x (ge/x unit-pos)
      z (ge/z unit-pos)
      y (ge/y unit-pos)
@@ -212,6 +225,8 @@ float swizzle_by_index(vec4 arg, float index) {
      (g/variable "test" :vec2) vertex-uv
      (g/variable "nuff" :float) a-unit-index
      v-uv uv
+     v-uv-normalized vertex-uv
+     v-selected selected
      (g/gl-position) glpos}))
 
 (def discard-magic
@@ -222,21 +237,31 @@ float swizzle_by_index(vec4 arg, float index) {
   [glsl]
   (string/replace glsl #"\n.*vec4\(0.0, 1.0, 2.0, 3.0\)\);" "\ndiscard;"))
 
+(def circle-width 0.05)
+(def circle-min (- 1.0 (* 2 circle-width)))
+(def circle-mid (- 1.0 (* 1 circle-width)))
+
 (def units-fragment-shader
   (let
-    [tex (g/texture2D t-model-sprite v-uv)]
-     ;d (g/length (g/* 2.0 (g/- v-uv (g/vec2 0.5))))]
+    [tex (g/texture2D t-model-sprite v-uv)
+     d (g/length (g/* 2.0 (g/- v-uv-normalized (g/vec2 0.5))))
+     a
+     (g/div
+       (g/- 1.0 (g/div (g/abs (g/- d circle-mid)) circle-width))
+       1.5)]
     {
       (g/gl-frag-color)
-      ; (g/if
-      ;   (g/and
-      ;     (g/>= d 0.9)
-      ;     (g/<= d 1.0))
-      ;   (g/vec4 1 0 0 1)
       (g/if
-        (g/> (ge/w tex) 0.1)
-        (g/* tex (g/vec4 1.0))
-        discard-magic)}))
+        (g/and
+          (g/> v-selected 0)
+          (g/and
+            (g/>= d circle-min)
+            (g/<= d 1.0)))
+        (g/vec4 0 1 0 a)
+        (g/if
+          (g/> (ge/w tex) 0.1)
+          (g/* tex (g/vec4 1.0))
+          discard-magic))}))
 
 (def units-shader
   (gprogram/program
@@ -411,6 +436,9 @@ float swizzle_by_index(vec4 arg, float index) {
      map-size (new js/THREE.Vector3 width elevation height)
      units-rt1 (new js/THREE.WebGLRenderTarget rx ry pars)
      units-rt2 (new js/THREE.WebGLRenderTarget rx ry pars)
+     ; TODO: reuse the same target texture when they are same size
+     unit-attrs1 (new js/THREE.WebGLRenderTarget rx ry pars)
+     unit-attrs2 (new js/THREE.WebGLRenderTarget rx ry pars)
      proto-geo (new js/THREE.PlaneBufferGeometry 1 1 1 1)
      ;proto-geo (new js/THREE.SphereBufferGeometry 500 32 32)
      ;proto-geo (new js/THREE.BoxBufferGeometry 5 5 5)
@@ -457,6 +485,7 @@ float swizzle_by_index(vec4 arg, float index) {
      set-uniforms2
       (fn [uniforms]
         (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
+        (aset uniforms (get-name t-unit-attributes) #js { :value (-> unit-attrs1 .-texture)})
         (aset uniforms (get-name t-model-sprite) #js { :value nil})
         (aset uniforms (get-name t-model-attributes) #js { :value nil}))
      _ (set-uniforms uniforms)
