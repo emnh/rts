@@ -12,8 +12,7 @@
     [game.client.scene :as scene]
     [gamma.api :as g]
     [gamma.program :as gprogram]
-    [clojure.string :as string]
-    [gamma.compiler.core :as gamma_compiler_core :refer [transform]])
+    [clojure.string :as string])
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
@@ -298,10 +297,11 @@ float swizzle_by_index(vec4 arg, float index) {
       (g/mod
         (g/+
           (g/*
-            (g/floor (ge/x (g/gl-frag-coord)))
+            (ge/x (g/gl-frag-coord))
             (ge/y u-max-units-res))
-          (g/floor (ge/y (g/gl-frag-coord))))
+          (ge/y (g/gl-frag-coord)))
         (ge/x u-model-count))
+      w (g/floor w)
       w (encode-model w)
       ;x 0
       ;z 0

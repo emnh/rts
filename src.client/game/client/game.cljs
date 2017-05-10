@@ -17,6 +17,7 @@
     [game.client.engine2 :as engine2]
     [game.client.engine2_physics :as engine2_physics]
     [game.client.engine2_graphics :as engine2_graphics]
+    [game.client.engine2_selection :as engine2_selection]
     [game.client.selection :as selection]
     [game.client.ground-local :as ground-local]
     [game.client.magic :as magic]
@@ -78,7 +79,9 @@
       :physics (engine2_physics/new-physics)
       :update-physics (engine2_physics/new-update-physics)
       :engine2-graphics (engine2_graphics/new-engine-graphics)
-      :update-textures (engine2_graphics/new-update-textures)}]
+      :update-textures (engine2_graphics/new-update-textures)
+      :selector2 (engine2_selection/new-selector)
+      :update-selection (engine2_selection/new-update-selection)}]
       ;:minimap (minimap/new-minimap)}]
       ;:mathbox (mathbox/new-mathbox)
       ;:update-mathbox (mathbox/new-update-mathbox)}]

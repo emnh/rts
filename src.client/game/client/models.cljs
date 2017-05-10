@@ -268,7 +268,7 @@
   ;(map #(merge defaults %) (concat models models-dinosaurs))
   ;(map #(merge defaults %) (list (nth models-dinosaurs 3)))
   ;(map #(merge defaults %) (list (nth models 11)))
-  (map #(merge defaults %) models))
+  (map #(merge defaults %) (drop 2 models)))
 
 (defn transform-geometry
   [model geo]

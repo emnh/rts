@@ -329,7 +329,7 @@
 
 ; METHOD 1 slow and accurate
 ; (def check-intersect check-intersect-screen)
-; METHOD 2 fast and innacurate
+; METHOD 2 fast and inaccurate
 ;(def check-intersect frustum-check)
 ; METHOD 3 fast and accurate
 (def check-intersect check-intersect-screen-circles)
