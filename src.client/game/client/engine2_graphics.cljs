@@ -26,23 +26,35 @@
      renderer (data (:renderer init-renderer))
      meshes (:model-meshes graphics)
      mesh (nth @meshes 0)
+     outline-meshes (:model-outlines graphics)
+     outline-mesh (nth @outline-meshes 0)
+     pedestal (:pedestal graphics)
      render-targets (:render-targets graphics)
      render-target (nth render-targets 0)
      model-scene (:model-scene graphics)
      model-camera (:model-camera graphics)
-     model-light (:model-light graphics)
-     model-light2 (:model-light2 graphics)
+     model-lights (:model-lights graphics)
      ;light1 (data (:light1 component))
      camera (data (:camera component))
      _ (-> camera .updateMatrixWorld)
      focus (scene/get-camera-focus camera 0 0)
      position (-> camera .-position .clone)
-     scale (* 4 (-> mesh .-geometry .-boundingSphere .-radius))
+     factor 4
+     scale (* factor (-> mesh .-geometry .-boundingSphere .-radius))
      engine (:engine2 component)
-     update-mesh (:mesh engine)]
+     update-mesh (:mesh engine)
+     time (/ (common/game-time) 1000.0)]
     (-> position
       (.sub focus))
     (-> position .normalize)
+    (if
+      (< (-> position .-y) 0.5)
+      (-> position .-y (set! 0))
+      (-> position .-y (set! 1.0)))
+    (-> position .-x
+      (set! (math/cos time)))
+    (-> position .-z
+      (set! (math/sin time)))
     (-> position (.multiplyScalar scale))
     ; Clear scene
     (doseq
@@ -50,20 +62,34 @@
       (->
         model-scene
         (.remove child)))
+    ; Add pedestal
+    (-> pedestal .-scale
+      (.set (/ scale factor) (* 0.01 scale) (/ scale factor)))
+    (-> pedestal .-position .-y
+      (set!
+        (+
+          (-> mesh .-geometry .-boundingBox .-min .-y)
+          (- (* 0.02 scale)))))
+    ; (-> model-scene
+    ;   (.add pedestal))
     ; Add model
     (-> model-scene
+      (.add outline-mesh))
+    (-> model-scene
       (.add mesh))
+
     ; Add lights
-    (-> model-light
-      .-position
-      (.set
-        (-> position .-x)
-        (-> position .-y)
-        (-> position .-z)))
-    (-> model-scene
-      (.add model-light))
-    (-> model-scene
-      (.add model-light2))
+    ; (-> model-light
+    ;   .-position
+    ;   (.set 1 0 0))
+      ; (.set
+      ;   (-> position .-x)
+      ;   (-> position .-y)
+      ;   (-> position .-z)))
+    (doseq
+      [model-light model-lights]
+      (-> model-scene
+        (.add model-light)))
     ; Set camera
     (-> model-camera .-position
       (.set
@@ -76,6 +102,9 @@
     (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 0.0))
     ;(-> renderer (.render model-scene model-camera))
     (-> renderer (.render model-scene model-camera render-target true))
+
+    (-> render-target .-texture .-repeat
+      (set! (new js/THREE.Vector2 0.2 0.2)))
 
     (aset
       (-> update-mesh .-material .-uniforms)
@@ -121,19 +150,37 @@
      resources (:resources component)
      resource-list (:resource-list resources)
      placeholder-geo (new js/THREE.BoxGeometry 1 1 1)
+     _ (-> placeholder-geo .computeBoundingBox)
      _ (-> placeholder-geo .computeBoundingSphere)
-     material (new js/THREE.MeshStandardMaterial #js {:color 0xFFFFFF})
+     material
+     (new js/THREE.MeshStandardMaterial
+       #js
+       {
+         :color 0xFFFFFF})
+     outline-material
+     (new js/THREE.MeshBasicMaterial
+       #js
+       {
+         :color 0x0000FF
+         :side js/THREE.BackSide
+         :depthWrite false})
      meshes
      (atom
        (into []
          (for
            [model resource-list]
            (new js/THREE.Mesh placeholder-geo material))))
+     mesh-outlines
+     (atom
+       (into []
+         (for
+           [model resource-list]
+           (new js/THREE.Mesh placeholder-geo outline-material))))
      pars
      #js
        {
-         :wrapS js/THREE.ClampToEdgeWrapping
-         :wrapT js/THREE.ClampToEdgeWrapping
+         :wrapS js/THREE.RepeatWrapping
+         :wrapT js/THREE.RepeatWrapping
          :minFilter js/THREE.LinearMipMapLinearFilter
          :magFilter js/THREE.LinearFilter
          :format js/THREE.RGBAFormat}
@@ -151,10 +198,23 @@
      camera (data (:camera component))
      model-camera (-> camera .clone)
      ;model-light (new js/THREE.AmbientLight #js {:color 0x111111})
-     model-light (new js/THREE.DirectionalLight #js {:color 0xFFFFFF :intensity 0.8})
+     intensity 0.2
+     model-light1 (new js/THREE.DirectionalLight #js {:color 0xFFFFFF :intensity intensity})
+     model-light2 (new js/THREE.DirectionalLight #js {:color 0xFFFFFF :intensity intensity})
+     model-light3 (new js/THREE.DirectionalLight #js {:color 0xFFFFFF :intensity intensity})
+     model-light4 (new js/THREE.DirectionalLight #js {:color 0xFFFFFF :intensity intensity})
      light1 (data (:light1 component))
-     model-light2 (-> light1 .clone)]
-    (-> model-light2 .-intensity (set! 0.8))
+     model-light5 (-> light1 .clone)
+     ;model-lights [model-light1 model-light2 model-light3 model-light4]
+     pedestal-geo (new js/THREE.BoxGeometry 1.5 1 1.5)
+     pedestal-material (new js/THREE.MeshLambertMaterial #js {:color 0x0000FF})
+     pedestal (new js/THREE.Mesh pedestal-geo pedestal-material)
+     model-lights [model-light1 model-light2 model-light3 model-light4 model-light5]]
+    (-> model-light1 .-position (.set 1 0 1))
+    (-> model-light2 .-position (.set -1 0 -1))
+    (-> model-light3 .-position (.set -1 0 1))
+    (-> model-light4 .-position (.set 1 0 -1))
+    (-> model-light5 .-intensity (set! intensity))
     (doseq
       [[index model] (map-indexed vector resource-list)]
       (m/mlet
@@ -162,17 +222,22 @@
          texture (:texture-load-promise model)]
         (let
           [
-           material (new js/THREE.MeshStandardMaterial #js { :map texture})
-           mesh (new js/THREE.Mesh geometry material)]
-          (swap! meshes assoc index mesh))))
+           material (new js/THREE.MeshLambertMaterial #js { :map texture})
+           mesh (new js/THREE.Mesh geometry material)
+           outline-mesh (new js/THREE.Mesh geometry outline-material)
+           scale 1.1]
+          (-> outline-mesh .-scale (.set scale scale scale))
+          (swap! meshes assoc index mesh)
+          (swap! mesh-outlines assoc index outline-mesh))))
     (->
       component
       (assoc :model-meshes meshes)
       (assoc :model-scene model-scene)
       (assoc :model-camera model-camera)
-      (assoc :model-light model-light)
-      (assoc :model-light2 model-light2)
-      (assoc :render-targets render-targets))))
+      (assoc :model-lights model-lights)
+      (assoc :render-targets render-targets)
+      (assoc :pedestal pedestal)
+      (assoc :model-outlines mesh-outlines))))
 
 (defcom
   new-engine-graphics
@@ -180,9 +245,10 @@
   [model-meshes
    model-scene
    model-camera
-   model-light
-   model-light2
-   render-targets]
+   model-lights
+   render-targets
+   pedestal
+   model-outlines]
   (fn [component]
     (init-textures component))
   (fn [component]

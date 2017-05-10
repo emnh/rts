@@ -300,22 +300,35 @@ float swizzle_by_index(vec4 arg, float index) {
      compute-shader (:compute-shader component)
      render-count (:render-count component)
      scene (:scene compute-shader)
-     camera (:camera compute-shader)
+     compute-camera (:camera compute-shader)
      quad (:quad compute-shader)
      renderer (data (:renderer init-renderer))
      engine (:engine2 component)
      render-target1 (:units-rt1 engine)
-     init-material (:init-material engine)]
+     init-material (:init-material engine)
+     mesh (:mesh engine)
+     material (-> mesh .-material)
+     camera (data (:camera component))
+     position (-> camera .-position .clone)
+     focus (scene/get-camera-focus camera 0 0)]
     (if
       (= @render-count 0)
       (do
         (-> quad .-material (set! init-material))
-        (-> renderer (.render scene camera render-target1 true))))
+        (-> renderer (.render scene compute-camera render-target1 true))))
+    (-> position (.sub focus))
+    (-> position .normalize)
+    ; XXX: quick hack to avoid z-fighting with ground when
+    ; billboards are viewed from the top.
+    (if
+      (> (-> position .-y) 0.65)
+      (-> material .-depthTest (set! false))
+      (-> material .-depthTest (set! true)))
     (swap! render-count inc)))
 
 (defcom
   new-update-units
-  [compute-shader engine2]
+  [compute-shader engine2 camera]
   [render-count]
   (fn [component]
     (->
@@ -382,8 +395,8 @@ float swizzle_by_index(vec4 arg, float index) {
           :vertexShader (str preamble (:glsl (:vertex-shader units-shader)))
           :fragmentShader (str preamble (units-shader-hack (:glsl (:fragment-shader units-shader))))
           :transparent true})
-          ;:depthTest false
-          ;depthWrite false})
+          ;:depthTest false})
+          ;:depthWrite false})
      wrapping (-> js/THREE .-ClampToEdgeWrapping)
      texture-loader (new THREE.TextureLoader)
      on-load

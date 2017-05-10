@@ -32,9 +32,9 @@
     :name "tank-m1a1"
     :path "models/3d/tank-m1a1.json"
     :scale 0.05
-    :texture-path "models/images/uv2.jpg"}
-    ;:texture-path "models/images/camouflage.jpg"
-    ;:texture-repeat [0.2 0.2]
+    ;:texture-path "models/images/uv2.jpg"
+    :texture-path "models/images/camouflage.jpg"
+    :texture-repeat [0.2 0.2]}
 
    {
      :name "dragon"
@@ -264,7 +264,8 @@
   []
   ;(map #(merge defaults %) (concat models models-dinosaurs))
   ;(map #(merge defaults %) (list (nth models-dinosaurs 3)))
-  (map #(merge defaults %) (list (nth models 11))))
+  ; (map #(merge defaults %) (list (nth models 11))))
+  (map #(merge defaults %) (list (nth models 2))))
 
 (defn transform-geometry
   [model geo]
