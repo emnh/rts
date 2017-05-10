@@ -2,6 +2,8 @@
   (:require
     [cljs.pprint :as pprint]
     [com.stuartsierra.component :as component]
+    [promesa.core :as p]
+    [cats.core :as m]
     [game.client.common :as common :refer [new-jsobj list-item data unique-id]]
     [game.client.ground-local :as ground]
     [game.client.config :as config]
@@ -62,7 +64,9 @@ float swizzle_by_index(vec4 arg, float index) {
 (def u-map-size (g/uniform "uMapSize" :vec3))
 (def u-max-units (g/uniform "uMaxUnits" :float))
 (def u-max-units-res (g/uniform "uMaxUnitsResolution" :vec2))
-(def u-model-count (g/uniform "uModelCount" :float))
+
+; x is model-count, y model-count-pow2
+(def u-model-count (g/uniform "uModelCount" :vec2))
 (def t-units-position (g/uniform "tUnitsPosition" :sampler2D))
 
 (def u-ground-texture-divisor (g/uniform "uGroundTextureDivisor" :float))
@@ -70,6 +74,7 @@ float swizzle_by_index(vec4 arg, float index) {
 (def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
 
 (def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
+(def t-model-attributes (g/uniform "tModelAttributes" :sampler2D))
 
 (def u-copy-rt-scale (g/uniform "uCopyRTScale" :vec4))
 (def t-copy-rt (g/uniform "tCopyRT" :sampler2D))
@@ -105,6 +110,16 @@ float swizzle_by_index(vec4 arg, float index) {
 (defn decode-model
   [model]
   (g/- model 1))
+
+(defn get-bounding-sphere
+  [model]
+  (g/texture2D
+    t-model-attributes
+    (g/vec2
+      0
+      (g/div
+        model
+        (ge/y u-model-count)))))
 
 (defn get-ground-height
   [x z]
@@ -147,7 +162,6 @@ float swizzle_by_index(vec4 arg, float index) {
      y (ge/y unit-pos)
      ;y (get-ground-height x z)
      unit-pos (g/vec3 x y z)
-     size 50.0
      v (g/mat4 model-view-matrix)
      camera-right-worldspace
       (g/vec3
@@ -161,6 +175,8 @@ float swizzle_by_index(vec4 arg, float index) {
          (ge/aget (ge/aget v 2) 1))
      v-pos unit-pos
      plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
+     radius (ge/w (get-bounding-sphere model))
+     size radius
      v-pos
       (g/+
         v-pos
@@ -182,7 +198,7 @@ float swizzle_by_index(vec4 arg, float index) {
      uvx
      (g/div
        (g/+ model (ge/x uv))
-       u-model-count)
+       (ge/y u-model-count))
      uvy (ge/y uv)
      uv (g/vec2 uvx uvy)]
      ;glpos (g/div glpos (g/vec4 (ge/w glpos)))]
@@ -260,7 +276,7 @@ float swizzle_by_index(vec4 arg, float index) {
             (g/floor (ge/x (g/gl-frag-coord)))
             (ge/y u-max-units-res))
           (g/floor (ge/y (g/gl-frag-coord))))
-        u-model-count)
+        (ge/x u-model-count))
       w (encode-model w)
       ;x 0
       ;z 0
@@ -406,11 +422,33 @@ float swizzle_by_index(vec4 arg, float index) {
         (:x-faces ground)
         (:y-faces ground))
      uniforms #js {}
-     model-count (count (get-in component [:resources :resource-list]))
+     resource-list (get-in component [:resources :resource-list])
+     model-count (count resource-list)
+     model-count-pow2 (math/round-pow2 model-count)
+     rgba-size 4
+     attribute-count 1
+     total-attributes (* model-count-pow2 attribute-count rgba-size)
+     model-attributes-array (new js/Float32Array total-attributes)
+    ;  _
+    ;  (doseq
+    ;    [i (range total-attributes)]
+    ;    (aset
+    ;      model-attributes-array
+    ;      i
+    ;      0.0))
+     create-model-attributes
+     (fn []
+       (new js/THREE.DataTexture
+         model-attributes-array
+         attribute-count
+         model-count-pow2
+         js/THREE.RGBAFormat
+         js/THREE.FloatType))
+     ;_ (-> model-attributes .-needsUpdate (set! true))
      set-uniforms
       (fn [base-uniforms]
          (aset base-uniforms (get-name u-map-size) #js { :value map-size})
-         (aset base-uniforms (get-name u-model-count) #js { :value model-count})
+         (aset base-uniforms (get-name u-model-count) #js { :value (new js/THREE.Vector2 model-count model-count-pow2)})
          (aset base-uniforms (get-name u-max-units) #js { :value max-units})
          (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
          (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
@@ -419,7 +457,8 @@ float swizzle_by_index(vec4 arg, float index) {
      set-uniforms2
       (fn [uniforms]
         (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
-        (aset uniforms (get-name t-model-sprite) #js { :value nil}))
+        (aset uniforms (get-name t-model-sprite) #js { :value nil})
+        (aset uniforms (get-name t-model-attributes) #js { :value nil}))
      _ (set-uniforms uniforms)
      _ (set-uniforms2 uniforms)
      material
@@ -432,6 +471,25 @@ float swizzle_by_index(vec4 arg, float index) {
           :transparent true})
           ;:depthTest false})
           ;:depthWrite false})
+     update-model-attributes
+     (fn
+      []
+      (let
+        [model-attributes (create-model-attributes)]
+        (->
+         (aget
+           (-> material .-uniforms)
+           (get-name t-model-attributes))
+         .-value
+         (set! model-attributes))
+        (->
+         (aget
+           (-> material .-uniforms)
+           (get-name t-model-attributes))
+         .-needsUpdate
+         (set! true))
+        (-> model-attributes .-needsUpdate (set! true))
+        (-> material .-needsUpdate (set! true))))
      wrapping (-> js/THREE .-ClampToEdgeWrapping)
      texture-loader (new THREE.TextureLoader)
      on-load
@@ -453,8 +511,25 @@ float swizzle_by_index(vec4 arg, float index) {
           :uniforms init-uniforms
           :vertexShader (str preamble (:glsl (:vertex-shader unit-positions-init-shader)))
           :fragmentShader (str preamble (:glsl (:fragment-shader unit-positions-init-shader)))})]
-     ;material
-     ;(new js/THREE.MeshLambertMaterial #js {:color 0xFF0000})]
+   ; Update model attributes: Bounding sphere
+   (doseq
+     [[index model] (map-indexed vector resource-list)]
+     (m/mlet
+       [geometry (:load-promise model)]
+       (let
+         [
+          x (-> geometry .-boundingSphere .-center .-x)
+          y (-> geometry .-boundingSphere .-center .-y)
+          z (-> geometry .-boundingSphere .-center .-z)
+          w (-> geometry .-boundingSphere .-radius)
+          bounding-sphere [x y z w]]
+         (doseq
+           [i (range rgba-size)]
+           (aset
+             model-attributes-array
+             (+ i (* index (* attribute-count rgba-size)))
+             (nth bounding-sphere i))))
+       (update-model-attributes)))
    (doseq
      [i (range max-units)]
      (aset index-array i i))

@@ -22,6 +22,7 @@
      :path "models/3d/castle.json"
      :texture-path "models/images/castle.jpg"
      :scale 5
+     :post-scale 0.5
      :type :unit-type/building
      :opacity 1.0
      :can-attack false
@@ -90,6 +91,7 @@
      :name "biplane"
      :path "models/3d/biplane.json"
      :scale 1
+     :post-scale 2
      :rotation [0 (/ pi 2) 0]
      :texture-path "models/images/biplane.jpg"
      :type :unit-type/air}
@@ -98,6 +100,7 @@
      :name "mushroom"
      :path "models/3d/mushroom.json"
      :scale 0.2
+     :post-scale 0.5
      :texture-path "models/images/mushroom.jpg"
      :type :unit-type/building
      :can-attack false
@@ -248,7 +251,7 @@
    :rotation [0 0 0]
    ; TODO: post-rotation and post-scale are just temporary hacks
    :post-rotation [0 0 0]
-   :post-scale 2.5
+   :post-scale 1
    ;:texture-path "models/images/colormap.jpg"
    :texture-path "models/images/grayscale.png"
    :texture-repeat [1 1]
@@ -292,7 +295,7 @@
   [model geo]
   (let
     [mat (new js/THREE.Matrix4)
-     scale (:post-scale model)]
+     scale (* 4.0 (:post-scale model))]
     (-> mat (.makeRotationX (nth (:post-rotation model) 0)))
     (-> geo (.applyMatrix mat))
     (-> mat (.makeRotationY (nth (:post-rotation model) 1)))

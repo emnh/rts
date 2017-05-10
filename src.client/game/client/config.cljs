@@ -20,6 +20,9 @@
       :air-altitude 40
       :animated true
       :collision-bounce 0.2}
+   :graphics
+   {
+     :texture-resolution 256}
    :physics
     {
       :collision-res-x 256

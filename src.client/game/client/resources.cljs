@@ -14,6 +14,7 @@
 
   (:require-macros [game.shared.macros :as macros :refer [defcom]]))
 
+(def should-load-voxels? false)
 
 (defn
   load-resource
@@ -165,7 +166,10 @@
               on-voxels-progress (partial on-progress progress-manager voxels-path)
               load-promise (load-geometry model path on-geo-progress)
               texture-load-promise (load-texture model texture-path on-texture-progress)
-              voxels-load-promise (load-voxels model voxels-path on-voxels-progress)]
+              voxels-load-promise
+              (if
+                should-load-voxels?
+                (load-voxels model voxels-path on-voxels-progress))]
              (merge
                model
                {

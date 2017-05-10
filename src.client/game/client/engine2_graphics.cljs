@@ -65,14 +65,17 @@
         (-> position
           (.sub focus))
         (-> position .normalize)
+        (-> mesh .-rotation .-y
+          (set! time))
+        ; (-> mesh .-rotation .-z
+        ;   (set! (math/sin time)))
         (if
-          (< (-> position .-y) 0.5)
+          (< (-> position .-y) 0.8)
           (-> position .-y (set! 0))
-          (-> position .-y (set! 1.0)))
-        (-> position .-x
-          (set! (math/cos time)))
-        (-> position .-z
-          (set! (math/sin time)))
+          (do
+            (-> position .-x (set! 0.0))
+            (-> position .-y (set! 1.0))
+            (-> position .-z (set! 0.0))))
         (-> position (.multiplyScalar scale))
         ; Clear scene
         (doseq
@@ -197,10 +200,11 @@
          :magFilter js/THREE.LinearFilter
          :format js/THREE.RGBAFormat}
          ;:stencilBuffer false}
-     ; TODO: config
-     texture-resolution 256
+     config (:config component)
+     texture-resolution (get-in config [:graphics :texture-resolution])
      model-count (count resource-list)
-     texture-resolution-x (* texture-resolution model-count)
+     model-count-pow2 (math/round-pow2 model-count)
+     texture-resolution-x (* texture-resolution model-count-pow2)
      texture-resolution-y texture-resolution
      ;_ (-> js/console (.log texture-resolution-x))
      render-target (new js/THREE.WebGLRenderTarget texture-resolution-x texture-resolution-y pars)
@@ -225,7 +229,7 @@
     (-> model-light2 .-position (.set -1 0 -1))
     (-> model-light3 .-position (.set -1 0 1))
     (-> model-light4 .-position (.set 1 0 -1))
-    (-> model-light5 .-intensity (set! intensity))
+    (-> model-light5 .-intensity (set! 1.0))
     (doseq
       [[index model] (map-indexed vector resource-list)]
       (m/mlet
@@ -254,7 +258,7 @@
 
 (defcom
   new-engine-graphics
-  [engine2 resources camera init-scene light1 init-light]
+  [config engine2 resources camera init-scene light1 init-light]
   [model-meshes
    model-scene
    model-camera

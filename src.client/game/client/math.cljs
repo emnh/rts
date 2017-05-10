@@ -17,6 +17,13 @@
 (def min #(-> js/Math (.min %1 %2)))
 (def log2 #(-> js/Math (.log2 %)))
 (def pow2 #(-> js/Math (.pow 2.0 %)))
+(defn round-pow2
+  [x]
+  (let
+    [xr (log2 x)
+     xr (ceil xr)
+     xr (pow2 xr)]
+    xr))
 (defn round-square [x]
   (let
     [xr (sqrt x)
