@@ -30,7 +30,9 @@
          t-units-position
          t-copy-rt
          u-copy-rt-scale
-         get-ground-height]]
+         get-ground-height
+         encode-model
+         decode-model]]
     [game.client.engine2_physics_cache :as cache]
     [gamma.api :as g]
     [gamma.program :as gprogram]
@@ -59,9 +61,9 @@
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
 ; TODO: get bounding sphere radius
-(def bounding-sphere-radius (* 16.0 1))
+(def bounding-sphere-radius (* 16.0 8))
 
-(def collision-resolution-speed 16.0)
+(def collision-resolution-speed 10.0)
 
 ; UNIT COLLISIONS SHADER
 
@@ -286,7 +288,9 @@
   (let
     [
       uv (g/div (g/swizzle (g/gl-frag-coord) :xy) u-max-units-res)
-      position (g/swizzle (g/texture2D t-units-position uv) :xyz)
+      position-and-model (g/texture2D t-units-position uv)
+      position (g/swizzle position-and-model :xyz)
+      model-raw (ge/w position-and-model)
       update (g/texture2D t-collision-application uv)
       delta
       (ge/fake_if
@@ -315,7 +319,7 @@
       y (get-ground-height x z)
       result-position (g/vec3 x y z)]
     {
-      (g/gl-frag-color) (g/vec4 result-position 1)}))
+      (g/gl-frag-color) (g/vec4 result-position model-raw)}))
 
 (console-time
   "Unit Collisions Application Shader"

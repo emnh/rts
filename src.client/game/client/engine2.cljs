@@ -62,6 +62,7 @@ float swizzle_by_index(vec4 arg, float index) {
 (def u-map-size (g/uniform "uMapSize" :vec3))
 (def u-max-units (g/uniform "uMaxUnits" :float))
 (def u-max-units-res (g/uniform "uMaxUnitsResolution" :vec2))
+(def u-model-count (g/uniform "uModelCount" :float))
 (def t-units-position (g/uniform "tUnitsPosition" :sampler2D))
 
 (def u-ground-texture-divisor (g/uniform "uGroundTextureDivisor" :float))
@@ -95,6 +96,16 @@ float swizzle_by_index(vec4 arg, float index) {
 
 ; UNITS SHADER
 
+; model 0 indicates inactive unit
+
+(defn encode-model
+  [model]
+  (g/+ 1 model))
+
+(defn decode-model
+  [model]
+  (g/- model 1))
+
 (defn get-ground-height
   [x z]
   (let
@@ -122,58 +133,70 @@ float swizzle_by_index(vec4 arg, float index) {
     (g/texture2D t-units-position (get-unit-position-index index))
     :xyz))
 
-(def units-vertex-shader
-  {
-    ; decoy variables to declare attributes
-    (g/variable "blah" :vec3) vertex-normal
-    (g/variable "test" :vec2) vertex-uv
-    (g/variable "nuff" :float) a-unit-index
-    v-uv vertex-uv
-    (g/gl-position)
-    (let
-      [unit-pos (get-unit-position a-unit-index)
-       x (ge/x unit-pos)
-       z (ge/z unit-pos)
-       y (ge/y unit-pos)
-       ;y (get-ground-height x z)
-       unit-pos (g/vec3 x y z)
-       size 50.0
-       v (g/mat4 model-view-matrix)
-       camera-right-worldspace
-        (g/vec3
-          (ge/aget (ge/aget v 0) 0)
-          (ge/aget (ge/aget v 1) 0)
-          (ge/aget (ge/aget v 2) 0))
-       camera-up-worldspace
-         (g/vec3
-           (ge/aget (ge/aget v 0) 1)
-           (ge/aget (ge/aget v 1) 1)
-           (ge/aget (ge/aget v 2) 1))
-       v-pos unit-pos
-       plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
-       v-pos
-        (g/+
-          v-pos
-          (g/*
-            (g/* camera-right-worldspace (ge/x plane-position))
-            size))
-       v-pos
-         (g/+
-           v-pos
-           (g/*
-             (g/* camera-up-worldspace (ge/y plane-position))
-             size))
-       glpos
-        (->
-        ;  (g/* projection-matrix model-view-matrix)
-         (g/* projection-matrix model-view-matrix)
-         (g/* (g/vec4 v-pos 1)))]
-       ;glpos (g/div glpos (g/vec4 (ge/w glpos)))]
+(defn get-unit-position-and-model
+  [index]
+  (g/texture2D t-units-position (get-unit-position-index index)))
 
-       ;xy (g/swizzle glpos :xy)
-       ;xy (g/+ xy (g/* (g/swizzle vertex-position :xy) (g/vec2 0.01 0.01)))
-       ;glpos (g/vec4 xy (ge/z glpos) (ge/w glpos))]
-      glpos)})
+(def units-vertex-shader
+  (let
+    [unit-pos-and-model (get-unit-position-and-model a-unit-index)
+     unit-pos (g/swizzle unit-pos-and-model :xyz)
+     model (decode-model (ge/w unit-pos-and-model))
+     x (ge/x unit-pos)
+     z (ge/z unit-pos)
+     y (ge/y unit-pos)
+     ;y (get-ground-height x z)
+     unit-pos (g/vec3 x y z)
+     size 50.0
+     v (g/mat4 model-view-matrix)
+     camera-right-worldspace
+      (g/vec3
+        (ge/aget (ge/aget v 0) 0)
+        (ge/aget (ge/aget v 1) 0)
+        (ge/aget (ge/aget v 2) 0))
+     camera-up-worldspace
+       (g/vec3
+         (ge/aget (ge/aget v 0) 1)
+         (ge/aget (ge/aget v 1) 1)
+         (ge/aget (ge/aget v 2) 1))
+     v-pos unit-pos
+     plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
+     v-pos
+      (g/+
+        v-pos
+        (g/*
+          (g/* camera-right-worldspace (ge/x plane-position))
+          size))
+     v-pos
+       (g/+
+         v-pos
+         (g/*
+           (g/* camera-up-worldspace (ge/y plane-position))
+           size))
+     glpos
+      (->
+      ;  (g/* projection-matrix model-view-matrix)
+       (g/* projection-matrix model-view-matrix)
+       (g/* (g/vec4 v-pos 1)))
+     uv vertex-uv
+     uvx
+     (g/div
+       (g/+ model (ge/x uv))
+       u-model-count)
+     uvy (ge/y uv)
+     uv (g/vec2 uvx uvy)]
+     ;glpos (g/div glpos (g/vec4 (ge/w glpos)))]
+
+     ;xy (g/swizzle glpos :xy)
+     ;xy (g/+ xy (g/* (g/swizzle vertex-position :xy) (g/vec2 0.01 0.01)))
+     ;glpos (g/vec4 xy (ge/z glpos) (ge/w glpos))]
+   {
+     ; decoy variables to declare attributes
+     (g/variable "blah" :vec3) vertex-normal
+     (g/variable "test" :vec2) vertex-uv
+     (g/variable "nuff" :float) a-unit-index
+     v-uv uv
+     (g/gl-position) glpos}))
 
 (def discard-magic
   ; magic number, will be replaced by discard
@@ -196,7 +219,7 @@ float swizzle_by_index(vec4 arg, float index) {
       ;   (g/vec4 1 0 0 1)
       (g/if
         (g/> (ge/w tex) 0.1)
-        (g/* tex (g/vec4 1.3))
+        (g/* tex (g/vec4 1.0))
         discard-magic)}))
 
 (def units-shader
@@ -229,15 +252,25 @@ float swizzle_by_index(vec4 arg, float index) {
       x (g/* (rnd-f ir1) (ge/x u-map-size))
       ;y (ge/y u-map-size)
       z (g/* (rnd-f ir2) (ge/z u-map-size))
-      ; x 0
-      ; z 0
+      ; w is model index
+      w
+      (g/mod
+        (g/+
+          (g/*
+            (g/floor (ge/x (g/gl-frag-coord)))
+            (ge/y u-max-units-res))
+          (g/floor (ge/y (g/gl-frag-coord))))
+        u-model-count)
+      w (encode-model w)
+      ;x 0
+      ;z 0
       ; x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ; z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
       ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
       ;z (g/* (g/- (ge/y uv) 0.5) (ge/z u-map-size))
       y (get-ground-height x z)]
     {
-      (g/gl-frag-color) (g/vec4 x y z 1)}))
+      (g/gl-frag-color) (g/vec4 x y z w)}))
 
 (def unit-positions-init-shader
   (gprogram/program
@@ -373,9 +406,11 @@ float swizzle_by_index(vec4 arg, float index) {
         (:x-faces ground)
         (:y-faces ground))
      uniforms #js {}
+     model-count (count (get-in component [:resources :resource-list]))
      set-uniforms
       (fn [base-uniforms]
          (aset base-uniforms (get-name u-map-size) #js { :value map-size})
+         (aset base-uniforms (get-name u-model-count) #js { :value model-count})
          (aset base-uniforms (get-name u-max-units) #js { :value max-units})
          (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
          (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
@@ -440,7 +475,7 @@ float swizzle_by_index(vec4 arg, float index) {
 
 (defcom
   new-engine
-  [config ground]
+  [config ground resources]
   [units-rt1 units-rt2 mesh
    init-material
    set-uniforms

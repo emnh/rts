@@ -48,7 +48,7 @@
      ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
-     (-> renderer (.setScissorTest false))
+     (-> renderer (.setScissorTest true))
      ;(-> renderer (.setClearColor (-> scene .-fog .-color)))
      (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 1.0))
      (-> renderer (.render scene camera))
