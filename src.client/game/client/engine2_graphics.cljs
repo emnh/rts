@@ -10,7 +10,8 @@
     [game.client.math :as math]
     [game.client.gamma_ext :as ge :refer [get-name]]
     [game.client.scene :as scene]
-    [game.client.engine2 :as engine2]
+    [game.client.engine2 :as engine2 :refer [u-time]]
+    [game.client.engine2_explosion :as engine2_explosion]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string]
@@ -41,7 +42,25 @@
      texture-resolution (:texture-resolution graphics)
      width texture-resolution
      height texture-resolution
-     time (/ (common/game-time) 1000.0)]
+     time (/ (common/game-time) 1000.0)
+     explosion-material (:explosion-material graphics)
+     compute-shader (:compute-shader component)
+     quad (:quad compute-shader)
+     compute-scene (:scene compute-shader)
+     compute-camera (:camera compute-shader)]
+    (-> quad .-material (set! explosion-material))
+    (->
+      (aget
+        (-> explosion-material .-uniforms)
+        (get-name u-time))
+      .-value (set! time))
+    ; XXX: model index 15 is currently free to put the explosion there
+    (-> render-target .-viewport (.set (* 15 texture-resolution) 0 width height))
+    (-> render-target .-scissor (.set (* 15 texture-resolution) 0 width height))
+    (-> render-target .-scissorTest (set! true))
+    (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 0.0))
+    ;(-> renderer (.render compute-scene compute-camera render-target true))
+
     (aset
       (-> update-mesh .-material .-uniforms)
       (get-name engine2/t-model-sprite)
@@ -125,7 +144,8 @@
         (-> render-target .-scissorTest (set! true))
         (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 0.0))
         ;(-> renderer (.render model-scene model-camera))
-        (-> renderer (.render model-scene model-camera render-target true))))))
+        (-> renderer (.render model-scene model-camera render-target true))
+        (-> renderer (.render compute-scene compute-camera render-target false))))))
 
 (defn on-render
   [init-renderer component]
@@ -147,7 +167,7 @@
 
 (defcom
   new-update-textures
-  [camera engine2 engine2-graphics]
+  [compute-shader camera engine2 engine2-graphics]
   [render-count
    last-camera-matrix]
   (fn [component]
@@ -224,7 +244,20 @@
      pedestal-geo (new js/THREE.BoxGeometry 1.5 1 1.5)
      pedestal-material (new js/THREE.MeshLambertMaterial #js {:color 0x0000FF})
      pedestal (new js/THREE.Mesh pedestal-geo pedestal-material)
-     model-lights [model-light1 model-light2 model-light3 model-light4 model-light5]]
+     model-lights [model-light1 model-light2 model-light3 model-light4 model-light5]
+     explosion-res texture-resolution
+     explosion-uniforms
+     #js
+     {
+       :uResolution #js {:value (new js/THREE.Vector2 explosion-res explosion-res)}
+       :uTime #js {:value 0}}
+     explosion-material
+     (new js/THREE.ShaderMaterial
+      #js
+      {
+        :uniforms explosion-uniforms
+        :vertexShader engine2_explosion/vertex-shader
+        :fragmentShader engine2_explosion/fragment-shader})]
     (-> model-light1 .-position (.set 1 0 1))
     (-> model-light2 .-position (.set -1 0 -1))
     (-> model-light3 .-position (.set -1 0 1))
@@ -254,7 +287,8 @@
       (assoc :render-target render-target)
       (assoc :pedestal pedestal)
       (assoc :model-outlines mesh-outlines)
-      (assoc :texture-resolution texture-resolution))))
+      (assoc :texture-resolution texture-resolution)
+      (assoc :explosion-material explosion-material))))
 
 (defcom
   new-engine-graphics
@@ -266,7 +300,8 @@
    render-target
    pedestal
    model-outlines
-   texture-resolution]
+   texture-resolution
+   explosion-material]
   (fn [component]
     (init-textures component))
   (fn [component]

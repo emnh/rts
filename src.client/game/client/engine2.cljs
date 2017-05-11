@@ -10,6 +10,7 @@
     [game.client.math :as math]
     [game.client.gamma_ext :as ge :refer [get-name]]
     [game.client.scene :as scene]
+    [game.client.engine2_explosion :as engine2_explosion]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string])
@@ -60,6 +61,8 @@ float swizzle_by_index(vec4 arg, float index) {
 (def projection-matrix (g/uniform "projectionMatrix" :mat4))
 (def model-view-matrix (g/uniform "modelViewMatrix" :mat4))
 
+(def u-time (g/uniform "uTime" :float))
+
 (def u-map-size (g/uniform "uMapSize" :vec3))
 (def u-max-units (g/uniform "uMaxUnits" :float))
 (def u-max-units-res (g/uniform "uMaxUnitsResolution" :vec2))
@@ -75,6 +78,7 @@ float swizzle_by_index(vec4 arg, float index) {
 (def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
 
 (def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
+;(def t-model-explosion (g/uniform "tModelExplosion" :sampler2D))
 (def t-model-attributes (g/uniform "tModelAttributes" :sampler2D))
 
 (def u-copy-rt-scale (g/uniform "uCopyRTScale" :vec4))
@@ -249,7 +253,9 @@ float swizzle_by_index(vec4 arg, float index) {
        (g/- 1.0 (g/div (g/abs (g/- d circle-mid)) circle-width))
        1.5)]
     {
+      ;(g/variable "time" :float) u-time
       (g/gl-frag-color)
+      ;(ge/gfunc :explosionMainImage :vec4 v-uv-normalized)}))
       (g/if
         (g/and
           (g/> v-selected 0)
@@ -262,11 +268,20 @@ float swizzle_by_index(vec4 arg, float index) {
           (g/* tex (g/vec4 1.0))
           discard-magic))}))
 
-(def units-shader
-  (gprogram/program
-    {
-      :vertex-shader units-vertex-shader
-      :fragment-shader units-fragment-shader}))
+(let
+  [
+   units-program
+   (gprogram/program
+     {
+       :vertex-shader units-vertex-shader
+       :fragment-shader units-fragment-shader})]
+  (def units-shader-vs
+    (str preamble (:glsl (:vertex-shader units-program))))
+  (def units-shader-fs
+    (str
+      preamble
+      ;engine2_explosion/fragment-shader
+      (units-shader-hack (:glsl (:fragment-shader units-program))))))
 
 ; POSITION INITIALIZE SHADER
 
@@ -398,6 +413,12 @@ float swizzle_by_index(vec4 arg, float index) {
       (> (-> position .-y) 0.65)
       (-> material .-depthTest (set! false))
       (-> material .-depthTest (set! true)))
+    (->
+      (aget
+        (-> material .-uniforms)
+        (get-name u-time))
+      .-value
+      (set! (common/game-time)))
     (swap! render-count inc)))
 
 (defcom
@@ -475,6 +496,7 @@ float swizzle_by_index(vec4 arg, float index) {
      ;_ (-> model-attributes .-needsUpdate (set! true))
      set-uniforms
       (fn [base-uniforms]
+         (aset base-uniforms (get-name u-time) #js { :value 0})
          (aset base-uniforms (get-name u-map-size) #js { :value map-size})
          (aset base-uniforms (get-name u-model-count) #js { :value (new js/THREE.Vector2 model-count model-count-pow2)})
          (aset base-uniforms (get-name u-max-units) #js { :value max-units})
@@ -495,8 +517,8 @@ float swizzle_by_index(vec4 arg, float index) {
         #js
         {
           :uniforms uniforms
-          :vertexShader (str preamble (:glsl (:vertex-shader units-shader)))
-          :fragmentShader (str preamble (units-shader-hack (:glsl (:fragment-shader units-shader))))
+          :vertexShader units-shader-vs
+          :fragmentShader units-shader-fs
           :transparent true})
           ;:depthTest false})
           ;:depthWrite false})

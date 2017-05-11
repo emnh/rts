@@ -32,7 +32,8 @@
          u-copy-rt-scale
          get-ground-height
          encode-model
-         decode-model]]
+         decode-model
+         u-time]]
     [game.client.engine2_physics_cache :as cache]
     [gamma.api :as g]
     [gamma.program :as gprogram]
@@ -49,7 +50,6 @@
 
 ;(def u-canvas-res (g/uniform "uCanvasResolution" :vec2))
 (def u-collision-res (g/uniform "uCollisionResolution" :vec2))
-(def u-time (g/uniform "uTime" :float))
 
 (def v-unit-index (g/varying "vUnitIndex" :float :highp))
 (def v-collision-value (g/varying "vCollisionValue" :vec3 :highp))
