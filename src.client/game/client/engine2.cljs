@@ -121,7 +121,7 @@ float swizzle_by_index(vec4 arg, float index) {
   [model]
   (g/- model 1))
 
-(defn get-bounding-sphere
+(defn get-bounding-box-size-and-sphere
   [model]
   (g/texture2D
     t-model-attributes
@@ -191,8 +191,16 @@ float swizzle_by_index(vec4 arg, float index) {
          (ge/aget (ge/aget v 2) 1))
      v-pos unit-pos
      plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
-     radius (ge/w (get-bounding-sphere model))
+     bbox-and-radius (get-bounding-box-size-and-sphere model)
+     bbox (g/swizzle bbox-and-radius :xyz)
+     radius (ge/w bbox-and-radius)
+     size-x (ge/x bbox)
+     size-y (ge/y bbox)
+     size-z (ge/z bbox)
+     ;size-xz (g/div (g/+ size-x size-z) 2.0)
+     size-xz size-x
      size radius
+    ;  plane-position (g/* plane-position (g/vec3 size-xz size-y 0.0))
      v-pos
       (g/+
         v-pos
@@ -569,9 +577,21 @@ float swizzle_by_index(vec4 arg, float index) {
        [geometry (:load-promise model)]
        (let
          [
-          x (-> geometry .-boundingSphere .-center .-x)
-          y (-> geometry .-boundingSphere .-center .-y)
-          z (-> geometry .-boundingSphere .-center .-z)
+          ; x (-> geometry .-boundingSphere .-center .-x)
+          ; y (-> geometry .-boundingSphere .-center .-y)
+          ; z (-> geometry .-boundingSphere .-center .-z)
+          x
+          (-
+            (-> geometry .-boundingBox .-max .-x)
+            (-> geometry .-boundingBox .-min .-x))
+          y
+          (-
+            (-> geometry .-boundingBox .-max .-y)
+            (-> geometry .-boundingBox .-min .-y))
+          z
+          (-
+            (-> geometry .-boundingBox .-max .-z)
+            (-> geometry .-boundingBox .-min .-z))
           w (-> geometry .-boundingSphere .-radius)
           bounding-sphere [x y z w]]
          (doseq

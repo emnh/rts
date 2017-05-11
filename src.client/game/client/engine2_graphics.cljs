@@ -74,6 +74,11 @@
              (-
               (-> mesh .-geometry .-boundingBox .-max .-x)
               (-> mesh .-geometry .-boundingBox .-min .-x)))
+         scale-y
+           (* factor
+             (-
+               (-> mesh .-geometry .-boundingBox .-max .-y)
+               (-> mesh .-geometry .-boundingBox .-min .-y)))
          scale-z
            (* factor
              (-
@@ -86,8 +91,6 @@
         (-> position .normalize)
         (-> mesh .-rotation .-y
           (set! time))
-        ; (-> mesh .-rotation .-z
-        ;   (set! (math/sin time)))
         (if
           (< (-> position .-y) 0.8)
           (-> position .-y (set! 0))
@@ -102,30 +105,15 @@
           (->
             model-scene
             (.remove child)))
-        ; Add pedestal
-        (-> pedestal .-scale
-          (.set (/ scale factor) (* 0.01 scale) (/ scale factor)))
-        (-> pedestal .-position .-y
-          (set!
-            (+
-              (-> mesh .-geometry .-boundingBox .-min .-y)
-              (- (* 0.02 scale)))))
-        ; (-> model-scene
-        ;   (.add pedestal))
         ; Add model
-        ; (-> model-scene
-        ;   (.add outline-mesh))
+        ; (-> mesh .-scale
+        ;   (.set
+        ;     (/ 10 scale-x)
+        ;     (/ 10 scale-y)
+        ;     (/ 10 scale-z)))
         (-> model-scene
           (.add mesh))
-
         ; Add lights
-        ; (-> model-light
-        ;   .-position
-        ;   (.set 1 0 0))
-          ; (.set
-          ;   (-> position .-x)
-          ;   (-> position .-y)
-          ;   (-> position .-z)))
         (doseq
           [model-light model-lights]
           (-> model-scene
@@ -144,8 +132,8 @@
         (-> render-target .-scissorTest (set! true))
         (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 0.0))
         ;(-> renderer (.render model-scene model-camera))
-        (-> renderer (.render model-scene model-camera render-target true))
-        (-> renderer (.render compute-scene compute-camera render-target false))))))
+        (-> renderer (.render model-scene model-camera render-target true))))))
+        ;(-> renderer (.render compute-scene compute-camera render-target false))))))
 
 (defn on-render
   [init-renderer component]
