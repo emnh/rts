@@ -8,6 +8,7 @@
     [rum.core :as rum]
     [game.client.common :as common :refer [new-jsobj list-item data]]
     [game.client.config :as config]
+    [game.client.compute_shader :as compute_shader]
     [game.client.controls :as controls]
     [game.client.renderer :as renderer]
     [game.client.routing :as routing]
@@ -69,7 +70,7 @@
       ;:update-magic (magic/new-update-magic)
       ;:explosion (explosion/new-explosion)
       ;:update-explosion (explosion/new-update-explosion)
-      :compute-shader (water/new-compute-shader)
+      :compute-shader (compute_shader/new-compute-shader)
       :water (water/new-init-water)
       :update-water (water/new-update-water)
       :scene-add-water (scene/new-scene-add-water)

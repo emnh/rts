@@ -12,7 +12,7 @@
     [game.client.math :as math :refer [pi]]
     [game.client.gamma_ext :as ge :refer [get-name]]
     [game.client.scene :as scene]
-    [game.client.engine2 :as engine2
+    [game.client.compute_shader :as compute_shader
       :refer
         [preamble
          projection-matrix
@@ -20,20 +20,21 @@
          vertex-position
          v-uv
          vertex-uv
+         vertex-normal
+         t-copy-rt
+         u-copy-rt-scale]]
+    [game.client.engine2 :as engine2
+      :refer
+        [
          get-unit-position
          get-unit-position-index
-         vertex-normal
          a-unit-index
          u-map-size
          u-max-units
          u-max-units-res
          units-shader-hack
          discard-magic
-         copy-shader-vs
-         copy-shader-fs
          t-units-position
-         t-copy-rt
-         u-copy-rt-scale
          get-ground-height
          encode-model
          decode-model]]

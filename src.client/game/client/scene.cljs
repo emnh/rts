@@ -211,20 +211,29 @@
 
 (defcom new-scene-add-water
   [scene init-scene water]
-  []
+  [new-water-mesh new-water-mesh2]
   (fn [component]
-    (if (= (:start-count component) 0)
-      (let
-        [
-         water-mesh (:mesh water)
-         water-mesh2 (:mesh2 water)
-         new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))
-         new-water-mesh2 (new THREE.Mesh (.-geometry water-mesh2) (.-material water-mesh2))]
-        (add scene new-water-mesh)
-        (add scene new-water-mesh2)
-        component)
-      component))
+    ; (if (= (:start-count component) 0)
+    (let
+      [
+       water-mesh (:mesh water)
+       water-mesh2 (:mesh2 water)
+       new-water-mesh (new THREE.Mesh (.-geometry water-mesh) (.-material water-mesh))
+       new-water-mesh2 (new THREE.Mesh (.-geometry water-mesh2) (.-material water-mesh2))]
+      (add scene new-water-mesh)
+      (add scene new-water-mesh2)
+      (->
+        component
+        (assoc :new-water-mesh new-water-mesh)
+        (assoc :new-water-mesh2 new-water-mesh2))))
+      ; component))
   (fn [component]
+    (if
+      new-water-mesh
+      (remove scene new-water-mesh))
+    (if
+      new-water-mesh2
+      (remove scene new-water-mesh2))
     component))
 
 (defcom new-scene-add-units

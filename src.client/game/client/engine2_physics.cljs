@@ -8,7 +8,7 @@
     [game.client.math :as math]
     [game.client.gamma_ext :as ge :refer [get-name random]]
     [game.client.scene :as scene]
-    [game.client.engine2 :as engine2
+    [game.client.compute_shader :as compute_shader
       :refer
         [preamble
          projection-matrix
@@ -16,20 +16,20 @@
          vertex-position
          v-uv
          vertex-uv
-         get-unit-position
-         get-unit-position-index
          vertex-normal
+         t-copy-rt
+         u-copy-rt-scale]]
+    [game.client.engine2 :as engine2
+      :refer
+        [get-unit-position
+         get-unit-position-index
          a-unit-index
          u-map-size
          u-max-units
          u-max-units-res
          units-shader-hack
          discard-magic
-         copy-shader-vs
-         copy-shader-fs
          t-units-position
-         t-copy-rt
-         u-copy-rt-scale
          get-ground-height
          encode-model
          decode-model
@@ -384,7 +384,7 @@
      material (-> mesh .-material)
      summation-scene (:summation-scene physics)
      summation-target (:summation-target physics)
-     copy-material (:copy-material physics)
+     copy-material (:copy-material compute-shader)
      collision-application-material (:collision-application-material physics)
      collision-application-init-material (:collision-application-init-material physics)
      canvas-width (-> renderer .-domElement .-width)
@@ -628,22 +628,6 @@
      width (get-in config [:terrain :width])
      elevation (get-in config [:terrain :max-elevation])
      height (get-in config [:terrain :width])
-     copy-uniforms #js {}
-     _
-      (doto copy-uniforms
-        (aset
-          (get-name u-copy-rt-scale)
-          #js { :value (new js/THREE.Vector4 width elevation height 1)})
-        (aset
-          (get-name t-copy-rt)
-          #js { :value nil}))
-     copy-material
-       (new js/THREE.RawShaderMaterial
-         #js
-         {
-           :uniforms copy-uniforms
-           :vertexShader copy-shader-vs
-           :fragmentShader copy-shader-fs})
      collision-application-uniforms #js {}
      units-rt1 (:units-rt1 engine)
      units-rt2 (:units-rt2 engine)
@@ -683,7 +667,6 @@
       (assoc :summation-target summation-target)
       (assoc :summation-mesh summation-mesh)
       (assoc :summation-scene summation-scene)
-      (assoc :copy-material copy-material)
       (assoc :collision-application-material collision-application-material)
       (assoc :collision-application-init-material collision-application-init-material))))
 
@@ -697,7 +680,6 @@
    summation-target
    summation-scene
    summation-mesh
-   copy-material
    collision-application-material
    collision-application-init-material]
   (fn [component]
