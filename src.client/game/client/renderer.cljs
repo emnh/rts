@@ -10,6 +10,7 @@
     [game.client.engine2 :as engine2]
     [game.client.engine2_physics :as engine2_physics]
     [game.client.engine2_graphics :as engine2_graphics]
+    [game.client.engine2_selection :as engine2_selection]
     [game.client.water :as water]
     [game.client.minimap :as minimap]
     [game.client.mathbox :as mathbox]
@@ -45,6 +46,7 @@
      (engine2/on-render component (:update-units component))
      (engine2_physics/on-render component (:update-physics component))
      (engine2_graphics/on-render component (:update-textures component))
+     (engine2_selection/on-render component (:update-selection component))
      ;(mathbox/on-render component (:update-mathbox component))
      (-> renderer (.setViewport 0 0 width height))
      (-> renderer (.setScissor 0 0 width height))
@@ -63,7 +65,8 @@
    update-water
    update-units
    update-physics
-   update-textures]
+   update-textures
+   update-selection]
    ;three-overlay pixi-overlay
    ;update-magic update-explosion update-mathbox
    ;minimap]

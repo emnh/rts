@@ -75,10 +75,17 @@
 ; END SHADERS
 
 (defn on-render
-  [init-renderer component])
+  [init-renderer component]
+  (let
+    [compute-shader (:compute-shader component)
+     renderer (data (:renderer init-renderer))
+     compute-camera (:camera compute-shader)
+     compute-scene (:scene compute-shader)]))
+
+    ;(-> renderer (.render compute-scene compute-camera))))
 
 (defcom new-update-selection
-  [engine2 selector2]
+  [compute-shader engine2 selector2]
   []
   (fn [component]
     component)

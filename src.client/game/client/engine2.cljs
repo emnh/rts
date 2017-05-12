@@ -200,7 +200,9 @@ float swizzle_by_index(vec4 arg, float index) {
      ;size-xz (g/div (g/+ size-x size-z) 2.0)
      size-xz size-x
      size radius
-    ;  plane-position (g/* plane-position (g/vec3 size-xz size-y 0.0))
+     ;offset (g/div (g/- size size-y) size)
+     ;plane-position (g/+ plane-position (g/vec3 0 offset 0))
+     ;plane-position (g/* plane-position (g/vec3 size-xz size-y 0.0))
      v-pos
       (g/+
         v-pos
@@ -458,6 +460,7 @@ float swizzle_by_index(vec4 arg, float index) {
          :format js/THREE.RGBAFormat
          ; TODO: check for support
          :type js/THREE.FloatType
+         :depthBuffer false
          :stencilBuffer false}
      width (config/get-terrain-width config)
      height (config/get-terrain-height config)
@@ -612,6 +615,8 @@ float swizzle_by_index(vec4 arg, float index) {
    (-> component
     (assoc :units-rt1 units-rt1)
     (assoc :units-rt2 units-rt2)
+    (assoc :unit-attrs1 unit-attrs1)
+    (assoc :unit-attrs2 unit-attrs2)
     (assoc :mesh (new js/THREE.Mesh geo material))
     (assoc :init-material init-material)
     (assoc :set-uniforms set-uniforms)
@@ -622,7 +627,9 @@ float swizzle_by_index(vec4 arg, float index) {
 (defcom
   new-engine
   [config ground resources]
-  [units-rt1 units-rt2 mesh
+  [units-rt1 units-rt2
+   unit-attrs1 unit-attrs2
+   mesh
    init-material
    set-uniforms
    set-uniforms2
