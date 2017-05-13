@@ -60,10 +60,12 @@
 
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
-; TODO: get bounding sphere radius
-(def bounding-sphere-radius (* 16.0 1.5))
+(def bounding-sphere-radius
+  (/
+    (get-in config/config [:terrain :width])
+    (get-in config/config [:physics :collision-res-x])))
 
-(def collision-resolution-speed 16.0)
+(def collision-resolution-speed 2.0)
 
 ; UNIT COLLISIONS SHADER
 
@@ -78,7 +80,11 @@
     v-unit-index a-unit-index
     (g/gl-position)
     (let
-      [unit-pos (get-unit-position a-unit-index)
+      [unit-pos-and-model (engine2/get-unit-position-and-model a-unit-index)
+       unit-pos (g/swizzle unit-pos-and-model :xyz)
+       model (decode-model (ge/w unit-pos-and-model))
+       bbox-and-radius (engine2/get-bounding-box-size-and-sphere model)
+       radius (ge/w bbox-and-radius)
        x (ge/x unit-pos)
        y (ge/y unit-pos)
        z (ge/z unit-pos)
@@ -88,7 +94,9 @@
        unit-center (g/vec3 xn yn zn)
        factor
        (g/div
-         (g/vec2 bounding-sphere-radius)
+         ;(g/vec2 bounding-sphere-radius)
+         ;(g/vec2 radius)
+         (g/vec2 (g/max bounding-sphere-radius radius))
          (g/div
            (g/swizzle u-map-size :xz)
            (g/swizzle u-collision-res :xy)))
@@ -96,7 +104,7 @@
        (g/*
          (g/vec3 factor 0)
          (g/*
-           2.0
+           1.1 ; diameter?
            (g/div vertex-position
              (g/vec3 (ge/x u-collision-res) (ge/y u-collision-res) 1.0))))
        unit-pos (g/+ unit-center vertex-pos-scaled)]

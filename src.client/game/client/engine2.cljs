@@ -437,6 +437,7 @@
          js/THREE.RGBAFormat
          js/THREE.FloatType))
      ;_ (-> model-attributes .-needsUpdate (set! true))
+     model-attributes (create-model-attributes)
      set-uniforms
       (fn [base-uniforms]
          (aset base-uniforms (get-name u-time) #js { :value 0})
@@ -452,7 +453,7 @@
         (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
         (aset uniforms (get-name t-unit-attributes) #js { :value (-> unit-attrs1 .-texture)})
         (aset uniforms (get-name t-model-sprite) #js { :value nil})
-        (aset uniforms (get-name t-model-attributes) #js { :value nil}))
+        (aset uniforms (get-name t-model-attributes) #js { :value model-attributes}))
      _ (set-uniforms uniforms)
      _ (set-uniforms2 uniforms)
      material
@@ -469,7 +470,7 @@
      (fn
       []
       (let
-        [model-attributes (create-model-attributes)]
+        []
         (->
          (aget
            (-> material .-uniforms)

@@ -12,7 +12,7 @@
    :units
     {
       ; if max-units-base is 8, then max-units is 2^(8*2) = 64k
-      :max-units-base 7
+      :max-units-base 8
       :count 40
       :m3count 20
       :speed 50
@@ -25,8 +25,8 @@
      :texture-resolution 256}
    :physics
     {
-      :collision-res-x 256
-      :collision-res-y 256}
+      :collision-res-x 512
+      :collision-res-y 512}
    :terrain
     {
      :sea-level 0
