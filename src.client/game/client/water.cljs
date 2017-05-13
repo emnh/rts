@@ -779,7 +779,6 @@ void main() {
       (aset
         (-> copy-material .-uniforms)
         (get-name t-copy-rt)
-        ; #js { :value (-> collisions-rt .-texture)}
         #js { :value (-> render-target1 .-texture)})
       (aset
         (-> copy-material .-uniforms)

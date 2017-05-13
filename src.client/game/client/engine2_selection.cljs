@@ -37,7 +37,8 @@
          t-units-position
          get-ground-height
          encode-model
-         decode-model]]
+         decode-model
+         t-unit-attributes]]
     [gamma.api :as g]
     [gamma.program :as gprogram]
     [clojure.string :as string])
@@ -45,6 +46,9 @@
   (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))
+
+(def u-selection-rectangle (g/uniform "uSelectionRectangle" :vec4))
+(def u-selecting? (g/uniform "uSelecting" :float))
 
 ; BEGIN SHADERS
 
@@ -56,8 +60,18 @@
       (g/* (g/vec4 vertex-position 1)))})
 
 (def selection-fragment-shader
-  {
-    (g/gl-frag-color) (g/vec4 1 1 1 1)})
+  (let
+    [
+     uv (g/div (g/swizzle (g/gl-frag-coord) :xy) u-max-units-res)
+     position-and-model (g/texture2D t-units-position uv)
+     position (g/swizzle position-and-model :xyz)
+     attr
+     (ge/fake_if
+       (g/> u-selecting? 0)
+       (g/vec4 1)
+       (g/vec4 0))]
+    {
+      (g/gl-frag-color) attr}))
 
 (let
   [
@@ -67,11 +81,15 @@
        :vertex-shader selection-vertex-shader
        :fragment-shader selection-fragment-shader})]
   (def selection-shader-vs
-    (->
-      (:glsl (:vertex-shader selection-program))))
+    (str
+      preamble
+      (->
+        (:glsl (:vertex-shader selection-program)))))
   (def selection-shader-fs
-    (->
-      (:glsl (:fragment-shader selection-program)))))
+    (str
+      preamble
+      (->
+        (:glsl (:fragment-shader selection-program))))))
 
 ; END SHADERS
 
@@ -81,9 +99,31 @@
     [compute-shader (:compute-shader component)
      renderer (data (:renderer init-renderer))
      compute-camera (:camera compute-shader)
-     compute-scene (:scene compute-shader)]))
+     compute-scene (:scene compute-shader)
+     quad (:quad compute-shader)
+     selector (:selector2 component)
+     selection-material (:selection-material selector)
+     engine (:engine2 component)
+     unit-attrs1 (:unit-attrs1 engine)
+     unit-attrs2 (:unit-attrs2 engine)
+     copy-material (:copy-material compute-shader)]
 
-    ;(-> renderer (.render compute-scene compute-camera))))
+    ; Update unit-attrs2
+    (-> quad .-material (set! selection-material))
+    (-> renderer (.render compute-scene compute-camera unit-attrs2 true))
+
+    ; Copy unit-attrs2 to unit-attrs1
+    ; TODO: make a function for this
+    (-> quad .-material (set! copy-material))
+    (aset
+      (-> copy-material .-uniforms)
+      (get-name t-copy-rt)
+      #js { :value (-> unit-attrs2 .-texture)})
+    (aset
+      (-> copy-material .-uniforms)
+      (get-name u-copy-rt-scale)
+      #js { :value (new js/THREE.Vector4 1 1 1 1)})
+    (-> renderer (.render compute-scene compute-camera unit-attrs1 true))))
 
 (defcom new-update-selection
   [compute-shader engine2 selector2]
@@ -99,7 +139,19 @@
 
 (defn check-intersect
   [component x1 y1 x2 y2]
-  (reset! (:selection-rectangle component) [x1 y1 x2 y2]))
+  (reset! (:selection-rectangle component) [x1 y1 x2 y2])
+  (aset
+    (-> component :selection-material .-uniforms)
+    (get-name u-selection-rectangle)
+    #js {:value (new js/THREE.Vector4 x1 y1 x2 y2)}))
+
+(defn set-selecting
+  [component value]
+  (reset! (:selecting? component) value)
+  (aset
+    (-> component :selection-material .-uniforms)
+    (get-name u-selecting?)
+    #js {:value (if value 1 0)}))
 
 (defn
   rectangle-select
@@ -126,7 +178,6 @@
              :width (- x2 x1)
              :height (- y2 y1)}))
 
-
         (check-intersect component x1 y1 x2 y2)))))
 
 (defn
@@ -141,7 +192,8 @@
        y (-> event-data .-offsetY)]
       (reset! (:start-pos component) { :x (- x eps) :y (- y eps)})
       (reset! (:end-pos component) { :x (+ x eps) :y (+ y eps)})
-      (reset! (:selecting? component) true)
+      ;(reset! (:selecting? component) true)
+      (set-selecting component true)
       (->
         (:$selection-div component)
         (.removeClass "invisible")
@@ -170,13 +222,15 @@
 
 (defn on-mouse-up
   [component event-data]
-  (reset! (:selecting? component) false)
+  ;(reset! (:selecting? component) false)
+  (set-selecting component false)
   (-> (:$selection-div component)
     (.addClass "invisible")))
 
 (defcom
   new-selector
-  [scene init-scene params $overlay renderer camera scene-properties]
+  [scene init-scene params $overlay renderer camera scene-properties
+   engine2]
   [$selection-layer $selection-div start-pos end-pos selecting? selected frame-queued?
    selection-rectangle]
   (fn [component]
@@ -196,6 +250,26 @@
        contextevt (str "contextmenu." bindns)
        selection-element (scene/get-view-element renderer)
        $page (:$page params)
+       unit-attrs1 (:unit-attrs1 engine2)
+       selection-uniforms #js {}
+       _
+       (do
+         (aset selection-uniforms
+           (get-name u-selection-rectangle)
+           #js {:value (new js/THREE.Vector4 0 0 0 0)})
+         (aset selection-uniforms
+           (get-name u-selecting?)
+           #js {:value 0})
+         (aset selection-uniforms
+           (get-name t-unit-attributes)
+           #js {:value (-> unit-attrs1 .-texture)}))
+       selection-material
+       (new js/THREE.RawShaderMaterial
+         #js
+         {
+           :uniforms selection-uniforms
+           :vertexShader selection-shader-vs
+           :fragmentShader selection-shader-fs})
        component
        (->
          component
@@ -206,7 +280,8 @@
          (assoc :end-pos end-pos)
          (assoc :$selection-layer $selection-layer)
          (assoc :$selection-div $selection-div)
-         (assoc :selection-rectangle (atom [0 0 0 0])))]
+         (assoc :selection-rectangle (atom [0 0 0 0]))
+         (assoc :selection-material selection-material))]
 
       (-> (data $overlay) (.after $selection-layer))
       (-> $selection-layer (.addClass scene/page-class))

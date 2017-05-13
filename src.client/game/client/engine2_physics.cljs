@@ -60,7 +60,7 @@
 
 (def t-collision-application (g/uniform "tCollisionUpdate" :sampler2D))
 
-(def bounding-sphere-radius
+(def min-bounding-sphere-radius
   (/
     (get-in config/config [:terrain :width])
     (get-in config/config [:physics :collision-res-x])))
@@ -96,7 +96,7 @@
        (g/div
          ;(g/vec2 bounding-sphere-radius)
          ;(g/vec2 radius)
-         (g/vec2 (g/max bounding-sphere-radius radius))
+         (g/vec2 (g/max min-bounding-sphere-radius radius))
          (g/div
            (g/swizzle u-map-size :xz)
            (g/swizzle u-collision-res :xy)))

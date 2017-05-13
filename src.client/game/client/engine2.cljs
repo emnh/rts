@@ -127,7 +127,7 @@
 
 (defn get-unit-selected
   [index]
-  (ge/w
+  (ge/x
     (g/texture2D t-unit-attributes (get-unit-position-index index))))
 
 (def units-vertex-shader
