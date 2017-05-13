@@ -49,6 +49,7 @@
 
 (def u-selection-rectangle (g/uniform "uSelectionRectangle" :vec4))
 (def u-selecting? (g/uniform "uSelecting" :float))
+(def u-camera-view-projection-matrix (g/uniform "uCameraViewProjectionMatrix" :mat4))
 
 ; BEGIN SHADERS
 
@@ -65,11 +66,28 @@
      uv (g/div (g/swizzle (g/gl-frag-coord) :xy) u-max-units-res)
      position-and-model (g/texture2D t-units-position uv)
      position (g/swizzle position-and-model :xyz)
+     screen-position (g/* u-camera-view-projection-matrix (g/vec4 position 1))
+     screen-position (g/div screen-position (g/vec4 (ge/w screen-position)))
+     x (g/div (g/+ 1 (ge/x screen-position)) 2)
+     y (g/div (g/+ (g/- 0 (ge/y screen-position)) 1) 2)
+     prev-attr (g/texture2D t-unit-attributes uv)
+     keep-prev-attr (g/swizzle prev-attr :yzw)
+     selected?
+     (ge/fake_if
+       (g/and
+         (g/and
+           (g/>= x (ge/x u-selection-rectangle))
+           (g/<= x (ge/z u-selection-rectangle)))
+         (g/and
+           (g/>= y (ge/y u-selection-rectangle))
+           (g/<= y (ge/w u-selection-rectangle))))
+       (g/float 1)
+       (g/float 0))
      attr
      (ge/fake_if
        (g/> u-selecting? 0)
-       (g/vec4 1)
-       (g/vec4 0))]
+       (g/vec4 selected? keep-prev-attr)
+       prev-attr)]
     {
       (g/gl-frag-color) attr}))
 
@@ -140,10 +158,32 @@
 (defn check-intersect
   [component x1 y1 x2 y2]
   (reset! (:selection-rectangle component) [x1 y1 x2 y2])
-  (aset
-    (-> component :selection-material .-uniforms)
-    (get-name u-selection-rectangle)
-    #js {:value (new js/THREE.Vector4 x1 y1 x2 y2)}))
+  (let
+    [
+     width @(get-in component [:scene-properties :width])
+     height @(get-in component [:scene-properties :height])
+     x1-scaled (/ x1 width)
+     x2-scaled (/ x2 width)
+     y1-scaled (/ y1 height)
+     y2-scaled (/ y2 height)]
+    (aset
+      (-> component :selection-material .-uniforms)
+      (get-name u-selection-rectangle)
+      #js {:value (new js/THREE.Vector4 x1-scaled y1-scaled x2-scaled y2-scaled)}))
+    ; (-> js/console (.log "rect" x1-scaled y1-scaled x2-scaled y2-scaled)))
+  (let
+    [camera (data (:camera component))
+     camera-view-projection-matrix (new THREE.Matrix4)]
+    (-> camera .updateMatrixWorld)
+    (-> camera .-matrixWorldInverse (.getInverse (-> camera .-matrixWorld)))
+    (-> camera-view-projection-matrix
+      (.multiplyMatrices (-> camera .-projectionMatrix) (-> camera .-matrixWorldInverse)))
+    ; (-> js/console (.log "cvpm" camera-view-projection-matrix))
+    ; (-> js/console (.log "cam" (-> camera .-position)))
+    (aset
+      (-> component :selection-material .-uniforms)
+      (get-name u-camera-view-projection-matrix)
+      #js {:value camera-view-projection-matrix})))
 
 (defn set-selecting
   [component value]
@@ -251,9 +291,13 @@
        selection-element (scene/get-view-element renderer)
        $page (:$page params)
        unit-attrs1 (:unit-attrs1 engine2)
+       set-uniforms (:set-uniforms engine2)
+       set-uniforms2 (:set-uniforms2 engine2)
        selection-uniforms #js {}
        _
        (do
+         (set-uniforms selection-uniforms)
+         (set-uniforms2 selection-uniforms)
          (aset selection-uniforms
            (get-name u-selection-rectangle)
            #js {:value (new js/THREE.Vector4 0 0 0 0)})
@@ -261,8 +305,8 @@
            (get-name u-selecting?)
            #js {:value 0})
          (aset selection-uniforms
-           (get-name t-unit-attributes)
-           #js {:value (-> unit-attrs1 .-texture)}))
+           (get-name u-camera-view-projection-matrix)
+           #js {:value (new js/THREE.Matrix4)}))
        selection-material
        (new js/THREE.RawShaderMaterial
          #js
