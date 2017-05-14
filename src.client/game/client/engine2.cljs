@@ -106,6 +106,18 @@
      ground (g/* ground u-ground-texture-divisor)]
     ground))
 
+(defn get-ground-alignment
+  [x z unit-index-vec2]
+  (let
+    [unit-pos-and-model (g/texture2D t-units-position unit-index-vec2)
+     model (decode-model (ge/w unit-pos-and-model))
+     ground-height (get-ground-height x z)
+     bbox-and-radius (get-bounding-box-size-and-sphere model)
+     radius (ge/w bbox-and-radius)
+     ; XXX: why do we need 2 * radius? otherwise units are inside the ground..
+     y (g/+ ground-height (g/* 2 radius))]
+    y))
+
 (defn get-unit-position-index
   [index]
   (let
@@ -137,9 +149,8 @@
      model (decode-model (ge/w unit-pos-and-model))
      selected (get-unit-selected a-unit-index)
      x (ge/x unit-pos)
-     z (ge/z unit-pos)
      y (ge/y unit-pos)
-     ;y (get-ground-height x z)
+     z (ge/z unit-pos)
      unit-pos (g/vec3 x y z)
      v (g/mat4 model-view-matrix)
      camera-right-worldspace
@@ -153,7 +164,8 @@
          (ge/aget (ge/aget v 1) 1)
          (ge/aget (ge/aget v 2) 1))
      v-pos unit-pos
-     plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
+     ;plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
+     plane-position (g/+ vertex-position (g/vec3 0.0 0.0 0.0))
      bbox-and-radius (get-bounding-box-size-and-sphere model)
      bbox (g/swizzle bbox-and-radius :xyz)
      radius (ge/w bbox-and-radius)
@@ -166,18 +178,19 @@
      ;offset (g/div (g/- size size-y) size)
      ;plane-position (g/+ plane-position (g/vec3 0 offset 0))
      ;plane-position (g/* plane-position (g/vec3 size-xz size-y 0.0))
+     plane-position (g/* plane-position (g/vec3 size))
      v-pos
       (g/+
         v-pos
         (g/*
           (g/* camera-right-worldspace (ge/x plane-position))
-          size))
+          1))
      v-pos
        (g/+
          v-pos
          (g/*
            (g/* camera-up-worldspace (ge/y plane-position))
-           size))
+           1))
      glpos
       (->
       ;  (g/* projection-matrix model-view-matrix)
@@ -297,7 +310,7 @@
       ; z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
       ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
       ;z (g/* (g/- (ge/y uv) 0.5) (ge/z u-map-size))
-      y (get-ground-height x z)]
+      y (get-ground-alignment x z uv)]
     {
       (g/gl-frag-color) (g/vec4 x y z w)}))
 

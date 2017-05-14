@@ -30,7 +30,7 @@
          units-shader-hack
          discard-magic
          t-units-position
-         get-ground-height
+         get-ground-alignment
          encode-model
          decode-model
          u-time]]
@@ -326,7 +326,7 @@
         (g/div (ge/z u-map-size) -2.0)
         (g/div (ge/z u-map-size) 2.0)
         (ge/z new-position))
-      y (get-ground-height x z)
+      y (get-ground-alignment x z uv)
       result-position (g/vec3 x y z)]
     {
       (g/gl-frag-color) (g/vec4 result-position model-raw)}))

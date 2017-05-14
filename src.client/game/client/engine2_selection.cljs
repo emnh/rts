@@ -35,7 +35,6 @@
          units-shader-hack
          discard-magic
          t-units-position
-         get-ground-height
          encode-model
          decode-model
          t-unit-attributes]]
