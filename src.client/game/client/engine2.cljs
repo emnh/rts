@@ -160,10 +160,10 @@
         (ge/aget (ge/aget v 1) 0)
         (ge/aget (ge/aget v 2) 0))
      camera-up-worldspace
-       (g/vec3
-         (ge/aget (ge/aget v 0) 1)
-         (ge/aget (ge/aget v 1) 1)
-         (ge/aget (ge/aget v 2) 1))
+      (g/vec3
+        (ge/aget (ge/aget v 0) 1)
+        (ge/aget (ge/aget v 1) 1)
+        (ge/aget (ge/aget v 2) 1))
      v-pos unit-pos
      ;plane-position (g/+ vertex-position (g/vec3 0.0 0.5 0.0))
      plane-position (g/+ vertex-position (g/vec3 0.0 0.0 0.0))
@@ -187,11 +187,11 @@
           (g/* camera-right-worldspace (ge/x plane-position))
           1))
      v-pos
-       (g/+
-         v-pos
-         (g/*
-           (g/* camera-up-worldspace (ge/y plane-position))
-           1))
+      (g/+
+        v-pos
+        (g/*
+          (g/* camera-up-worldspace (ge/y plane-position))
+          1))
      glpos
       (->
       ;  (g/* projection-matrix model-view-matrix)
