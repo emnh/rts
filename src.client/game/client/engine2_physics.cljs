@@ -45,7 +45,7 @@
 ; Compiling shaders with gamma is slow (8 seconds),
 ; so we cache the compiled output and use it instead
 ; when not working on the shaders.
-(def use-cache true)
+(def use-cache false)
 (def debug-shaders false)
 
 ;(def u-canvas-res (g/uniform "uCanvasResolution" :vec2))
@@ -90,6 +90,8 @@
        z (ge/z unit-pos)
        xn (g/* 2.0 (g/div x (ge/x u-map-size)))
        yn (g/* 2.0 (g/div z (ge/z u-map-size)))
+       ; xn (g/+ xn 0.5)
+       ; yn (g/+ yn 0.5)
        zn (g/div a-unit-index u-max-units)
        unit-center (g/vec3 xn yn zn)
        factor
@@ -106,6 +108,7 @@
          (g/*
            1.1 ; diameter?
            (g/div vertex-position
+           ; (g/div (g/vec3 vertex-uv 0.0)
              (g/vec3 (ge/x u-collision-res) (ge/y u-collision-res) 1.0))))
        unit-pos (g/+ unit-center vertex-pos-scaled)]
       (g/vec4 (g/swizzle unit-pos :xy) zn 1.0))})
@@ -173,8 +176,13 @@
      ;uv (g/vec2 (g/+ (ge/x uv) unit-per-fragment-index) (ge/y uv))
 
      ; uv 0 to 1 to normalized device coordinates -1 to 1 and added quad
-     vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 0.5 0.5)) u-max-units-res)
+     ; vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 0.5 0.5)) u-max-units-res)
+     ; vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 0.0 0.0)) u-max-units-res)
+     ; vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 -0.5 -0.5)) u-max-units-res)
      ;uv (g/vec2 (ge/x uv) (g/- 0.0 (ge/y uv)))
+     ; vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 2.0 2.0)) u-max-units-res)
+     ; vpos (g/div (g/+ (g/swizzle vertex-position :xy) (g/vec2 1.5 1.5)) u-max-units-res)
+     vpos (g/div vertex-uv u-max-units-res)
      uv (g/+ uv vpos)
      uv (g/* uv 2.0)
      uv (g/+ (g/vec2 -1 -1) uv)

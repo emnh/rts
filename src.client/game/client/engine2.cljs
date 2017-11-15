@@ -115,7 +115,8 @@
      bbox-and-radius (get-bounding-box-size-and-sphere model)
      radius (ge/w bbox-and-radius)
      ; XXX: why do we need 2 * radius? otherwise units are inside the ground..
-     y (g/+ ground-height (g/* 2 radius))]
+     ; turns out it was probably a missed compilation and 1 is correct
+     y (g/+ ground-height (g/* 1 radius))]
     y))
 
 (defn get-unit-position-index
@@ -304,8 +305,10 @@
         (ge/x u-model-count))
       w (g/floor w)
       w (encode-model w)
-      ;x 0
-      ;z 0
+      ; x (rnd-f ir1)
+      ; z (rnd-f ir2)
+      x 0
+      z 0
       ; x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ; z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
       ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
@@ -364,10 +367,11 @@
     (-> position .normalize)
     ; XXX: quick hack to avoid z-fighting with ground when
     ; billboards are viewed from the top.
-    (if
-      (> (-> position .-y) 0.65)
-      (-> material .-depthTest (set! false))
-      (-> material .-depthTest (set! true)))
+    ; Seems fixed now, so disabled.
+    ; (if
+    ;   (> (-> position .-y) 1.0)
+    ;   (-> material .-depthTest (set! false))
+    ;   (-> material .-depthTest (set! true)))
     (->
       (aget
         (-> material .-uniforms)
