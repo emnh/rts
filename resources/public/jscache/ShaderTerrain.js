@@ -33,6 +33,7 @@ THREE.ShaderTerrain = {
 				"tNormal": { value: null },
 				"tSpecular": { value: null },
 				"tDisplacement": { value: null },
+				"tWaterHeight": { value: null },
 
 				"tAtlas": { value: null},
 				"tTileMap": { value: null},
@@ -73,6 +74,7 @@ THREE.ShaderTerrain = {
 			"uniform sampler2D tNormal;",
 			"uniform sampler2D tSpecular;",
 			"uniform sampler2D tDisplacement;",
+			"uniform sampler2D tWaterHeight;",
 
 			"uniform sampler2D tAtlas;",
 			"uniform sampler2D tTileMap;",
@@ -144,7 +146,11 @@ THREE.ShaderTerrain = {
 					"colDiffuse1 = GammaToLinear( colDiffuse1, float( GAMMA_FACTOR ) );",
 					"colDiffuse2 = GammaToLinear( colDiffuse2, float( GAMMA_FACTOR ) );",
 
-					"diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - texture2D( tDisplacement, uvBase ) * 256.0 / 156.0 + 0.5);",
+					// ODO: water divisor 25.0 as uniform
+					// "vec4 height = texture2D( tDisplacement, uvBase ) + texture2D( tWaterHeight, uvBase ).xxxx / 25.0;",
+					"vec4 height = texture2D( tDisplacement, uvBase );",
+
+					"diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - height * 256.0 / 156.0 + 0.5);",
 					// "diffuseColor *= colDiffuse1 * 1.5;",
 
 				" } else if( enableDiffuse1 ) {",
@@ -280,6 +286,7 @@ THREE.ShaderTerrain = {
 			"#ifdef VERTEX_TEXTURES",
 
 				"uniform sampler2D tDisplacement;",
+				"uniform sampler2D tWaterHeight;",
 				"uniform float uDisplacementScale;",
 				"uniform float uDisplacementBias;",
 
@@ -318,6 +325,8 @@ THREE.ShaderTerrain = {
 
 					"vec3 dv = texture2D( tDisplacement, uvBase ).xyz;",
 					"float df = uDisplacementScale * dv.x + uDisplacementBias;",
+					// ODO: water divisor 25.0 as uniform
+					// "df += uDisplacementScale * texture2D( tWaterHeight, uvBase ).x / 5.0;",
 					"vec3 displacedPosition = normal * df + position;",
 
 					"vec4 worldPosition = modelMatrix * vec4( displacedPosition, 1.0 );",

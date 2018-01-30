@@ -157,7 +157,7 @@
 (defcom
   new-init-scene
   ; depends on init-stats because stats elements must be appended first
-  [params renderer $overlay camera scene config ground init-stats]
+  [params renderer $overlay camera scene config init-stats]
   []
   (fn [component]
     (.append (:$page params) (-> (data renderer) .-domElement))
@@ -193,21 +193,46 @@
            z (-> (data scene) .-position .-z)
            pos (new THREE.Vector3 x y z)]
           (-> (data camera) (.lookAt pos)))
-        (let
-          [mesh (:mesh ground)
-           newmaterial (ground-fancy/get-ground-material ground (data renderer))
-           newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
-          (-> js/DEBUG .-ground (set! newmesh))
-          (-> newmesh .-receiveShadow (set! true))
-          ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
-          ;(-> newmesh .-position .-y (set! -125.0))
-          ;(-> newmesh .-castShadow (set! true))
-          (add scene newmesh))
         (assoc component :done true))
       component))
   (fn [component]
     (-> ($ (str "." page-class)) .remove)
     (assoc component :done false)))
+
+(defcom new-scene-add-ground
+  [scene init-scene ground water renderer]
+  [new-ground-mesh]
+  (fn [component]
+    (let
+      [mesh (:mesh ground)
+       newmaterial (ground-fancy/get-ground-material ground (data renderer))
+       newmesh (new THREE.Mesh (.-geometry mesh) newmaterial)]
+      (-> js/DEBUG .-ground (set! newmesh))
+      (-> newmesh .-material .-uniforms .-tWaterHeight .-value
+        ; (-> newmaterial .-uniforms .-tWaterHeight .-value)
+        (set! (-> (:mesh water) .-material .-uniforms .-tWaterHeight .-value)))
+        ; (set! (-> (:render-target1 water) .-texture)))
+        ; (set! (-> newmesh .-material .-uniforms .-tDisplacement .-value)))
+      ; (-> js/console
+      ;   (.log "tWaterHeight"
+      ;     (-> newmaterial .-uniforms .-tWaterHeight .-value)))
+      ; (-> newmaterial .-uniforms .-tWaterHeight .-needsUpdate
+      ;   (set! true))
+      ; (-> newmaterial .-uniforms .-tWaterHeight .-value .-needsUpdate
+      ;   (set! true))
+      (-> newmesh .-receiveShadow (set! true))
+      ;(-> newmesh .-rotation .-x (set! (- (/ math/pi 2.0))))
+      ;(-> newmesh .-position .-y (set! -125.0))
+      ;(-> newmesh .-castShadow (set! true))
+      (add scene newmesh)
+      (->
+        component
+        (assoc :new-ground-mesh newmesh))))
+  (fn [component]
+    (if
+      new-ground-mesh
+      (remove scene new-ground-mesh))
+    component))
 
 (defcom new-scene-add-water
   [scene init-scene water]

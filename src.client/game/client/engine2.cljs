@@ -44,8 +44,11 @@
 (def t-unit-attributes (g/uniform "tUnitAttributes" :sampler2D))
 
 (def u-ground-texture-divisor (g/uniform "uGroundTextureDivisor" :float))
+(def u-water-texture-divisor (g/uniform "uWaterTextureDivisor" :float))
+(def u-water-threshold (g/uniform "uWaterThreshold" :float))
 (def u-ground-resolution (g/uniform "tGroundResolution" :vec2))
 (def t-ground-height (g/uniform "tGroundHeight" :sampler2D))
+(def t-water-height (g/uniform "tWaterHeight" :sampler2D))
 
 (def t-model-sprite (g/uniform "tModelSprite" :sampler2D))
 ;(def t-model-explosion (g/uniform "tModelExplosion" :sampler2D))
@@ -103,19 +106,28 @@
      z (g/div (g/+ z (g/div th 2)) th)
      v (g/vec2 x z)
      ground (ge/x (g/texture2D t-ground-height v))
-     ground (g/* ground u-ground-texture-divisor)]
-    ground))
+     ground (g/* ground u-ground-texture-divisor)
+     water (ge/x (g/texture2D t-water-height v))
+     water
+      ; (ge/fake_if
+      ;   (g/> water u-water-threshold)
+      (g/+
+        (g/* water u-water-texture-divisor)
+        (g/* u-ground-texture-divisor u-water-threshold))]
+        ; 0.0]
+    (g/vec2 (g/max ground water) (ge/fake_if (g/> ground water) 1.0 0.0))))
 
 (defn get-ground-alignment
   [x z unit-index-vec2]
   (let
     [unit-pos-and-model (g/texture2D t-units-position unit-index-vec2)
      model (decode-model (ge/w unit-pos-and-model))
-     ground-height (get-ground-height x z)
+     ground-height-and-is-ground (get-ground-height x z)
+     ground-height (ge/x ground-height-and-is-ground)
+     is-ground (ge/y ground-height-and-is-ground)
      bbox-and-radius (get-bounding-box-size-and-sphere model)
-     radius (ge/w bbox-and-radius)
-     ; XXX: why do we need 2 * radius? otherwise units are inside the ground..
-     ; turns out it was probably a missed compilation and 1 is correct
+     ; radius (ge/w bbox-and-radius)
+     radius (g/* (g/* (ge/y bbox-and-radius) 0.5) is-ground)
      y (g/+ ground-height (g/* 1 radius))]
     y))
 
@@ -426,6 +438,7 @@
      geo (new js/THREE.InstancedBufferGeometry)
      index-array (new js/Float32Array max-units)
      ground (:ground component)
+     water (:water component)
      ground-resolution
       (new js/THREE.Vector2
         (:x-faces ground)
@@ -455,6 +468,11 @@
          js/THREE.FloatType))
      ;_ (-> model-attributes .-needsUpdate (set! true))
      model-attributes (create-model-attributes)
+     water-texture-multiplier
+     (-> (:mesh water) .-material .-uniforms .-uWaterElevation .-value)
+     ; (/
+     ;   (-> (:mesh water) .-material .-uniforms .-uWaterElevation .-value)
+     ;   (-> (:mesh water) .-material .-uniforms .-uWaterMultiplier .-value)))
      set-uniforms
       (fn [base-uniforms]
          (aset base-uniforms (get-name u-time) #js { :value 0})
@@ -463,8 +481,12 @@
          (aset base-uniforms (get-name u-max-units) #js { :value max-units})
          (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
          (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
+         ; TODO: get water divisor value from water.cljs
+         (aset base-uniforms (get-name u-water-texture-divisor) #js { :value water-texture-multiplier})
+         (aset base-uniforms (get-name u-water-threshold) #js { :value (-> (:mesh water) .-material .-uniforms .-uWaterThreshold .-value)})
          (aset base-uniforms (get-name u-ground-resolution) #js { :value ground-resolution})
-         (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true}))
+         (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true})
+         (aset base-uniforms (get-name t-water-height) #js { :value (-> (:mesh water) .-material .-uniforms .-tWaterHeight .-value) :needsUpdate true}))
      set-uniforms2
       (fn [uniforms]
         (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
@@ -576,7 +598,7 @@
 
 (defcom
   new-engine
-  [config ground resources]
+  [config ground resources water]
   [units-rt1 units-rt2
    unit-attrs1 unit-attrs2
    mesh

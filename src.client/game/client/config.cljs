@@ -12,7 +12,7 @@
    :units
     {
       ; if max-units-base is 8, then max-units is 2^(8*2) = 64k
-      :max-units-base 8
+      :max-units-base 7
       :count 40
       :m3count 20
       :speed 50
@@ -24,33 +24,34 @@
    {
      :texture-resolution 256}
    :physics
-    {
-      :collision-res-x 512
-      :collision-res-y 512}
+   {
+     :collision-res-x 512
+     :collision-res-y 512}
    :terrain
-    {
-     :sea-level 0
-     :min-elevation 0.0
-     :max-elevation 256.0
-     :water-threshold 0.4
-     :water-elevation 50.0
-     ; must be power of two, because of DataTexture
-     ; XXX: power of two doesn't seem to be necessary anymore
-     ; but anyhow, width should be divisible by x-faces
-     :x-faces 256
-     :y-faces 256
-     :width 4096
-     :height 4096}
-     ;:width 4000
-     ;:height 4000}
+   {
+    :sea-level 0
+    :min-elevation 0.0
+    :max-elevation 256.0
+    :water-threshold 0.4
+    :water-elevation 50.0
+    :water-multiplier 25.0
+    ; must be power of two, because of DataTexture
+    ; XXX: power of two doesn't seem to be necessary anymore
+    ; but anyhow, width should be divisible by x-faces
+    :x-faces 256
+    :y-faces 256
+    :width 4096
+    :height 4096}
+    ;:width 4000
+    ;:height 4000}
    :controls
-    {
-      :zoom-speed (/ 50 1000)
-      :scroll-speed 10
-      :rotate-speed 0.03
-      ;:origin (new js/THREE.Vector3 330 300 0)
-      ;:origin (new js/THREE.Vector3 -18 300 328)}})
-      :origin (new js/THREE.Vector3 -1200 800 1200)}})
+   {
+     :zoom-speed (/ 50 1000)
+     :scroll-speed 10
+     :rotate-speed 0.03
+     ;:origin (new js/THREE.Vector3 330 300 0)
+     ;:origin (new js/THREE.Vector3 -18 300 328)}})
+     :origin (new js/THREE.Vector3 -1200 800 1200)}})
 
 (defn get-terrain-width [config]
   (-> config :terrain :width))

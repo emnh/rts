@@ -202,6 +202,7 @@ precision highp float;
 
 uniform float uWaterThreshold;
 uniform float uWaterElevation;
+uniform float uWaterMultiplier;
 uniform float uGroundElevation;
 uniform vec2 uWaterSize;
 uniform vec2 uResolution;
@@ -223,8 +224,7 @@ void main() {
   float groundHeight = ground * uGroundElevation;
   vec4 water = texture2D(tWaterHeight, puv);
 
-  // TODO: make as uniform
-  const float heightDivisor = 25.0;
+  float heightDivisor = uWaterMultiplier;
 
   float height = water.x / heightDivisor;
 
@@ -284,6 +284,7 @@ void main() {
   uniform vec2 uResolution;
   uniform vec2 uWaterSize;
   uniform float uWaterThreshold;
+  uniform float uWaterMultiplier;
   uniform sampler2D tTiles;
   uniform sampler2D tGroundHeight;
   uniform sampler2D tWaterHeight;
@@ -622,10 +623,8 @@ void main() {
   void main() {
     float time = uTime / 1000.0;
 
-    // TODO: make as uniform
-    // const float heightDivisor = 25.0;
-    const float heightDivisor = 25.0;
-    float heightAdd = 0.0 / 25.0;
+    const float heightDivisor = uWaterMultiplier;
+    float heightAdd = 0.0 / heightDivisor;
 
     //vec3 pVertex = position.xyz / vec3(uWaterSize.x / 2.0, 1.0, uWaterSize.y / 2.0);
     vec3 pVertex = position.xzy * 2.0 + vec3(0.0, 0.0, 0.0);
@@ -905,6 +904,7 @@ void main() {
         {
           :uTime #js { :value nil}
           :uWaterThreshold #js { :value water-threshold}
+          :uWaterMultiplier #js { :value (get-in config [:terrain :water-multiplier])}
           :uGroundElevation #js { :value max-elevation}
           :uWaterElevation #js { :value max-water-elevation}
           :uWaterSize #js { :value (new js/THREE.Vector2 width height)}

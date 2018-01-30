@@ -56,6 +56,7 @@
       :render-stats (new-jsobj #(new js/Stats))
       :engine-stats (new-jsobj #(new js/Stats))
       :init-scene (scene/new-init-scene)
+      :scene-add-ground (scene/new-scene-add-ground)
       :init-light (scene/new-init-light)
       :init-stats (scene/new-init-stats)
       :init-renderer (renderer/new-init-renderer)

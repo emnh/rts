@@ -210,19 +210,19 @@
              rv
              dv)
            pos-delta
-            (ge/fake_if
-              ; (g/or
-              ;   (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
-              ;   ; can't do this, because new collisions depends on separating them
-              ;   (g/> (g/length dv) bounding-sphere-radius))
-              (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
-              (g/vec3 0.0)
-              (ge/fake_if
-                (g/and
-                  (g/> unit-a 0)
-                  (g/> unit-b 0))
-                dv
-                (g/vec3 0.0)))
+           (ge/fake_if
+             ; (g/or
+             ;   (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
+             ;   ; can't do this, because new collisions depends on separating them
+             ;   (g/> (g/length dv) bounding-sphere-radius))
+             (g/< (g/abs (g/- unit-per-fragment-index unit-per-fragment-index2)) 0.1)
+             (g/vec3 0.0)
+             (ge/fake_if
+               (g/and
+                 (g/> unit-a 0)
+                 (g/> unit-b 0))
+               dv
+               (g/vec3 0.0)))
            pos-delta (g/vec3 (ge/x pos-delta) 0.0 (ge/z pos-delta))
            pos-delta
             (ge/fake_if
@@ -556,10 +556,10 @@
           (get-name t-units-collisions)
           #js { :value (-> collisions-rt .-texture)}))
      set-time-uniform
-       (fn [uniforms]
-         (aset uniforms
-           (get-name u-time)
-           #js { :value (common/game-time)}))
+      (fn [uniforms]
+        (aset uniforms
+          (get-name u-time)
+          #js { :value (common/game-time)}))
      _ (set-uniforms uniforms)
      _ (set-uniforms2 uniforms)
      _ (set-uniforms3 uniforms)
@@ -656,19 +656,19 @@
           (get-name t-collision-application)
           #js { :value (-> summation-target .-texture)}))
      collision-application-material
-       (new js/THREE.RawShaderMaterial
-         #js
-         {
-           :uniforms collision-application-uniforms
-           :vertexShader collision-application-shader-vs
-           :fragmentShader collision-application-shader-fs})
+      (new js/THREE.RawShaderMaterial
+        #js
+        {
+          :uniforms collision-application-uniforms
+          :vertexShader collision-application-shader-vs
+          :fragmentShader collision-application-shader-fs})
      collision-application-init-material
-       (new js/THREE.RawShaderMaterial
-         #js
-         {
-           :uniforms collision-application-uniforms
-           :vertexShader collision-application-shader-init-vs
-           :fragmentShader collision-application-shader-init-fs})]
+      (new js/THREE.RawShaderMaterial
+        #js
+        {
+          :uniforms collision-application-uniforms
+          :vertexShader collision-application-shader-init-vs
+          :fragmentShader collision-application-shader-init-fs})]
 
     (-> collisions-scene
       (.add mesh))
