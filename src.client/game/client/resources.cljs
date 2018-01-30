@@ -17,6 +17,20 @@
 (def should-load-voxels? false)
 
 (defn
+  load-json
+  [path on-success on-progress on-error]
+  (let
+    [xhr (new js/XMLHttpRequest)]
+    (doto
+      xhr
+      (.open "GET" path true)
+      (aset "responseType" "json")
+      (aset "onerror" on-error)
+      (aset "onload" on-success)
+      (aset "onprogress" on-progress)
+      (.send))))
+
+(defn
   load-resource
   [path on-success on-progress on-error]
   (let

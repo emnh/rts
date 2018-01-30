@@ -34,6 +34,9 @@ THREE.ShaderTerrain = {
 				"tSpecular": { value: null },
 				"tDisplacement": { value: null },
 
+				"tAtlas": { value: null},
+				"tTileMap": { value: null},
+
 				"uNormalScale": { value: 1.0 },
 
 				"uDisplacementBias": { value: 0.0 },
@@ -70,6 +73,9 @@ THREE.ShaderTerrain = {
 			"uniform sampler2D tNormal;",
 			"uniform sampler2D tSpecular;",
 			"uniform sampler2D tDisplacement;",
+
+			"uniform sampler2D tAtlas;",
+			"uniform sampler2D tTileMap;",
 
 			"uniform float uNormalScale;",
 
@@ -115,13 +121,30 @@ THREE.ShaderTerrain = {
 
 				"if( enableDiffuse1 && enableDiffuse2 ) {",
 
-					"vec4 colDiffuse1 = texture2D( tDiffuse1, uvOverlay );",
+					// "vec4 colDiffuse1 = texture2D( tDiffuse1, uvOverlay );",
+					"float tilesXY = 100.0;",
+
+					"vec4 tileCoords = texture2D( tTileMap, floor(vUv * tilesXY) / tilesXY);",
+
+					"vec2 tileUV = tileCoords.xy + tileCoords.zw * fract(vUv * tilesXY) / tilesXY;",
+
+					"vec4 colDiffuse1 = texture2D( tAtlas, tileUV );",
+
 					"vec4 colDiffuse2 = texture2D( tDiffuse2, uvOverlay );",
+
+					"if (colDiffuse1.a < 0.0001) {",
+						"vec4 colDiffuse11 = texture2D( tDiffuse1, uvOverlay );",
+						"colDiffuse11 = GammaToLinear( colDiffuse11, float( GAMMA_FACTOR ) );",
+						"diffuseColor *= colDiffuse11;",
+					"} else {",
+						"diffuseColor *= colDiffuse1 * 1.0;",
+					"}",
 
 					"colDiffuse1 = GammaToLinear( colDiffuse1, float( GAMMA_FACTOR ) );",
 					"colDiffuse2 = GammaToLinear( colDiffuse2, float( GAMMA_FACTOR ) );",
 
-					"diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - texture2D( tDisplacement, uvBase ) * 256.0 / 156.0 + 0.5);",
+					// "diffuseColor *= mix ( colDiffuse1, colDiffuse2, 1.0 - texture2D( tDisplacement, uvBase ) * 256.0 / 156.0 + 0.5);",
+					// "diffuseColor *= colDiffuse1 * 1.5;",
 
 				" } else if( enableDiffuse1 ) {",
 

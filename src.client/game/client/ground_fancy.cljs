@@ -6,7 +6,8 @@
     [cats.core :as m]
     [game.client.math :as math :refer [floor isNaN]]
     [game.client.common :as common :refer [data]]
-    [game.client.config :as config])
+    [game.client.config :as config]
+    [game.client.resources :as resources])
   (:require-macros
     [infix.macros :refer [infix]]
     [game.shared.macros :as macros :refer [defcom]]))
@@ -14,7 +15,8 @@
 (defn get-ground-material
   [ground renderer]
   (let
-    [ mesh (:mesh ground)
+    [
+      mesh (:mesh ground)
       config (:config ground)
       texture-loader (new THREE.TextureLoader)
       material (new js/THREE.MeshStandardMaterial)
@@ -79,7 +81,7 @@
       max-elevation (get-in config [:terrain :max-elevation])
       _ (-> material .-uniforms .-uDisplacementScale .-value (set! max-elevation))
       _ (-> material .-uniforms .-uRepeatBase .-value (.set 1 1))
-      _ (-> material .-uniforms .-uRepeatOverlay .-value (.set 6 6))
+      _ (-> material .-uniforms .-uRepeatOverlay .-value (.set 24 24))
       _ (-> material .-uniforms .-enableDiffuse1 .-value (set! true))
       _ (-> material .-uniforms .-enableDiffuse2 .-value (set! true))
       _ (-> material .-uniforms .-needsUpdate (set! true))
@@ -109,5 +111,76 @@
         (-> texture .-repeat (.set map-repeat-width map-repeat-height))
         (-> material .-uniforms .-tDetail .-value (set! texture))
         (-> material .-needsUpdate (set! true)))
-      _ (-> texture-loader (.load "models/images/grasslight-big-nm.jpg" on-load-detail))]
+      _ (-> texture-loader (.load "models/images/grasslight-big-nm.jpg" on-load-detail))
+      on-load-atlas
+      (fn [texture]
+        (-> texture .-wrapS (set! (-> js/THREE .-ClampToEdgeWrapping)))
+        (-> texture .-wrapT (set! (-> js/THREE .-ClampToEdgeWrapping)))
+        (-> texture .-repeat (.set 1 1))
+        (-> material .-uniforms .-tAtlas .-value (set! texture))
+        (-> material .-needsUpdate (set! true)))
+      _ (-> texture-loader (.load "models/images/terrain_atlas.png" on-load-atlas))
+      on-load-tilemap
+      (fn [evt]
+        (this-as
+          this
+          (let
+            [data (-> this .-response)
+             tilesX 100
+             tilesY 100
+             tileWidth 32
+             tileHeight 32
+             atlasWidth 1024
+             atlasHeight 1024
+             width (* tilesX tileWidth)
+             height (* tilesY tileHeight)
+             layers (-> data .-layers)
+             layer (aget layers 1)
+             length (* tilesX tilesY)
+             rgba-size 4
+             data-texture-buffer (new js/Float32Array (* length rgba-size))
+             _
+              (doseq
+                [idx (range length)]
+                (let
+                  [
+                   tileIndex (- (aget (-> layer .-data) idx) 1)
+                   atlasTilesX (/ atlasWidth tileWidth)
+                   atlasTilesY (/ atlasHeight tileHeight)
+                   x (* (mod tileIndex atlasTilesY) (/ tileWidth atlasWidth))
+                   y (* (math/floor (/ tileIndex atlasTilesY)) (/ tileHeight atlasHeight))
+                   z (/ tileWidth atlasWidth)
+                   w (/ tileWidth atlasHeight)]
+                  (aset
+                    data-texture-buffer
+                    (+ 0 (* idx rgba-size))
+                    x)
+                  (aset
+                    data-texture-buffer
+                    (+ 1 (* idx rgba-size))
+                    y)
+                  (aset
+                    data-texture-buffer
+                    (+ 2 (* idx rgba-size))
+                    z)
+                  (aset
+                    data-texture-buffer
+                    (+ 3 (* idx rgba-size))
+                    w)))
+             data-texture
+              (new js/THREE.DataTexture
+                data-texture-buffer
+                tilesX
+                tilesY
+                js/THREE.RGBAFormat
+                js/THREE.FloatType)]
+            (do
+              (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
+              (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
+              (-> material .-uniforms .-tTileMap .-value (set! data-texture))
+              (-> material .-uniforms .-tTileMap .-needsUpdate (set! true))
+              (-> data-texture .-needsUpdate (set! true))
+              (-> material .-needsUpdate (set! true))
+              (-> js/console (.log this))))))
+      _ (resources/load-json "models/maps/map.json" on-load-tilemap (fn []) (fn []))]
     material))

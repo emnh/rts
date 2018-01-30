@@ -209,8 +209,8 @@
             y-faces
             js/THREE.RGBAFormat
             js/THREE.FloatType)]
-      (-> data-texture .-minFilter (set! js/THREE.LinearFilter))
-      (-> data-texture .-magFilter (set! js/THREE.LinearFilter))
+      (-> data-texture .-minFilter (set! js/THREE.NearestFilter))
+      (-> data-texture .-magFilter (set! js/THREE.NearestFilter))
       (-> data-texture .-needsUpdate (set! true))
       (-> component
         (assoc :width width)
