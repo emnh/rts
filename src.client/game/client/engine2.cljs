@@ -307,8 +307,8 @@
       w (encode-model w)
       ; x (rnd-f ir1)
       ; z (rnd-f ir2)
-      x 0
-      z 0
+      ; x 0
+      ; z 0
       ; x (g/* (ge/x u-map-size) (g/- (ge/x uv) 0.5))
       ; z (g/* (ge/z u-map-size) (g/- (ge/y uv) 0.5))
       ;x (g/* (g/- (ge/x uv) 0.5) (ge/x u-map-size))
