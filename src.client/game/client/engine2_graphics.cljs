@@ -47,19 +47,22 @@
      compute-shader (:compute-shader component)
      quad (:quad compute-shader)
      compute-scene (:scene compute-shader)
-     compute-camera (:camera compute-shader)]
+     compute-camera (:camera compute-shader)
+     model-count (count @meshes)
+     texture-count model-count]
+
     (-> quad .-material (set! explosion-material))
     (->
       (aget
         (-> explosion-material .-uniforms)
         (get-name u-time))
       .-value (set! time))
-    ; XXX: model index 15 is currently free to put the explosion there
-    (-> render-target .-viewport (.set (* 15 texture-resolution) 0 width height))
-    (-> render-target .-scissor (.set (* 15 texture-resolution) 0 width height))
+    ; XXX: assume a model index is currently free to put the explosion there
+    (-> render-target .-viewport (.set (* texture-count texture-resolution) 0 width height))
+    (-> render-target .-scissor (.set (* texture-count texture-resolution) 0 width height))
     (-> render-target .-scissorTest (set! true))
     (-> renderer (.setClearColor (new js/THREE.Color 0xFFFFFF) 0.0))
-    ;(-> renderer (.render compute-scene compute-camera render-target true))
+    (-> renderer (.render compute-scene compute-camera render-target true))
 
     (aset
       (-> update-mesh .-material .-uniforms)
@@ -201,13 +204,13 @@
            (new js/THREE.Mesh placeholder-geo outline-material))))
      pars
      #js
-       {
-         :wrapS js/THREE.RepeatWrapping
-         :wrapT js/THREE.RepeatWrapping
-         :minFilter js/THREE.LinearMipMapLinearFilter
-         :magFilter js/THREE.LinearFilter
-         :format js/THREE.RGBAFormat}
-         ;:stencilBuffer false}
+     {
+       :wrapS js/THREE.RepeatWrapping
+       :wrapT js/THREE.RepeatWrapping
+       :minFilter js/THREE.LinearMipMapLinearFilter
+       :magFilter js/THREE.LinearFilter
+       :format js/THREE.RGBAFormat}
+       ;:stencilBuffer false}
      config (:config component)
      texture-resolution (get-in config [:graphics :texture-resolution])
      model-count (count resource-list)

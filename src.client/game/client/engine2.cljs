@@ -192,6 +192,7 @@
      ;plane-position (g/+ plane-position (g/vec3 0 offset 0))
      ;plane-position (g/* plane-position (g/vec3 size-xz size-y 0.0))
      plane-position (g/* plane-position (g/vec3 size))
+     ; plane-position (g/* plane-position (g/vec3 size-x size-y size-z))
      v-pos
       (g/+
         v-pos
@@ -212,7 +213,9 @@
      uv vertex-uv
      uvx
      (g/div
-       (g/+ model (ge/x uv))
+       ; TODO: explosion hack. hides first model
+       (g/+ (g/+ 1 model) (ge/x uv))
+       ; (g/+ 15 (ge/x uv))
        (ge/y u-model-count))
      uvy (ge/y uv)
      uv (g/vec2 uvx uvy)]
@@ -446,6 +449,10 @@
      uniforms #js {}
      resource-list (get-in component [:resources :resource-list])
      model-count (count resource-list)
+     ; TODO: +1 is for explosion
+     model-count (inc model-count)
+     _ (-> js/console (.log "model-count" model-count))
+     ; model-count (count resource-list)
      model-count-pow2 (math/round-pow2 model-count)
      rgba-size 4
      attribute-count 1
@@ -474,25 +481,25 @@
      ;   (-> (:mesh water) .-material .-uniforms .-uWaterElevation .-value)
      ;   (-> (:mesh water) .-material .-uniforms .-uWaterMultiplier .-value)))
      set-uniforms
-      (fn [base-uniforms]
-         (aset base-uniforms (get-name u-time) #js { :value 0})
-         (aset base-uniforms (get-name u-map-size) #js { :value map-size})
-         (aset base-uniforms (get-name u-model-count) #js { :value (new js/THREE.Vector2 model-count model-count-pow2)})
-         (aset base-uniforms (get-name u-max-units) #js { :value max-units})
-         (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
-         (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
-         ; TODO: get water divisor value from water.cljs
-         (aset base-uniforms (get-name u-water-texture-divisor) #js { :value water-texture-multiplier})
-         (aset base-uniforms (get-name u-water-threshold) #js { :value (-> (:mesh water) .-material .-uniforms .-uWaterThreshold .-value)})
-         (aset base-uniforms (get-name u-ground-resolution) #js { :value ground-resolution})
-         (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true})
-         (aset base-uniforms (get-name t-water-height) #js { :value (-> (:mesh water) .-material .-uniforms .-tWaterHeight .-value) :needsUpdate true}))
+     (fn [base-uniforms]
+        (aset base-uniforms (get-name u-time) #js { :value 0})
+        (aset base-uniforms (get-name u-map-size) #js { :value map-size})
+        (aset base-uniforms (get-name u-model-count) #js { :value (new js/THREE.Vector2 model-count model-count-pow2)})
+        (aset base-uniforms (get-name u-max-units) #js { :value max-units})
+        (aset base-uniforms (get-name u-max-units-res) #js { :value (new js/THREE.Vector2 rx ry)})
+        (aset base-uniforms (get-name u-ground-texture-divisor) #js { :value (:float-texture-divisor ground)})
+        ; TODO: get water divisor value from water.cljs
+        (aset base-uniforms (get-name u-water-texture-divisor) #js { :value water-texture-multiplier})
+        (aset base-uniforms (get-name u-water-threshold) #js { :value (-> (:mesh water) .-material .-uniforms .-uWaterThreshold .-value)})
+        (aset base-uniforms (get-name u-ground-resolution) #js { :value ground-resolution})
+        (aset base-uniforms (get-name t-ground-height) #js { :value (:data-texture ground) :needsUpdate true})
+        (aset base-uniforms (get-name t-water-height) #js { :value (-> (:mesh water) .-material .-uniforms .-tWaterHeight .-value) :needsUpdate true}))
      set-uniforms2
-      (fn [uniforms]
-        (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
-        (aset uniforms (get-name t-unit-attributes) #js { :value (-> unit-attrs1 .-texture)})
-        (aset uniforms (get-name t-model-sprite) #js { :value nil})
-        (aset uniforms (get-name t-model-attributes) #js { :value model-attributes}))
+     (fn [uniforms]
+       (aset uniforms (get-name t-units-position) #js { :value (-> units-rt1 .-texture)})
+       (aset uniforms (get-name t-unit-attributes) #js { :value (-> unit-attrs1 .-texture)})
+       (aset uniforms (get-name t-model-sprite) #js { :value nil})
+       (aset uniforms (get-name t-model-attributes) #js { :value model-attributes}))
      _ (set-uniforms uniforms)
      _ (set-uniforms2 uniforms)
      material
@@ -575,6 +582,13 @@
              model-attributes-array
              (+ i (* index (* attribute-count rgba-size)))
              (nth bounding-sphere i))))
+         ; TODO: (inc index) for the explosion
+         ; (doseq
+         ;   [i (range rgba-size)]
+         ;   (aset
+         ;     model-attributes-array
+         ;     (+ i (* (inc index) (* attribute-count rgba-size)))
+         ;     (nth bounding-sphere i))))
        (update-model-attributes)))
    (doseq
      [i (range max-units)]
