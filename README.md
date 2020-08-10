@@ -105,6 +105,7 @@ Not everything is linked up yet, so overview is here:
  - [Three.js model editor](http://threejs.org/editor/) Can import .obj and export to .json.
  - [OpenGameArt](http://opengameart.org/)
  - [Turbosquid 3D Models](http://www.turbosquid.com)
+ - [Hum3D](https://hum3d.com/) - the largest source for vehicle 3D models
 
 # TODO
 
