@@ -21,7 +21,7 @@
     "express-session": "1.11.3",
     "express-ws": "2.0.0-rc.1",
     "pug": "2.0.0-alpha6",
-    "jquery": "2.2.3",
+    "jquery": "3.5.0",
     "js-beautify": "1.5.10",
     "mongodb": "2.1.18",
     "morgan": "1.6.1",
